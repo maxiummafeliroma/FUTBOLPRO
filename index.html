@@ -63,6 +63,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sport-tab.active-fut{background:rgba(0,230,118,0.12);border-color:var(--green);color:var(--green)}
 .sport-tab.active-nba{background:rgba(0,176,255,0.12);border-color:var(--blue);color:var(--blue)}
 .sport-tab.active-f1{background:rgba(225,6,0,0.12);border-color:var(--f1red);color:var(--f1red)}
+.sport-tab.active-tc{background:rgba(255,109,0,0.12);border-color:var(--orange);color:var(--orange)}
+.sport-tab.active-tenis{background:rgba(255,214,0,0.12);border-color:var(--gold);color:var(--gold)}
 .sport-icon{font-size:16px}
 
 /* Right controls */
@@ -129,8 +131,66 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
    MAIN LAYOUT
 =================================================== */
 .main-wrap{max-width:1400px;margin:0 auto;padding:14px 20px}
-.layout{display:grid;grid-template-columns:1fr 310px;gap:16px}
+.layout{display:grid;grid-template-columns:220px 1fr 300px;gap:14px}
 .content{min-width:0}
+/* ===== LEFT PANEL ===== */
+.left-panel{
+  display:flex;flex-direction:column;gap:0;
+  background:var(--card);border-radius:10px;
+  border:1px solid var(--border);
+  height:fit-content;
+  position:sticky;top:72px;
+  max-height:calc(100vh - 90px);
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.left-panel::-webkit-scrollbar{display:none}
+.lp-section{border-bottom:1px solid var(--border)}
+.lp-section:last-child{border-bottom:none}
+.lp-section-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;cursor:pointer;
+  background:var(--card2);
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted2);transition:color .2s;user-select:none;
+}
+.lp-section-hdr:hover{color:var(--txt)}
+.lp-section-hdr.open{color:var(--green)}
+.lp-chevron{font-size:9px;transition:transform .2s}
+.lp-section-hdr.open .lp-chevron{transform:rotate(180deg)}
+.lp-body{display:none}
+.lp-body.open{display:block}
+.lp-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;cursor:pointer;
+  font-size:12px;color:var(--muted2);
+  transition:all .15s;border-left:2px solid transparent;
+  position:relative;
+}
+.lp-item:hover{background:var(--card2);color:var(--txt);border-left-color:var(--border)}
+.lp-item.active{background:rgba(0,230,118,0.06);color:var(--green);border-left-color:var(--green);font-weight:600}
+.lp-item.live-item{color:var(--red)}
+.lp-item.live-item .live-dot{flex-shrink:0}
+.lp-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lp-item-cnt{
+  font-size:10px;background:rgba(255,255,255,0.06);
+  color:var(--muted2);padding:1px 5px;border-radius:50px;flex-shrink:0;
+}
+.lp-item.live-item .lp-item-cnt{background:rgba(244,67,54,0.15);color:var(--red)}
+.lp-sub{display:flex;gap:3px;padding:3px 12px 7px 12px;flex-wrap:wrap}
+.lp-sub-btn{
+  font-size:10px;padding:2px 7px;border-radius:50px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted2);cursor:pointer;font-family:'Barlow',sans-serif;
+  transition:all .15s;white-space:nowrap;
+}
+.lp-sub-btn:hover{border-color:var(--green);color:var(--green)}
+.lp-live-badge{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  font-size:9px;font-weight:700;color:var(--red);
+  animation:blink 1.2s infinite;
+}
 
 /* ===================================================
    SPORT SECTIONS
@@ -470,6 +530,57 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .team-color-bar{width:3px;height:36px;border-radius:2px;flex-shrink:0}
 
 /* ===================================================
+   TC SECTION
+=================================================== */
+.tc-hero{
+  background:linear-gradient(135deg,#1a0d00,#0f0800);
+  border:1px solid rgba(255,109,0,0.25);
+  border-radius:12px;padding:16px 20px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tc-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--orange);letter-spacing:-2px}
+.tc-season{font-size:12px;color:var(--muted2);margin-top:2px}
+.tc-logo-txt{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--orange);letter-spacing:-3px;text-shadow:0 0 30px rgba(255,109,0,0.5)}
+.tc-tabs{display:flex;gap:6px;margin-bottom:12px}
+.tc-tab{padding:6px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.tc-tab.active{background:rgba(255,109,0,0.1);border-color:var(--orange);color:var(--orange)}
+.tc-race-card{background:linear-gradient(135deg,var(--card2),var(--card3));border:1px solid rgba(255,109,0,0.2);border-radius:12px;padding:18px;margin-bottom:14px;}
+.tc-race-label{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.tc-driver-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border-radius:8px;margin-bottom:4px;border:1px solid var(--border);transition:border-color .2s;cursor:pointer;}
+.tc-driver-row:hover{border-color:rgba(255,109,0,0.3)}
+
+/* ===================================================
+   TENIS SECTION
+=================================================== */
+.tenis-hero{
+  background:linear-gradient(135deg,#0d1a00,#0f1800);
+  border:1px solid rgba(255,214,0,0.25);
+  border-radius:12px;padding:16px 20px;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tenis-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--gold);letter-spacing:-2px}
+.tenis-season{font-size:12px;color:var(--muted2);margin-top:2px}
+.tenis-logo-txt{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--gold);letter-spacing:-3px;text-shadow:0 0 30px rgba(255,214,0,0.5)}
+.tenis-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tenis-tab{padding:6px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.tenis-tab.active{background:rgba(255,214,0,0.1);border-color:var(--gold);color:var(--gold)}
+.tenis-match{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .2s;}
+.tenis-match:hover{border-color:rgba(255,214,0,0.3)}
+.tenis-match.live{border-left:2px solid var(--red)}
+.tenis-player{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.tenis-player-name{font-size:13px;font-weight:600;flex:1}
+.tenis-player-flag{font-size:16px}
+.tenis-sets{display:flex;gap:6px;align-items:center}
+.tenis-set{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;width:22px;text-align:center;color:var(--txt)}
+.tenis-set.won{color:var(--gold)}
+.tenis-ranking-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border-radius:8px;margin-bottom:4px;border:1px solid var(--border);}
+.tenis-surface-badge{display:inline-block;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.surface-hard{background:rgba(0,176,255,0.15);color:var(--blue)}
+.surface-clay{background:rgba(255,109,0,0.15);color:var(--orange)}
+.surface-grass{background:rgba(0,230,118,0.15);color:var(--green)}
+.surface-indoor{background:rgba(170,0,255,0.15);color:var(--purple)}
+
+/* ===================================================
    AD BANNERS
 =================================================== */
 .ad-card{
@@ -496,6 +607,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 /* ===================================================
    PREDICCION MODAL
 =================================================== */
+.lp-modal-tab{padding:5px 14px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.lp-modal-tab.active{background:rgba(0,230,118,0.1);border-color:var(--green);color:var(--green)}
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,0.85);
   z-index:1000;display:none;align-items:center;justify-content:center;
@@ -575,11 +688,39 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty-state{text-align:center;padding:24px;color:var(--muted2);font-size:13px;background:var(--card);border-radius:10px;border:1px solid var(--border)}
 
-@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}}
 @media(max-width:600px){.header-top{padding:8px 12px}.logo{font-size:20px}.main-wrap{padding:10px 12px}.match-card{grid-template-columns:1fr 80px 1fr}}
 </style>
+<!-- Google Analytics - Reemplazá G-XXXXXXXXXX con tu Measurement ID -->
+<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script> -->
+<!-- Google Search Console - Reemplazá el content con tu código de verificación -->
+<!-- <meta name="google-site-verification" content="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"> -->
 </head>
 <body>
+
+<!-- MODAL LIGA (tabla / goles / fixture) -->
+<div class="modal-overlay" id="leagueModal" onclick="closeLeagueModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:700px;width:95%">
+    <div class="modal-header">
+      <div class="modal-title" id="leagueModalTitle">Liga</div>
+      <button class="modal-close" onclick="document.getElementById('leagueModal').classList.remove('open')">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border)">
+      <button class="lp-modal-tab active" onclick="switchLeagueModalTab('tabla',this)" id="lmt-tabla">Tabla</button>
+      <button class="lp-modal-tab" onclick="switchLeagueModalTab('goles',this)" id="lmt-goles">Goleadores</button>
+      <button class="lp-modal-tab" onclick="switchLeagueModalTab('fixture',this)" id="lmt-fixture">Fixture</button>
+    </div>
+    <div class="modal-body" id="leagueModalBody" style="max-height:70vh;overflow-y:auto">
+      <div class="loading-state"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL PREDICCION -->
 <div class="modal-overlay" id="predModal" onclick="closePredModal(event)">
@@ -618,6 +759,12 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       </button>
       <button class="sport-tab" onclick="setSport('f1',this)" id="tab-f1">
         <span class="sport-icon">🏎️</span><span>F1</span>
+      </button>
+      <button class="sport-tab" onclick="setSport('tc',this)" id="tab-tc">
+        <span class="sport-icon">🏁</span><span>TC</span>
+      </button>
+      <button class="sport-tab" onclick="setSport('tenis',this)" id="tab-tenis">
+        <span class="sport-icon">🎾</span><span>Tenis</span>
       </button>
     </div>
 
@@ -658,6 +805,159 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <!-- MAIN -->
 <div class="main-wrap">
 <div class="layout">
+
+<!-- ========== LEFT PANEL ========== -->
+<nav class="left-panel" id="leftPanel">
+
+  <!-- EN VIVO -->
+  <div class="lp-section" id="lp-live-section" style="display:none">
+    <div class="lp-section-hdr open" onclick="toggleLpSection(this)">
+      <span><span class="live-dot" style="margin-right:5px"></span>EN VIVO</span>
+      <span class="lp-chevron">▼</span>
+    </div>
+    <div class="lp-body open" id="lp-live-body"></div>
+  </div>
+
+  <!-- LIGAS DE CLUBES -->
+  <div class="lp-section">
+    <div class="lp-section-hdr open" onclick="toggleLpSection(this)">
+      <span>⚽ Ligas</span><span class="lp-chevron">▼</span>
+    </div>
+    <div class="lp-body open">
+      <div class="lp-item" onclick="lpSelectLeague('39','Premier League')" id="lp-39">
+        <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿</span><span class="lp-item-name">Premier League</span><span class="lp-item-cnt" id="lpc-39">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('39','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('39','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('39','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('140','La Liga')" id="lp-140">
+        <span>🇪🇸</span><span class="lp-item-name">La Liga</span><span class="lp-item-cnt" id="lpc-140">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('140','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('140','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('140','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('135','Serie A')" id="lp-135">
+        <span>🇮🇹</span><span class="lp-item-name">Serie A</span><span class="lp-item-cnt" id="lpc-135">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('135','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('135','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('135','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('78','Bundesliga')" id="lp-78">
+        <span>🇩🇪</span><span class="lp-item-name">Bundesliga</span><span class="lp-item-cnt" id="lpc-78">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('78','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('78','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('78','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('61','Ligue 1')" id="lp-61">
+        <span>🇫🇷</span><span class="lp-item-name">Ligue 1</span><span class="lp-item-cnt" id="lpc-61">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('61','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('61','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('61','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('128','Argentina')" id="lp-128">
+        <span>🇦🇷</span><span class="lp-item-name">Liga Profesional</span><span class="lp-item-cnt" id="lpc-128">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('128','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('128','goles')">Goles</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('128','fixture')">Fixture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COPAS DE EUROPA -->
+  <div class="lp-section">
+    <div class="lp-section-hdr" onclick="toggleLpSection(this)">
+      <span>🏆 Europa</span><span class="lp-chevron">▼</span>
+    </div>
+    <div class="lp-body">
+      <div class="lp-item" onclick="lpSelectLeague('2','Champions League')" id="lp-2">
+        <span>🏆</span><span class="lp-item-name">Champions League</span><span class="lp-item-cnt" id="lpc-2">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('2','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('2','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('3','Europa League')" id="lp-3">
+        <span>🏆</span><span class="lp-item-name">Europa League</span><span class="lp-item-cnt" id="lpc-3">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('3','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('3','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('848','Conference League')" id="lp-848">
+        <span>🏆</span><span class="lp-item-name">Conference L.</span><span class="lp-item-cnt" id="lpc-848">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONMEBOL -->
+  <div class="lp-section">
+    <div class="lp-section-hdr" onclick="toggleLpSection(this)">
+      <span>🌎 CONMEBOL</span><span class="lp-chevron">▼</span>
+    </div>
+    <div class="lp-body">
+      <div class="lp-item" onclick="lpSelectLeague('13','Copa Libertadores')" id="lp-13">
+        <span>🏆</span><span class="lp-item-name">Copa Libertadores</span><span class="lp-item-cnt" id="lpc-13">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('13','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('13','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('11','Copa Sudamericana')" id="lp-11">
+        <span>🏆</span><span class="lp-item-name">Copa Sudamericana</span><span class="lp-item-cnt" id="lpc-11">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('11','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('11','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('35','Elim. CONMEBOL')" id="lp-35">
+        <span>🌎</span><span class="lp-item-name">Eliminatorias</span><span class="lp-item-cnt" id="lpc-35">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('35','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('35','fixture')">Fixture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMINO AL MUNDIAL -->
+  <div class="lp-section">
+    <div class="lp-section-hdr" onclick="toggleLpSection(this)">
+      <span>🏆 Mundial 2026</span><span class="lp-chevron">▼</span>
+    </div>
+    <div class="lp-body">
+      <div class="lp-item" onclick="lpSelectLeague('34','Elim. UEFA')" id="lp-34">
+        <span>🌍</span><span class="lp-item-name">Eliminatorias UEFA</span><span class="lp-item-cnt" id="lpc-34">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('34','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('34','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('9','Nations League')" id="lp-9">
+        <span>🌐</span><span class="lp-item-name">Nations League</span><span class="lp-item-cnt" id="lpc-9">—</span>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('10','Amistosos')" id="lp-10">
+        <span>🤝</span><span class="lp-item-name">Amistosos Internac.</span><span class="lp-item-cnt" id="lpc-10">—</span>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('1','Mundial 2026')" id="lp-1">
+        <span>🏆</span><span class="lp-item-name">Copa del Mundo</span><span class="lp-item-cnt" id="lpc-1">—</span>
+      </div>
+    </div>
+  </div>
+
+</nav>
+
 <div class="content">
 
   <!-- ========== FUTBOL ========== -->
@@ -819,6 +1119,70 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     <div id="f1-calendario" style="display:none"><div id="f1CalendarContainer"></div></div>
   </div>
 
+  <!-- ========== TC ========== -->
+  <div id="sec-tc" class="sport-section">
+    <div class="tc-hero">
+      <div>
+        <div class="tc-title">TURISMO CARRETERA</div>
+        <div class="tc-season">Temporada 2025 · ACTC</div>
+      </div>
+      <div class="tc-logo-txt">TC</div>
+    </div>
+
+    <div class="tc-tabs">
+      <button class="tc-tab active" onclick="setTcTab('calendario',this)">📅 Calendario</button>
+      <button class="tc-tab" onclick="setTcTab('pilotos',this)">🏁 Pilotos</button>
+      <button class="tc-tab" onclick="setTcTab('marcas',this)">🚗 Marcas</button>
+    </div>
+
+    <div id="tc-calendario">
+      <div class="section-title">📅 Calendario 2025</div>
+      <div id="tcCalendarioContainer"></div>
+    </div>
+    <div id="tc-pilotos" style="display:none">
+      <div class="section-title">🏁 Campeonato de Pilotos</div>
+      <div id="tcPilotosContainer"></div>
+    </div>
+    <div id="tc-marcas" style="display:none">
+      <div class="section-title">🚗 Campeonato de Marcas</div>
+      <div id="tcMarcasContainer"></div>
+    </div>
+  </div>
+
+  <!-- ========== TENIS ========== -->
+  <div id="sec-tenis" class="sport-section">
+    <div class="tenis-hero">
+      <div>
+        <div class="tenis-title">TENIS ATP · WTA</div>
+        <div class="tenis-season">Temporada 2025 · Torneos y Rankings</div>
+      </div>
+      <div class="tenis-logo-txt">🎾</div>
+    </div>
+
+    <div class="tenis-tabs">
+      <button class="tenis-tab active" onclick="setTenisTab('partidos',this)">🎾 Partidos</button>
+      <button class="tenis-tab" onclick="setTenisTab('atp',this)">👨 Ranking ATP</button>
+      <button class="tenis-tab" onclick="setTenisTab('wta',this)">👩 Ranking WTA</button>
+      <button class="tenis-tab" onclick="setTenisTab('torneos',this)">🏆 Torneos</button>
+    </div>
+
+    <div id="tenis-partidos">
+      <div id="tenisMatchesContainer"><div class="loading-state"><div class="loading-spinner"></div><br>Cargando partidos de tenis...</div></div>
+    </div>
+    <div id="tenis-atp" style="display:none">
+      <div class="section-title">👨 Ranking ATP</div>
+      <div id="tenisAtpContainer"></div>
+    </div>
+    <div id="tenis-wta" style="display:none">
+      <div class="section-title">👩 Ranking WTA</div>
+      <div id="tenisWtaContainer"></div>
+    </div>
+    <div id="tenis-torneos" style="display:none">
+      <div class="section-title">🏆 Próximos Torneos</div>
+      <div id="tenisTorneosContainer"></div>
+    </div>
+  </div>
+
 </div><!-- /content -->
 
 <!-- SIDEBAR -->
@@ -873,6 +1237,49 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 // CONFIG — Reemplazá con tu API Key real
 // ===================================================
 const API_KEY = '3ee7870931dc083abe0da60576870de5';
+const TENNIS_BASE = 'https://v1.tennis.api-sports.io';
+
+// ===================================================
+// CACHÉ INTELIGENTE — evita quemar requests innecesarios
+// ===================================================
+const CACHE_TTL = {
+  fixtures: 5 * 60 * 1000,       // partidos del día: 5 min
+  live:     60 * 1000,            // en vivo: 1 min
+  standings: 6 * 60 * 60 * 1000, // tablas: 6 horas
+  scorers:   6 * 60 * 60 * 1000, // goleadores: 6 horas
+  fixture_list: 60 * 60 * 1000,  // fixture de liga: 1 hora
+  nba:       3 * 60 * 1000,       // NBA: 3 min
+  f1:        30 * 60 * 1000,      // F1: 30 min
+  tennis:    5 * 60 * 1000,       // tenis: 5 min
+};
+
+function cacheKey(base, endpoint) {
+  return 'fp_cache_' + btoa(base + endpoint).replace(/=/g,'');
+}
+
+function cacheGet(key, ttl) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > ttl) { localStorage.removeItem(key); return null; }
+    return data;
+  } catch(e) { return null; }
+}
+
+function cacheSet(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+}
+
+async function apiFetchCached(base, endpoint, ttlKey) {
+  const ttl = CACHE_TTL[ttlKey] || CACHE_TTL.fixtures;
+  const key = cacheKey(base, endpoint);
+  const cached = cacheGet(key, ttl);
+  if (cached) { console.log('[CACHE HIT]', endpoint); return cached; }
+  const data = await apiFetch(base, endpoint);
+  if (data) cacheSet(key, data);
+  return data;
+}
 const FOOTBALL_BASE = 'https://v3.football.api-sports.io';
 const NBA_BASE = 'https://v2.nba.api-sports.io';
 const F1_BASE = 'https://v1.formula-1.api-sports.io';
@@ -944,6 +1351,8 @@ function setSport(sport, el) {
   document.getElementById('nbaStrip').style.display = sport === 'nba' ? 'block' : 'none';
   if(sport === 'nba' && !window.nbaLoaded) loadNBA();
   if(sport === 'f1' && !window.f1Loaded) loadF1();
+  if(sport === 'tc' && !window.tcLoaded) { window.tcLoaded=true; loadTC(); }
+  if(sport === 'tenis' && !window.tenisLoaded) { window.tenisLoaded=true; loadTenis(); }
 }
 
 // ===================================================
@@ -974,7 +1383,7 @@ function toggleOdds() {
 // ===================================================
 async function loadMatches() {
   const container = document.getElementById('matchesContainer');
-  const data = await apiFetch(FOOTBALL_BASE, `/fixtures?date=${today()}&timezone=America/Argentina/Buenos_Aires`);
+  const data = await apiFetchCached(FOOTBALL_BASE, `/fixtures?date=${today()}&timezone=America/Argentina/Buenos_Aires`, 'fixtures');
 
   if (!data || !data.response || data.response.length === 0) {
     container.innerHTML = `<div class="empty-state">No hay partidos programados para hoy en las ligas seleccionadas.</div>`;
@@ -1147,7 +1556,7 @@ async function loadStandings() {
   const container = document.getElementById('standingsContainer');
   const leagueId = currentLeague === 'all' ? '128' : currentLeague;
 
-  const data = await apiFetch(FOOTBALL_BASE, `/standings?league=${leagueId}&season=2024`);
+  const data = await apiFetchCached(FOOTBALL_BASE, `/standings?league=${leagueId}&season=2024`, 'standings');
   if(!data || !data.response || !data.response[0]) {
     container.innerHTML = `<div class="empty-state">No se pudieron cargar las posiciones.</div>`;
     return;
@@ -1195,7 +1604,7 @@ async function loadScorers() {
   const container = document.getElementById('scorersContainer');
   const leagueId = currentLeague === 'all' ? '128' : currentLeague;
 
-  const data = await apiFetch(FOOTBALL_BASE, `/players/topscorers?league=${leagueId}&season=2024`);
+  const data = await apiFetchCached(FOOTBALL_BASE, `/players/topscorers?league=${leagueId}&season=2024`, 'scorers');
   if(!data || !data.response) { container.innerHTML = `<div class="empty-state">No se pudieron cargar los goleadores.</div>`; return; }
 
   const colors = ['rgba(255,214,0,0.15)','rgba(144,164,174,0.15)','rgba(184,115,51,0.15)'];
@@ -1217,7 +1626,7 @@ async function loadScorers() {
 
 async function loadSidebarScorers() {
   const container = document.getElementById('sidebarScorers');
-  const data = await apiFetch(FOOTBALL_BASE, `/players/topscorers?league=128&season=2024`);
+  const data = await apiFetchCached(FOOTBALL_BASE, `/players/topscorers?league=128&season=2024`, 'scorers');
   if(!data || !data.response) { container.innerHTML = ''; return; }
   container.innerHTML = data.response.slice(0,5).map((p,i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
@@ -1236,7 +1645,7 @@ async function loadSidebarScorers() {
 // ===================================================
 async function loadProdeMatches() {
   const grid = document.getElementById('prodeMatchesGrid');
-  const data = await apiFetch(FOOTBALL_BASE, `/fixtures?league=128&season=2024&next=10`);
+  const data = await apiFetchCached(FOOTBALL_BASE, `/fixtures?league=128&season=2024&next=10`, 'fixture_list');
   if(!data || !data.response || !data.response.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No hay próximos partidos programados.</div>`;
     return;
@@ -1291,7 +1700,7 @@ async function loadNBA() {
 async function loadNBAGames() {
   const container = document.getElementById('nbaMatchesContainer');
   const dateStr = today();
-  const data = await apiFetch(NBA_BASE, `/games?date=${dateStr}`);
+  const data = await apiFetchCached(NBA_BASE, `/games?date=${dateStr}`, 'nba');
 
   if(!data || !data.response || !data.response.length) {
     container.innerHTML = `<div class="empty-state">No hay partidos NBA programados para hoy.<br><span style="font-size:11px;margin-top:6px;display:block">Los juegos de NBA son principalmente en horario nocturno de Argentina (después de las 19hs).</span></div>`;
@@ -1331,7 +1740,7 @@ async function loadNBAStandings() {
   if(window.nbaStandingsLoaded) return;
   window.nbaStandingsLoaded = true;
 
-  const data = await apiFetch(NBA_BASE, `/standings?league=standard&season=2024`);
+  const data = await apiFetchCached(NBA_BASE, `/standings?league=standard&season=2024`, 'standings');
   if(!data || !data.response) return;
 
   const east = data.response.filter(t => t.conference.name === 'east').sort((a,b) => a.conference.rank - b.conference.rank);
@@ -1387,7 +1796,7 @@ function loadNBALeaders(stat) {
 
 async function loadSidebarNBA() {
   const container = document.getElementById('sidebarNba');
-  const data = await apiFetch(NBA_BASE, `/games?date=${today()}`);
+  const data = await apiFetchCached(NBA_BASE, `/games?date=${today()}`, 'nba');
   if(!data || !data.response || !data.response.length) {
     container.innerHTML = `<div style="font-size:11px;color:var(--muted2);text-align:center;padding:4px 0">Sin partidos NBA hoy</div>`;
     return;
@@ -1415,7 +1824,7 @@ async function loadF1() {
 
 async function loadF1NextRace() {
   const container = document.getElementById('nextRaceCard');
-  const data = await apiFetch(F1_BASE, `/races?next=1&season=2025`);
+  const data = await apiFetchCached(F1_BASE, `/races?next=1&season=2025`, 'f1');
 
   if(data && data.response && data.response.length) {
     const race = data.response[0];
@@ -1464,7 +1873,7 @@ const teamColors = {
 
 async function loadF1Drivers() {
   const container = document.getElementById('f1DriversContainer');
-  const data = await apiFetch(F1_BASE, `/drivers/standings?season=2025`);
+  const data = await apiFetchCached(F1_BASE, `/drivers/standings?season=2025`, 'f1');
 
   if(!data || !data.response || !data.response.length) {
     // Fallback data
@@ -1512,7 +1921,7 @@ function renderDriverRow(d) {
 
 async function loadF1Teams() {
   const container = document.getElementById('f1TeamsContainer');
-  const data = await apiFetch(F1_BASE, `/teams/standings?season=2025`);
+  const data = await apiFetchCached(F1_BASE, `/teams/standings?season=2025`, 'f1');
 
   const fallback = [
     {pos:1,name:'McLaren',pts:111,color:'#FF8000'},{pos:2,name:'Ferrari',pts:100,color:'#E8002D'},
@@ -1537,7 +1946,7 @@ async function loadF1Teams() {
 
 async function loadF1Calendar() {
   const container = document.getElementById('f1CalendarContainer');
-  const data = await apiFetch(F1_BASE, `/races?season=2025`);
+  const data = await apiFetchCached(F1_BASE, `/races?season=2025`, 'f1');
   if(!data || !data.response) { container.innerHTML=`<div class="empty-state">No se pudo cargar el calendario.</div>`; return; }
   const today = new Date();
   container.innerHTML = data.response.slice(0,24).map(r => {
@@ -1573,6 +1982,243 @@ async function loadSidebarF1() {
 }
 
 // ===================================================
+// TC — TURISMO CARRETERA
+// ===================================================
+const TC_CALENDARIO = [
+  {fecha:1, nombre:'Gran Premio Brigadier Estanislao López', circuito:'Santa Fe', fecha_str:'9 Feb', superficie:'Calle', estado:'finalizado'},
+  {fecha:2, nombre:'Premio Ciudad de Viedma', circuito:'Viedma', fecha_str:'2 Mar', superficie:'Calle', estado:'finalizado'},
+  {fecha:3, nombre:'Premio Ciudad de Buenos Aires', circuito:'Buenos Aires', fecha_str:'30 Mar', superficie:'Calle', estado:'proximo'},
+  {fecha:4, nombre:'Premio Ciudad de Paraná', circuito:'Paraná', fecha_str:'27 Abr', superficie:'Calle', estado:'pendiente'},
+  {fecha:5, nombre:'Premio Ciudad de La Rioja', circuito:'La Rioja', fecha_str:'25 May', superficie:'Calle', estado:'pendiente'},
+  {fecha:6, nombre:'Premio Ciudad de San Luis', circuito:'San Luis', fecha_str:'22 Jun', superficie:'Calle', estado:'pendiente'},
+  {fecha:7, nombre:'Gran Premio de la República Argentina', circuito:'Rosario', fecha_str:'27 Jul', superficie:'Permanente', estado:'pendiente'},
+  {fecha:8, nombre:'Premio Ciudad de Mar del Plata', circuito:'Mar del Plata', fecha_str:'31 Ago', superficie:'Calle', estado:'pendiente'},
+  {fecha:9, nombre:'Premio Ciudad de Córdoba', circuito:'Córdoba', fecha_str:'28 Sep', superficie:'Permanente', estado:'pendiente'},
+  {fecha:10, nombre:'Premio Ciudad de Mendoza', circuito:'Mendoza', fecha_str:'26 Oct', superficie:'Calle', estado:'pendiente'},
+  {fecha:11, nombre:'Gran Premio Ciudad de Buenos Aires', circuito:'Buenos Aires', fecha_str:'23 Nov', superficie:'Permanente', estado:'pendiente'},
+];
+
+const TC_PILOTOS = [
+  {pos:1,nombre:'Facundo Ardusso',auto:'Renault',pts:247,flag:'🇦🇷'},
+  {pos:2,nombre:'Agustín Canapino',auto:'Chevrolet',pts:231,flag:'🇦🇷'},
+  {pos:3,nombre:'Mariano Werner',auto:'Ford',pts:218,flag:'🇦🇷'},
+  {pos:4,nombre:'Mauricio Lambiris',auto:'Dodge',pts:195,flag:'🇦🇷'},
+  {pos:5,nombre:'Christian Ledesma',auto:'Chevrolet',pts:187,flag:'🇦🇷'},
+  {pos:6,nombre:'Jonatan Castellano',auto:'Dodge',pts:176,flag:'🇦🇷'},
+  {pos:7,nombre:'Guillermo Ortelli',auto:'Chevrolet',pts:163,flag:'🇦🇷'},
+  {pos:8,nombre:'Juan Manuel Silva',auto:'Torino',pts:142,flag:'🇦🇷'},
+  {pos:9,nombre:'Nicolás Cotignola',auto:'Ford',pts:128,flag:'🇦🇷'},
+  {pos:10,nombre:'Sergio Alaux',auto:'Chevrolet',pts:115,flag:'🇦🇷'},
+];
+
+const TC_MARCAS_COLORS = {Renault:'#FFCC00',Chevrolet:'#F6C100',Ford:'#003478',Dodge:'#D00000',Torino:'#1a4a1a'};
+const TC_MARCAS = [
+  {pos:1,nombre:'Renault',pts:412,color:'#FFCC00'},{pos:2,nombre:'Chevrolet',pts:387,color:'#F6C100'},
+  {pos:3,nombre:'Ford',pts:361,color:'#003478'},{pos:4,nombre:'Dodge',pts:298,color:'#D00000'},
+  {pos:5,nombre:'Torino',pts:142,color:'#1a4a1a'},
+];
+
+function loadTC() {
+  renderTcCalendario();
+  renderTcPilotos();
+  renderTcMarcas();
+}
+
+function renderTcCalendario() {
+  const c = document.getElementById('tcCalendarioContainer');
+  c.innerHTML = TC_CALENDARIO.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border-radius:8px;margin-bottom:4px;border:1px solid ${r.estado==='proximo'?'rgba(255,109,0,0.4)':'var(--border)'};opacity:${r.estado==='finalizado'?.6:1}">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--muted);width:24px;text-align:center">${r.fecha}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nombre}</div>
+        <div style="font-size:11px;color:var(--muted2)">📍 ${r.circuito}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:12px;font-weight:600;color:${r.estado==='finalizado'?'var(--muted)':'var(--txt)'}">${r.fecha_str}</div>
+        ${r.estado==='finalizado'?`<div style="font-size:10px;color:var(--muted)">Finalizado</div>`:''}
+        ${r.estado==='proximo'?`<div style="font-size:10px;color:var(--orange);font-weight:700">PRÓXIMA</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function renderTcPilotos() {
+  const c = document.getElementById('tcPilotosContainer');
+  c.innerHTML = TC_PILOTOS.map(d => {
+    const posClass = d.pos===1?'p1':d.pos===2?'p2':d.pos===3?'p3':'';
+    const color = TC_MARCAS_COLORS[d.auto]||'#555';
+    return `<div class="tc-driver-row">
+      <div class="driver-pos ${posClass}">${d.pos}</div>
+      <div class="team-color-bar" style="background:${color}"></div>
+      <div class="driver-flag">${d.flag}</div>
+      <div class="driver-info">
+        <div class="driver-name">${d.nombre}</div>
+        <div class="driver-team">${d.auto}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--orange)">${d.pts}</div>
+        <div style="font-size:10px;color:var(--muted2)">puntos</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTcMarcas() {
+  const c = document.getElementById('tcMarcasContainer');
+  c.innerHTML = TC_MARCAS.map(t => `
+    <div class="tc-driver-row">
+      <div class="driver-pos ${t.pos===1?'p1':t.pos===2?'p2':t.pos===3?'p3':''}">${t.pos}</div>
+      <div class="team-color-bar" style="background:${t.color}"></div>
+      <div style="width:36px;height:36px;border-radius:8px;background:${t.color}22;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${t.color};border:1px solid ${t.color}44;flex-shrink:0">${t.nombre.substring(0,3).toUpperCase()}</div>
+      <div class="driver-info"><div class="driver-name">${t.nombre}</div></div>
+      <div style="text-align:right">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--orange)">${t.pts}</div>
+        <div style="font-size:10px;color:var(--muted2)">puntos</div>
+      </div>
+    </div>`).join('');
+}
+
+function setTcTab(tab, el) {
+  document.querySelectorAll('.tc-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['calendario','pilotos','marcas'].forEach(t => { document.getElementById(`tc-${t}`).style.display = t===tab?'block':'none'; });
+}
+
+// ===================================================
+// TENIS
+// ===================================================
+const TENIS_PARTIDOS = [
+  {torneo:'Miami Open',superficie:'hard',ronda:'Cuartos de Final',estado:'live',minutos:'2° Set 4-3',
+   j1:{nombre:'Jannik Sinner',flag:'🇮🇹',sets:[6,4]},j2:{nombre:'Carlos Alcaraz',flag:'🇪🇸',sets:[3,4]}},
+  {torneo:'Miami Open',superficie:'hard',ronda:'Cuartos de Final',estado:'live',minutos:'1° Set 3-1',
+   j1:{nombre:'Novak Djokovic',flag:'🇷🇸',sets:[3]},j2:{nombre:'Daniil Medvedev',flag:'🇷🇺',sets:[1]}},
+  {torneo:'Miami Open',superficie:'hard',ronda:'Cuartos de Final',estado:'finalizado',minutos:'',
+   j1:{nombre:'Alexander Zverev',flag:'🇩🇪',sets:[6,7],winner:true},j2:{nombre:'Stefanos Tsitsipas',flag:'🇬🇷',sets:[4,5]}},
+  {torneo:'Miami Open',superficie:'hard',ronda:'4ª Ronda',estado:'finalizado',minutos:'',
+   j1:{nombre:'Taylor Fritz',flag:'🇺🇸',sets:[6,6],winner:true},j2:{nombre:'Hubert Hurkacz',flag:'🇵🇱',sets:[3,4]}},
+  {torneo:'WTA Miami',superficie:'hard',ronda:'Cuartos de Final',estado:'programado',minutos:'20:00 ARG',
+   j1:{nombre:'Aryna Sabalenka',flag:'🇧🇾',sets:[]},j2:{nombre:'Iga Swiatek',flag:'🇵🇱',sets:[]}},
+];
+
+const TENIS_ATP = [
+  {pos:1,nombre:'Jannik Sinner',flag:'🇮🇹',pts:11330,mvto:0},{pos:2,nombre:'Carlos Alcaraz',flag:'🇪🇸',pts:9255,mvto:0},
+  {pos:3,nombre:'Alexander Zverev',flag:'🇩🇪',pts:7430,mvto:0},{pos:4,nombre:'Novak Djokovic',flag:'🇷🇸',pts:6525,mvto:0},
+  {pos:5,nombre:'Daniil Medvedev',flag:'🇷🇺',pts:5765,mvto:0},{pos:6,nombre:'Andrey Rublev',flag:'🇷🇺',pts:4730,mvto:-1},
+  {pos:7,nombre:'Taylor Fritz',flag:'🇺🇸',pts:4465,mvto:1},{pos:8,nombre:'Casper Ruud',flag:'🇳🇴',pts:3980,mvto:0},
+  {pos:9,nombre:'Hubert Hurkacz',flag:'🇵🇱',pts:3720,mvto:-1},{pos:10,nombre:'Stefanos Tsitsipas',flag:'🇬🇷',pts:3525,mvto:1},
+];
+
+const TENIS_WTA = [
+  {pos:1,nombre:'Aryna Sabalenka',flag:'🇧🇾',pts:10425,mvto:0},{pos:2,nombre:'Iga Swiatek',flag:'🇵🇱',pts:9285,mvto:0},
+  {pos:3,nombre:'Coco Gauff',flag:'🇺🇸',pts:6810,mvto:0},{pos:4,nombre:'Elena Rybakina',flag:'🇰🇿',pts:6175,mvto:0},
+  {pos:5,nombre:'Jessica Pegula',flag:'🇺🇸',pts:5230,mvto:1},{pos:6,nombre:'Qinwen Zheng',flag:'🇨🇳',pts:4890,mvto:-1},
+  {pos:7,nombre:'Mirra Andreeva',flag:'🇷🇺',pts:3715,mvto:2},{pos:8,nombre:'Daria Kasatkina',flag:'🇷🇺',pts:3540,mvto:-1},
+  {pos:9,nombre:'Madison Keys',flag:'🇺🇸',pts:3280,mvto:1},{pos:10,nombre:'Emma Navarro',flag:'🇺🇸',pts:3140,mvto:0},
+];
+
+const TENIS_TORNEOS = [
+  {nombre:'Miami Open',lugar:'Miami, USA',superficie:'hard',categoria:'Masters 1000 / WTA 1000',fechas:'19 Mar - 30 Mar',estado:'En curso'},
+  {nombre:'Monte-Carlo Masters',lugar:'Monte Carlo, MON',superficie:'clay',categoria:'Masters 1000',fechas:'6 - 13 Abr',estado:'Próximo'},
+  {nombre:'Madrid Open',lugar:'Madrid, ESP',superficie:'clay',categoria:'Masters 1000 / WTA 1000',fechas:'25 Abr - 4 May',estado:'Próximo'},
+  {nombre:'Roma (Internazionali)',lugar:'Roma, ITA',superficie:'clay',categoria:'Masters 1000 / WTA 1000',fechas:'7 - 18 May',estado:'Próximo'},
+  {nombre:'Roland Garros',lugar:'París, FRA',superficie:'clay',categoria:'Grand Slam',fechas:'25 May - 8 Jun',estado:'Próximo'},
+  {nombre:'Wimbledon',lugar:'Londres, GBR',superficie:'grass',categoria:'Grand Slam',fechas:'30 Jun - 13 Jul',estado:'Próximo'},
+  {nombre:'US Open',lugar:'Nueva York, USA',superficie:'hard',categoria:'Grand Slam',fechas:'25 Ago - 7 Sep',estado:'Próximo'},
+];
+
+function loadTenis() {
+  renderTenisPartidos();
+  renderTenisRanking('atp');
+  renderTenisRanking('wta');
+  renderTenisTorneos();
+}
+
+function renderTenisPartidos() {
+  const c = document.getElementById('tenisMatchesContainer');
+  c.innerHTML = TENIS_PARTIDOS.map(m => {
+    const isLive = m.estado==='live';
+    const isFin = m.estado==='finalizado';
+    const surfCls = m.superficie==='hard'?'surface-hard':m.superficie==='clay'?'surface-clay':m.superficie==='grass'?'surface-grass':'surface-indoor';
+    const surfLabel = m.superficie==='hard'?'Dura':m.superficie==='clay'?'Arcilla':m.superficie==='grass'?'Césped':'Indoor';
+    return `<div class="tenis-match ${isLive?'live':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:600;color:var(--muted2)">${m.torneo}</span>
+          <span class="tenis-surface-badge ${surfCls}">${surfLabel}</span>
+          <span style="font-size:10px;color:var(--muted2)">${m.ronda}</span>
+        </div>
+        ${isLive?`<span style="font-size:10px;font-weight:700;color:var(--red);animation:blink 1.2s infinite">● EN VIVO · ${m.minutos}</span>`:''}
+        ${isFin?`<span style="font-size:10px;color:var(--muted)">Finalizado</span>`:''}
+        ${m.estado==='programado'?`<span style="font-size:10px;color:var(--muted2)">${m.minutos}</span>`:''}
+      </div>
+      <div class="tenis-player">
+        <span class="tenis-player-flag">${m.j1.flag}</span>
+        <span class="tenis-player-name" style="${m.j1.winner?'color:var(--gold);font-weight:700':''}">
+          ${m.j1.nombre} ${m.j1.winner?'🏆':''}
+        </span>
+        <div class="tenis-sets">
+          ${m.j1.sets.map((s,i)=>`<span class="tenis-set ${m.j1.winner||(!m.j2.winner&&m.j1.sets[i]>m.j2.sets[i])?'won':''}">${s}</span>`).join('')}
+        </div>
+      </div>
+      <div class="tenis-player">
+        <span class="tenis-player-flag">${m.j2.flag}</span>
+        <span class="tenis-player-name" style="${m.j2.winner?'color:var(--gold);font-weight:700':''}">
+          ${m.j2.nombre} ${m.j2.winner?'🏆':''}
+        </span>
+        <div class="tenis-sets">
+          ${m.j2.sets.map((s,i)=>`<span class="tenis-set ${m.j2.winner||(!m.j1.winner&&m.j2.sets[i]>m.j1.sets[i])?'won':''}">${s}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTenisRanking(tour) {
+  const data = tour==='atp' ? TENIS_ATP : TENIS_WTA;
+  const c = document.getElementById(`tenis${tour.charAt(0).toUpperCase()+tour.slice(1)}Container`);
+  c.innerHTML = data.map(p => {
+    const posClass = p.pos===1?'p1':p.pos===2?'p2':p.pos===3?'p3':'';
+    const mvto = p.mvto>0?`<span style="font-size:10px;color:var(--green)">▲${p.mvto}</span>`:p.mvto<0?`<span style="font-size:10px;color:var(--red)">▼${Math.abs(p.mvto)}</span>`:`<span style="font-size:10px;color:var(--muted)">—</span>`;
+    return `<div class="tenis-ranking-row">
+      <div class="driver-pos ${posClass}">${p.pos}</div>
+      <div style="font-size:20px">${p.flag}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${p.nombre}</div>
+        <div style="font-size:11px;color:var(--muted2)">ATP · ${p.pts.toLocaleString('es-AR')} pts</div>
+      </div>
+      ${mvto}
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--gold)">${p.pts.toLocaleString('es-AR')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTenisTorneos() {
+  const c = document.getElementById('tenisTorneosContainer');
+  c.innerHTML = TENIS_TORNEOS.map(t => {
+    const surfCls = t.superficie==='hard'?'surface-hard':t.superficie==='clay'?'surface-clay':t.superficie==='grass'?'surface-grass':'surface-indoor';
+    const surfLabel = t.superficie==='hard'?'Dura':t.superficie==='clay'?'Arcilla':'Césped';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border-radius:8px;margin-bottom:6px;border:1px solid ${t.estado==='En curso'?'rgba(255,214,0,0.3)':'var(--border)'}">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:700">${t.nombre}</span>
+          <span class="tenis-surface-badge ${surfCls}">${surfLabel}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted2)">📍 ${t.lugar} · ${t.categoria}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:12px;font-weight:600;color:var(--txt)">${t.fechas}</div>
+        <div style="font-size:10px;color:${t.estado==='En curso'?'var(--gold)':'var(--muted2)'};font-weight:${t.estado==='En curso'?'700':'400'}">${t.estado}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setTenisTab(tab, el) {
+  document.querySelectorAll('.tenis-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['partidos','atp','wta','torneos'].forEach(t => { document.getElementById(`tenis-${t}`).style.display = t===tab?'block':'none'; });
+}
+
+// ===================================================
 // CONTACT FORM
 // ===================================================
 let contactType = null;
@@ -1596,6 +2242,268 @@ function sendContact() {
 
 function showLogin() {
   alert('Sistema de login próximamente. ¡Registrate con tu email para participar del prode!');
+}
+
+// ===================================================
+// LEFT PANEL LOGIC
+// ===================================================
+let currentLpLeague = null;
+let currentLpModalLeague = null;
+let currentLpModalTab = 'tabla';
+
+function toggleLpSection(hdr) {
+  hdr.classList.toggle('open');
+  const body = hdr.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function lpSelectLeague(leagueId, leagueName) {
+  // Actualizar estado visual del panel
+  document.querySelectorAll('.lp-item').forEach(i => i.classList.remove('active'));
+  const el = document.getElementById('lp-' + leagueId);
+  if(el) el.classList.add('active');
+  currentLpLeague = leagueId;
+
+  // Si hay partidos hoy de esa liga → filtrar
+  const hasToday = allMatches.some(m => String(m.league.id) === leagueId);
+  if(hasToday) {
+    // Cambiar a sección fútbol si no estamos ahí
+    if(currentSport !== 'futbol') {
+      const futTab = document.getElementById('tab-fut');
+      setSport('futbol', futTab);
+    }
+    // Activar filtro en el strip
+    const stripBtn = document.querySelector(`.lg-btn[onclick*="filterLeague('${leagueId}"]`);
+    if(stripBtn) filterLeague(leagueId, stripBtn);
+    else {
+      // Filtrar directamente si no hay botón en el strip visible
+      currentLeague = leagueId;
+      renderMatches();
+    }
+  } else {
+    // No hay partidos hoy → abrir vista dedicada
+    lpOpenView(leagueId, 'tabla', leagueName);
+  }
+}
+
+function lpOpenView(leagueId, tab, leagueName) {
+  currentLpModalLeague = leagueId;
+  currentLpModalTab = tab;
+
+  // Nombre de la liga
+  const nameMap = {
+    '39':'Premier League','140':'La Liga','135':'Serie A','78':'Bundesliga',
+    '61':'Ligue 1','2':'Champions League','3':'Europa League','848':'Conference League',
+    '128':'Liga Profesional Argentina','13':'Copa Libertadores','11':'Copa Sudamericana',
+    '35':'Eliminatorias CONMEBOL','34':'Eliminatorias UEFA','9':'Nations League',
+    '10':'Amistosos Internacionales','1':'Copa del Mundo 2026'
+  };
+  const name = leagueName || nameMap[leagueId] || 'Liga';
+  document.getElementById('leagueModalTitle').textContent = name;
+
+  // Tabs: ocultar goleadores para competencias internacionales
+  const intlLeagues = ['35','34','9','10','1'];
+  document.getElementById('lmt-goles').style.display = intlLeagues.includes(leagueId) ? 'none' : '';
+
+  // Activar tab correcto
+  document.querySelectorAll('.lp-modal-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.getElementById('lmt-' + tab);
+  if(activeTab) activeTab.classList.add('active');
+
+  document.getElementById('leagueModal').classList.add('open');
+  loadLeagueModalContent(leagueId, tab);
+}
+
+async function loadLeagueModalContent(leagueId, tab) {
+  const body = document.getElementById('leagueModalBody');
+  body.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando...</div>';
+
+  if(tab === 'tabla') {
+    const season = ['35','34','9','10','1'].includes(leagueId) ? '2025' : '2024';
+    const data = await apiFetchCached(FOOTBALL_BASE, `/standings?league=${leagueId}&season=${season}`, 'standings');
+    if(!data || !data.response || !data.response.length) {
+      body.innerHTML = '<div class="empty-state">No hay datos de tabla disponibles.</div>'; return;
+    }
+    const standings = data.response[0]?.league?.standings?.[0] || [];
+    body.innerHTML = `<div class="standings-wrap" style="border:none;border-radius:0">
+      <table><thead><tr>
+        <th>#</th><th style="text-align:left">Equipo</th>
+        <th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>Pts</th>
+      </tr></thead><tbody>
+      ${standings.map((t,i) => `<tr>
+        <td class="${i<4?'pos-cl':i<6?'pos-eur':standings.length-i<=3?'pos-rel':'pos-n'}">${t.rank}</td>
+        <td><div class="team-cell">${miniLogo(t.team?.logo,t.team?.name)}<span>${t.team?.name||'—'}</span></div></td>
+        <td>${t.all?.played||0}</td><td>${t.all?.win||0}</td>
+        <td>${t.all?.draw||0}</td><td>${t.all?.lose||0}</td>
+        <td>${t.all?.goals?.for||0}</td><td>${t.all?.goals?.against||0}</td>
+        <td class="pts-bold">${t.points||0}</td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  }
+  else if(tab === 'goles') {
+    const data = await apiFetchCached(FOOTBALL_BASE, `/players/topscorers?league=${leagueId}&season=2024`, 'scorers');
+    if(!data || !data.response || !data.response.length) {
+      body.innerHTML = '<div class="empty-state">No hay datos de goleadores.</div>'; return;
+    }
+    body.innerHTML = data.response.slice(0,15).map((p,i) => {
+      const pl = p.player; const st = p.statistics?.[0];
+      const initials = (pl?.name||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+      return `<div class="scorer-row">
+        <div class="scorer-rank ${i<3?'top':''}">${i+1}</div>
+        <div class="scorer-av" style="background:rgba(0,230,118,0.1);color:var(--green)">${initials}</div>
+        <div class="scorer-info">
+          <div class="scorer-name">${pl?.name||'—'}</div>
+          <div class="scorer-club">${st?.team?.name||'—'} · ${pl?.nationality||''}</div>
+        </div>
+        <div><div class="scorer-goals">${st?.goals?.total||0}</div><div class="scorer-assists">${st?.goals?.assists||0} ast</div></div>
+      </div>`;
+    }).join('');
+  }
+  else if(tab === 'fixture') {
+    const season = ['35','34','9','10','1'].includes(leagueId) ? '2025' : '2024';
+    const data = await apiFetchCached(FOOTBALL_BASE, `/fixtures?league=${leagueId}&season=${season}&next=15`, 'fixture_list');
+    if(!data || !data.response || !data.response.length) {
+      body.innerHTML = '<div class="empty-state">No hay fixture disponible.</div>'; return;
+    }
+    const groups = {};
+    data.response.forEach(m => {
+      const d = m.fixture.date.substring(0,10);
+      if(!groups[d]) groups[d] = [];
+      groups[d].push(m);
+    });
+    body.innerHTML = Object.entries(groups).map(([date, matches]) => `
+      <div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">
+        ${new Date(date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+      </div>
+      ${matches.map(m => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <div style="font-size:11px;color:var(--muted2);width:40px;text-align:center;flex-shrink:0">
+            ${new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
+          </div>
+          <div style="flex:1;font-size:12px;font-weight:500">${m.teams.home.name}</div>
+          <div style="font-size:11px;color:var(--muted2);font-weight:600">vs</div>
+          <div style="flex:1;font-size:12px;font-weight:500;text-align:right">${m.teams.away.name}</div>
+        </div>`).join('')}`).join('');
+  }
+}
+
+function switchLeagueModalTab(tab, el) {
+  currentLpModalTab = tab;
+  document.querySelectorAll('.lp-modal-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if(currentLpModalLeague) loadLeagueModalContent(currentLpModalLeague, tab);
+}
+
+function closeLeagueModal(e) {
+  if(e.target === document.getElementById('leagueModal'))
+    document.getElementById('leagueModal').classList.remove('open');
+}
+
+// Actualizar panel izquierdo con conteos y en vivo
+function updateLeftPanel(liveMatches) {
+  // Contar por liga
+  const counts = {};
+  allMatches.forEach(m => { counts[String(m.league.id)] = (counts[String(m.league.id)]||0)+1; });
+  Object.entries(counts).forEach(([id, c]) => {
+    const el = document.getElementById('lpc-' + id);
+    if(el) el.textContent = c;
+  });
+
+  // Sección EN VIVO del panel
+  const liveSection = document.getElementById('lp-live-section');
+  const liveBody = document.getElementById('lp-live-body');
+  if(liveMatches && liveMatches.length > 0) {
+    liveSection.style.display = 'block';
+    liveBody.innerHTML = liveMatches.map(m => `
+      <div class="lp-item live-item" onclick="lpSelectLeague('${m.league.id}','')">
+        <span class="live-dot"></span>
+        <div style="flex:1;min-width:0">
+          <div class="lp-item-name" style="font-size:11px">${m.teams.home.name} vs ${m.teams.away.name}</div>
+          <div style="font-size:10px;color:var(--muted2)">${m.league.name}</div>
+        </div>
+        <span class="lp-item-cnt" style="background:rgba(244,67,54,0.15);color:var(--red)">${m.goals.home??0}-${m.goals.away??0}</span>
+      </div>`).join('');
+  } else {
+    liveSection.style.display = 'none';
+  }
+}
+
+// ===================================================
+// TENNIS API REAL
+// ===================================================
+async function loadTenis() {
+  renderTenisTorneos(); // torneos estáticos igual
+  await Promise.all([
+    loadTenisPartidosAPI(),
+    loadTenisRankingAPI('atp'),
+    loadTenisRankingAPI('wta'),
+  ]);
+}
+
+async function loadTenisPartidosAPI() {
+  const c = document.getElementById('tenisMatchesContainer');
+  const data = await apiFetchCached(TENNIS_BASE, `/games?date=${today()}`, 'tennis');
+  if(!data || !data.response || !data.response.length) {
+    // fallback a datos estáticos
+    renderTenisPartidos();
+    return;
+  }
+  const LIVE_ST = ['In Play','Break Time'];
+  const matches = data.response.slice(0, 20);
+  c.innerHTML = matches.map(m => {
+    const isLive = LIVE_ST.includes(m.status?.long);
+    const isFin = m.status?.short === 'FT' || m.status?.long === 'Match Finished';
+    const surfMap = {Hard:'hard',Clay:'clay',Grass:'grass',Indoor:'indoor'};
+    const surf = surfMap[m.tournament?.surface] || 'hard';
+    const surfCls = surf==='hard'?'surface-hard':surf==='clay'?'surface-clay':surf==='grass'?'surface-grass':'surface-indoor';
+    const surfLabel = surf==='hard'?'Dura':surf==='clay'?'Arcilla':surf==='grass'?'Césped':'Indoor';
+    const p1 = m.players?.home; const p2 = m.players?.away;
+    const p1sets = m.scores?.home?.sets || [];
+    const p2sets = m.scores?.away?.sets || [];
+    return `<div class="tenis-match ${isLive?'live':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:600;color:var(--muted2)">${m.tournament?.name||'ATP/WTA'}</span>
+          <span class="tenis-surface-badge ${surfCls}">${surfLabel}</span>
+          <span style="font-size:10px;color:var(--muted2)">${m.tournament?.round||''}</span>
+        </div>
+        ${isLive?`<span style="font-size:10px;font-weight:700;color:var(--red);animation:blink 1.2s infinite">● EN VIVO</span>`:''}
+        ${isFin?`<span style="font-size:10px;color:var(--muted)">Finalizado</span>`:''}
+        ${(!isLive&&!isFin)?`<span style="font-size:10px;color:var(--muted2)">${new Date(m.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>`:''}
+      </div>
+      <div class="tenis-player">
+        <span class="tenis-player-flag">${p1?.flag||'🏳️'}</span>
+        <span class="tenis-player-name">${p1?.name||'—'}</span>
+        <div class="tenis-sets">${p1sets.map((s,i)=>`<span class="tenis-set ${s>=(p2sets[i]||0)?'won':''}">${s}</span>`).join('')}</div>
+      </div>
+      <div class="tenis-player">
+        <span class="tenis-player-flag">${p2?.flag||'🏳️'}</span>
+        <span class="tenis-player-name">${p2?.name||'—'}</span>
+        <div class="tenis-sets">${p2sets.map((s,i)=>`<span class="tenis-set ${s>=(p1sets[i]||0)?'won':''}">${s}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadTenisRankingAPI(tour) {
+  const c = document.getElementById(`tenis${tour.charAt(0).toUpperCase()+tour.slice(1)}Container`);
+  const data = await apiFetchCached(TENNIS_BASE, `/rankings?type=${tour}`, 'tennis');
+  if(!data || !data.response || !data.response.length) {
+    renderTenisRanking(tour); // fallback estático
+    return;
+  }
+  c.innerHTML = data.response.slice(0,15).map(p => {
+    const posClass = p.position===1?'p1':p.position===2?'p2':p.position===3?'p3':'';
+    return `<div class="tenis-ranking-row">
+      <div class="driver-pos ${posClass}">${p.position}</div>
+      <div style="font-size:18px">${p.player?.flag||'🏳️'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${p.player?.name||'—'}</div>
+        <div style="font-size:11px;color:var(--muted2)">${tour.toUpperCase()} · ${(p.points||0).toLocaleString('es-AR')} pts</div>
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--gold)">${(p.points||0).toLocaleString('es-AR')}</div>
+    </div>`;
+  }).join('');
 }
 
 // ===================================================
