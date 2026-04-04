@@ -1539,13 +1539,22 @@ async function apiFetch(base, endpoint) {
   } catch(e) { console.warn('[api-sports]', endpoint, e.message); return null; }
 }
 
-// ── Fetcher football-data.org ──────────────────────────────────────
+// ── Fetcher football-data.org — DIRECTO CON CACHÉ ─────────────────
+const FD_KEY  = 'a59b0e873bd34dcfa1de9fafd856a2ba';
+const FD_BASE = 'https://api.football-data.org/v4';
+
 async function fdFetch(endpoint) {
   try {
+    const ck = 'fp_fd_' + btoa(endpoint).replace(/[^a-zA-Z0-9]/g,'').substring(0,24);
+    const ttl = endpoint.includes('/matches') ? 5*60*1000 : 6*60*60*1000;
+    const hit = cacheGet(ck, ttl);
+    if(hit) { console.log('[FD CACHE HIT]', endpoint); return hit; }
     const res = await fetch(FD_BASE + endpoint, { headers: { 'X-Auth-Token': FD_KEY } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.json();
-  } catch(e) { console.warn('[football-data]', endpoint, e.message); return null; }
+    const data = await res.json();
+    if(data) cacheSet(ck, data);
+    return data;
+  } catch(e) { console.warn('[fd]', endpoint, e.message); return null; }
 }
 
 // ── Fetcher TheSportsDB (sin key) ─────────────────────────────────
