@@ -1539,22 +1539,13 @@ async function apiFetch(base, endpoint) {
   } catch(e) { console.warn('[api-sports]', endpoint, e.message); return null; }
 }
 
-// ── Fetcher football-data.org — DIRECTO CON CACHÉ ─────────────────
-const FD_KEY  = 'a59b0e873bd34dcfa1de9fafd856a2ba';
-const FD_BASE = 'https://api.football-data.org/v4';
-
+// ── Fetcher football-data.org — VÍA PROXY ─────────────────────────
 async function fdFetch(endpoint) {
   try {
-    const ck = 'fp_fd_' + btoa(endpoint).replace(/[^a-zA-Z0-9]/g,'').substring(0,24);
-    const ttl = endpoint.includes('/matches') ? 5*60*1000 : 6*60*60*1000;
-    const hit = cacheGet(ck, ttl);
-    if(hit) { console.log('[FD CACHE HIT]', endpoint); return hit; }
-    const res = await fetch(FD_BASE + endpoint, { headers: { 'X-Auth-Token': FD_KEY } });
+    const res = await fetch('/api/fd?endpoint=' + encodeURIComponent(endpoint));
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if(data) cacheSet(ck, data);
-    return data;
-  } catch(e) { console.warn('[fd]', endpoint, e.message); return null; }
+    return await res.json();
+  } catch(e) { console.warn('[fd-proxy]', endpoint, e.message); return null; }
 }
 
 // ── Fetcher TheSportsDB (sin key) ─────────────────────────────────
@@ -1669,9 +1660,7 @@ async function loadArgentinaFixtures() {
   const cached = cacheGet(cacheKey, CACHE_TTL.fixtures);
   if(cached) return cached;
   try {
-    const res = await fetch(APISPORTS_BASE + '/fixtures?league=128&season=2025&next=20', {
-      headers: { 'x-apisports-key': API_KEY }
-    });
+    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/fixtures?league=128&season=2025&next=20'));
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if(data && data.response) {
@@ -1687,9 +1676,7 @@ async function loadArgentinaStandings() {
   const cached = cacheGet(cacheKey, CACHE_TTL.standings);
   if(cached) return cached;
   try {
-    const res = await fetch(APISPORTS_BASE + '/standings?league=128&season=2025', {
-      headers: { 'x-apisports-key': API_KEY }
-    });
+    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/standings?league=128&season=2025'));
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if(data && data.response && data.response.length) {
@@ -1706,9 +1693,7 @@ async function loadArgentinaScorers() {
   const cached = cacheGet(cacheKey, CACHE_TTL.scorers);
   if(cached) return cached;
   try {
-    const res = await fetch(APISPORTS_BASE + '/players/topscorers?league=128&season=2025', {
-      headers: { 'x-apisports-key': API_KEY }
-    });
+    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/players/topscorers?league=128&season=2025'));
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if(data && data.response) {
