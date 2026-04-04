@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/football.js": {
+      "runtime": "edge"
+    },
+    "api/fd.js": {
+      "runtime": "edge"
+    }
+  }
+}
