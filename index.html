@@ -1642,8 +1642,8 @@ function normalizeFDMatch(m, compCode) {
     },
     league: { id: leagueId, name: m.competition?.name || '', country: m.area?.name || 'World', logo: '' },
     teams: {
-      home: { id: m.homeTeam?.id, name: m.homeTeam?.shortName || m.homeTeam?.name || '?', logo: m.homeTeam?.crest || '' },
-      away: { id: m.awayTeam?.id, name: m.awayTeam?.shortName || m.awayTeam?.name || '?', logo: m.awayTeam?.crest || '' }
+      home: { id: m.homeTeam?.id, name: m.homeTeam?.name || m.homeTeam?.shortName || '?', logo: m.homeTeam?.crest || '' },
+      away: { id: m.awayTeam?.id, name: m.awayTeam?.name || m.awayTeam?.shortName || '?', logo: m.awayTeam?.crest || '' }
     },
     goals: { home: m.score?.fullTime?.home ?? m.score?.halfTime?.home ?? null, away: m.score?.fullTime?.away ?? m.score?.halfTime?.away ?? null },
     odds: null
@@ -1704,15 +1704,32 @@ async function loadArgentinaScorers() {
   return [];
 }
 
+// Cargar cualquier liga de api-sports con caché
+async function loadApiSportsLeague(leagueId) {
+  const ck = 'fp_apisports_' + leagueId + '_' + today();
+  const cached = cacheGet(ck, CACHE_TTL.fixtures);
+  if(cached) return cached;
+  try {
+    const endpoint = encodeURIComponent('/fixtures?league=' + leagueId + '&season=2025&date=' + today());
+    const res = await fetch('/api/football?endpoint=' + endpoint);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(data && data.response) { cacheSet(ck, data.response); return data.response; }
+  } catch(e) { console.warn('[api-sports liga ' + leagueId + ']', e.message); }
+  return [];
+}
+
 // Normalizar partido de api-sports al formato interno
-function normalizeApiSportsMatch(m) {
+function normalizeApiSportsMatch(m, leagueId) {
+  const lid = leagueId || String(m.league?.id || '128');
+  const leagueNames = {'128':'Liga Profesional','13':'Copa Libertadores','11':'Copa Sudamericana'};
   return {
     fixture: {
       id: m.fixture.id,
       date: m.fixture.date,
       status: { short: m.fixture.status.short, elapsed: m.fixture.status.elapsed, long: m.fixture.status.long }
     },
-    league: { id: '128', name: m.league.name, country: 'Argentina', logo: m.league.logo },
+    league: { id: lid, name: m.league?.name || leagueNames[lid] || 'Argentina', country: m.league?.country || 'Argentina', logo: m.league?.logo || '' },
     teams: {
       home: { id: m.teams.home.id, name: m.teams.home.name, logo: m.teams.home.logo },
       away: { id: m.teams.away.id, name: m.teams.away.name, logo: m.teams.away.logo }
@@ -1766,7 +1783,7 @@ async function loadMatches() {
       console.log('[CACHE HIT] FD matches');
     } else {
       // football-data.org: traer todos los partidos de hoy
-      const res = await fdFetch('/matches?date=' + today());
+      const res = await fdFetch('/matches?dateFrom=' + today() + '&dateTo=' + today());
       if (res && res.matches && res.matches.length > 0) {
         matches = res.matches.map(m => normalizeFDMatch(m, m.competition?.code || ''));
         cacheSet(cacheKey, matches);
@@ -1795,21 +1812,27 @@ async function loadMatches() {
       renderLiveBanner(liveMatches);
     }
 
-    // Cargar Argentina en paralelo (api-sports, 1-2 req/día)
-    loadArgentinaFixtures().then(argFixtures => {
-      if(argFixtures && argFixtures.length) {
-        const argNorm = argFixtures.map(m => normalizeApiSportsMatch(m));
-        // Agregar solo los que no estén ya
+    // Cargar Argentina + Libertadores + Sudamericana (api-sports)
+    Promise.all([
+      loadApiSportsLeague('128'),
+      loadApiSportsLeague('13'),
+      loadApiSportsLeague('11'),
+    ]).then(([argFix, libFix, sudFix]) => {
+      const extra = [
+        ...(argFix||[]).map(m => normalizeApiSportsMatch(m,'128')),
+        ...(libFix||[]).map(m => normalizeApiSportsMatch(m,'13')),
+        ...(sudFix||[]).map(m => normalizeApiSportsMatch(m,'11')),
+      ];
+      if(extra.length) {
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
-        argNorm.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
-        // Actualizar conteo
-        const argCount = argNorm.length;
-        const cntEl = document.getElementById('cnt-128');
-        if(cntEl) cntEl.textContent = argCount;
+        extra.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+        const counts = {};
+        allMatches.forEach(m => { const id=String(m.league.id); counts[id]=(counts[id]||0)+1; });
         document.getElementById('cnt-all').textContent = allMatches.length;
-        // Re-render si está filtrado en Argentina
-        if(currentLeague === '128' || currentLeague === 'all') renderMatches();
-        updateLeftPanel(allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short)));
+        ['128','13','11'].forEach(id => { const el=document.getElementById('cnt-'+id); if(el) el.textContent=counts[id]||0; });
+        const liveNow = allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short));
+        updateLeftPanel(liveNow);
+        if(['128','13','11','all'].includes(currentLeague)) renderMatches();
       }
     });
 
@@ -2317,10 +2340,18 @@ async function loadProdeFixtures() {
     return;
   }
 
-  // Solo los próximos (no finalizados), máximo 12
+  // Solo los próximos (no finalizados), máximo 14
   prodeMatches = fixtures
     .filter(m => !['FT','AET','PEN','CANC','PST'].includes(m.fixture.status.short))
-    .slice(0, 12);
+    .slice(0, 14);
+
+  // Lock: 1 hora antes del primer partido
+  if(prodeMatches.length > 0) {
+    const sorted = [...prodeMatches].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+    const firstMatch = new Date(sorted[0].fixture.date);
+    window.prodeLockTime = new Date(firstMatch.getTime() - 60 * 60 * 1000);
+    window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
+  }
 
   // Si hay sesión, cargar pronósticos previos
   if(prodeSession) await loadPronosticosPrevios();
@@ -2329,12 +2360,13 @@ async function loadProdeFixtures() {
 }
 
 async function loadPronosticosPrevios() {
-  if(!prodeUser?.id) return;
+  if(!prodeUser?.id || !prodeMatches.length) return;
   const fixtureIds = prodeMatches.map(m => m.fixture.id);
-  const query = `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&fixture_id=in.(${fixtureIds.join(',')})&select=fixture_id,pronostico`;
+  const query = '/rest/v1/pronosticos?user_id=eq.' + prodeUser.id + '&fixture_id=in.(' + fixtureIds.join(',') + ')&select=fixture_id,pronostico';
   const data = await supaFetch(query);
-  if(Array.isArray(data)) {
+  if(Array.isArray(data) && data.length > 0) {
     data.forEach(p => { prodePronosticos[p.fixture_id] = p.pronostico; });
+    window.prodeAlreadySubmitted = true; // Ya envió pronósticos para esta fecha
   }
 }
 
@@ -2345,7 +2377,22 @@ function renderProdeGrid() {
 
   if(!prodeMatches.length) return;
 
-  grid.innerHTML = prodeMatches.map(m => {
+  const isLocked = window.prodeLocked;
+  const alreadySubmitted = window.prodeAlreadySubmitted;
+
+  let notice = '';
+  if(alreadySubmitted) {
+    notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos enviados</div><div style="font-size:12px;color:var(--muted2)">Ya enviaste tus pronósticos para esta fecha. ¡Buena suerte!</div></div>';
+  } else if(isLocked) {
+    notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cerraron 1 hora antes del primer partido.</div></div>';
+  } else if(window.prodeLockTime) {
+    const mins = Math.round((window.prodeLockTime - Date.now()) / 60000);
+    if(mins > 0 && mins < 120) notice = '<div style="grid-column:1/-1;background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:10px;padding:8px 16px;margin-bottom:10px;text-align:center;font-size:12px;color:var(--gold)">⏰ El prode cierra en ' + mins + ' minutos</div>';
+  }
+
+  const disabled = isLocked || alreadySubmitted;
+
+  grid.innerHTML = notice + prodeMatches.map(m => {
     const fid  = m.fixture.id;
     const sel  = prodePronosticos[fid];
     const hLogo = m.teams.home.logo;
@@ -2365,9 +2412,9 @@ function renderProdeGrid() {
         </div>
       </div>
       <div class="prode-buttons" id="prode-${fid}">
-        <button class="prode-btn ${sel==='1'?'sel-1':''}" onclick="selectProde(${fid},'1',this)">1</button>
-        <button class="prode-btn ${sel==='X'?'sel-x':''}" onclick="selectProde(${fid},'X',this)">X</button>
-        <button class="prode-btn ${sel==='2'?'sel-2':''}" onclick="selectProde(${fid},'2',this)">2</button>
+        <button class="prode-btn ${sel==='1'?'sel-1':''}" onclick="selectProde(${fid},'1',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">1</button>
+        <button class="prode-btn ${sel==='X'?'sel-x':''}" onclick="selectProde(${fid},'X',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">X</button>
+        <button class="prode-btn ${sel==='2'?'sel-2':''}" onclick="selectProde(${fid},'2',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">2</button>
       </div>
     </div>`;
   }).join('');
@@ -2375,10 +2422,14 @@ function renderProdeGrid() {
   // Submit bar
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
-    submitBar.style.display = 'flex';
-    document.getElementById('prodeCount').textContent = count;
-    if(submitBtn) submitBtn.disabled = count === 0 || !prodeSession;
-    if(submitBtn && !prodeSession) submitBtn.textContent = 'Ingresá para guardar';
+    submitBar.style.display = (disabled) ? 'none' : 'flex';
+    if(!disabled) {
+      document.getElementById('prodeCount').textContent = count;
+      if(submitBtn) {
+        submitBtn.disabled = count === 0 || !prodeSession;
+        submitBtn.textContent = !prodeSession ? 'Ingresá para guardar' : 'Guardar pronósticos';
+      }
+    }
   }
 }
 
@@ -2407,6 +2458,11 @@ function selectProde(fixtureId, val, btn) {
 // ===================================================
 async function submitPronosticos() {
   if(!prodeSession || !prodeUser?.id) { showProdeToast('Ingresá para guardar tus pronósticos'); return; }
+  if(window.prodeAlreadySubmitted) { showProdeToast('Ya enviaste tus pronósticos para esta fecha'); return; }
+  if(window.prodeLocked) { showProdeToast('El prode está cerrado'); return; }
+  const count = Object.keys(prodePronosticos).length;
+  if(count === 0) { showProdeToast('Seleccioná al menos un pronóstico'); return; }
+
   const btn = document.getElementById('prodeSubmitBtn');
   btn.disabled = true;
   btn.textContent = 'Guardando...';
@@ -2415,21 +2471,23 @@ async function submitPronosticos() {
     user_id: prodeUser.id,
     fixture_id: parseInt(fixture_id),
     pronostico,
+    created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }));
 
   const res = await supaFetch('/rest/v1/pronosticos', {
     method: 'POST',
-    prefer: 'resolution=merge-duplicates',
+    prefer: 'resolution=ignore-duplicates',
     body: JSON.stringify(rows)
   });
 
-  btn.disabled = false;
-  btn.textContent = 'Guardar pronósticos';
-
   if(res !== null) {
-    showProdeToast('✅ Pronósticos guardados. ¡Buena suerte!');
+    window.prodeAlreadySubmitted = true;
+    showProdeToast('✅ Pronósticos enviados. ¡Buena suerte!');
+    renderProdeGrid();
   } else {
+    btn.disabled = false;
+    btn.textContent = 'Guardar pronósticos';
     showProdeToast('❌ Error al guardar. Intentá de nuevo.');
   }
 }
