@@ -2334,23 +2334,37 @@ async function loadProdeFixtures() {
   const grid = document.getElementById('prodeMatchesGrid');
   grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div><br>Cargando partidos...</div>';
 
-  const fixtures = await loadArgentinaFixtures();
-  if(!fixtures || !fixtures.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No hay próximos partidos de la Liga Profesional.<br><span style="font-size:11px;color:var(--muted)">Volvé más tarde.</span></div>';
-    return;
-  }
+  // FECHA 14 — Liga Profesional Argentina 2025
+  // Cargada manualmente hasta que se active el plan pago de API
+  const FECHA_14 = [
+    {id:14001, date:'2026-04-10T21:00:00-03:00', home:'Belgrano',           away:'Aldosivi'},
+    {id:14002, date:'2026-04-11T15:00:00-03:00', home:'Riestra',            away:'Instituto'},
+    {id:14003, date:'2026-04-11T15:30:00-03:00', home:'Ind. Rivadavia',     away:'Argentinos Jrs.'},
+    {id:14004, date:'2026-04-11T17:15:00-03:00', home:'Estudiantes',        away:'Unión'},
+    {id:14005, date:'2026-04-11T19:30:00-03:00', home:'Boca Juniors',       away:'Independiente'},
+    {id:14006, date:'2026-04-11T21:45:00-03:00', home:'Estudiantes RC',     away:'Barracas Central'},
+    {id:14007, date:'2026-04-12T15:00:00-03:00', home:"Newell's",           away:'San Lorenzo'},
+    {id:14008, date:'2026-04-12T15:00:00-03:00', home:'Platense',           away:'Gimnasia (M)'},
+    {id:14009, date:'2026-04-12T17:30:00-03:00', home:'Huracán',            away:'Rosario Central'},
+    {id:14010, date:'2026-04-12T17:30:00-03:00', home:'Atl. Tucumán',       away:'Tigre'},
+    {id:14011, date:'2026-04-12T20:00:00-03:00', home:'Racing Club',        away:'River Plate'},
+    {id:14012, date:'2026-04-13T16:30:00-03:00', home:'Def. y Justicia',    away:'Talleres'},
+    {id:14013, date:'2026-04-13T16:30:00-03:00', home:'Sarmiento',          away:'Gimnasia LP'},
+    {id:14014, date:'2026-04-13T19:00:00-03:00', home:'Lanús',              away:'Banfield'},
+    {id:14015, date:'2026-04-13T21:30:00-03:00', home:'Vélez',              away:'Central Córdoba'},
+  ];
 
-  // Solo los próximos (no finalizados), máximo 14
-  prodeMatches = fixtures
-    .filter(m => !['FT','AET','PEN','CANC','PST'].includes(m.fixture.status.short))
-    .slice(0, 14);
+  prodeMatches = FECHA_14.map(p => ({
+    fixture: { id: p.id, date: p.date, status: { short: 'NS', elapsed: null } },
+    league:  { id: '128', name: 'Liga Profesional Argentina' },
+    teams:   { home: { id: 0, name: p.home, logo: '' }, away: { id: 0, name: p.away, logo: '' } },
+    goals:   { home: null, away: null }
+  }));
 
-  // Lock: 1 hora antes del primer partido
-  if(prodeMatches.length > 0) {
-    const sorted = [...prodeMatches].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-    window.prodeLockTime = new Date(new Date(sorted[0].fixture.date).getTime() - 60*60*1000);
-    window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
-  }
+  // Lock: 1 hora antes del primer partido (Belgrano vs Aldosivi, vie 10/04 21:00)
+  const firstMatch = new Date('2026-04-10T21:00:00-03:00');
+  window.prodeLockTime = new Date(firstMatch.getTime() - 60*60*1000);
+  window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
 
   // Si hay sesión, cargar pronósticos previos
   if(prodeSession) await loadPronosticosPrevios();
