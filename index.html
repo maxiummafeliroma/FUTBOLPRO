@@ -1783,7 +1783,7 @@ async function loadMatches() {
       console.log('[CACHE HIT] FD matches');
     } else {
       // football-data.org: traer todos los partidos de hoy
-      const res = await fdFetch('/matches?dateFrom=' + today() + '&dateTo=' + today());
+      const res = await fdFetch('/matches?date=' + today());
       if (res && res.matches && res.matches.length > 0) {
         matches = res.matches.map(m => normalizeFDMatch(m, m.competition?.code || ''));
         cacheSet(cacheKey, matches);
@@ -2348,8 +2348,7 @@ async function loadProdeFixtures() {
   // Lock: 1 hora antes del primer partido
   if(prodeMatches.length > 0) {
     const sorted = [...prodeMatches].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-    const firstMatch = new Date(sorted[0].fixture.date);
-    window.prodeLockTime = new Date(firstMatch.getTime() - 60 * 60 * 1000);
+    window.prodeLockTime = new Date(new Date(sorted[0].fixture.date).getTime() - 60*60*1000);
     window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
   }
 
@@ -2366,7 +2365,7 @@ async function loadPronosticosPrevios() {
   const data = await supaFetch(query);
   if(Array.isArray(data) && data.length > 0) {
     data.forEach(p => { prodePronosticos[p.fixture_id] = p.pronostico; });
-    window.prodeAlreadySubmitted = true; // Ya envió pronósticos para esta fecha
+    window.prodeAlreadySubmitted = true;
   }
 }
 
@@ -2379,18 +2378,17 @@ function renderProdeGrid() {
 
   const isLocked = window.prodeLocked;
   const alreadySubmitted = window.prodeAlreadySubmitted;
+  const disabled = isLocked || alreadySubmitted;
 
   let notice = '';
   if(alreadySubmitted) {
-    notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos enviados</div><div style="font-size:12px;color:var(--muted2)">Ya enviaste tus pronósticos para esta fecha. ¡Buena suerte!</div></div>';
+    notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos enviados</div><div style="font-size:12px;color:var(--muted2)">Ya enviaste tus pronósticos para esta fecha.</div></div>';
   } else if(isLocked) {
-    notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cerraron 1 hora antes del primer partido.</div></div>';
+    notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cerraron 1 hora antes del partido.</div></div>';
   } else if(window.prodeLockTime) {
     const mins = Math.round((window.prodeLockTime - Date.now()) / 60000);
-    if(mins > 0 && mins < 120) notice = '<div style="grid-column:1/-1;background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:10px;padding:8px 16px;margin-bottom:10px;text-align:center;font-size:12px;color:var(--gold)">⏰ El prode cierra en ' + mins + ' minutos</div>';
+    if(mins > 0 && mins <= 120) notice = '<div style="grid-column:1/-1;background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:10px;padding:8px;margin-bottom:10px;text-align:center;font-size:12px;color:var(--gold)">⏰ El prode cierra en ' + mins + ' minutos</div>';
   }
-
-  const disabled = isLocked || alreadySubmitted;
 
   grid.innerHTML = notice + prodeMatches.map(m => {
     const fid  = m.fixture.id;
@@ -2412,9 +2410,9 @@ function renderProdeGrid() {
         </div>
       </div>
       <div class="prode-buttons" id="prode-${fid}">
-        <button class="prode-btn ${sel==='1'?'sel-1':''}" onclick="selectProde(${fid},'1',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">1</button>
-        <button class="prode-btn ${sel==='X'?'sel-x':''}" onclick="selectProde(${fid},'X',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">X</button>
-        <button class="prode-btn ${sel==='2'?'sel-2':''}" onclick="selectProde(${fid},'2',this)" ${disabled?'disabled':''} style="${disabled?'cursor:not-allowed;opacity:.6':''}">2</button>
+        <button class="prode-btn ${sel==='1'?'sel-1':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'1\',this)"')}>1</button>
+        <button class="prode-btn ${sel==='X'?'sel-x':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'X\',this)"')}>X</button>
+        <button class="prode-btn ${sel==='2'?'sel-2':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'2\',this)"')}>2</button>
       </div>
     </div>`;
   }).join('');
@@ -2422,7 +2420,7 @@ function renderProdeGrid() {
   // Submit bar
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
-    submitBar.style.display = (disabled) ? 'none' : 'flex';
+    submitBar.style.display = disabled ? 'none' : 'flex';
     if(!disabled) {
       document.getElementById('prodeCount').textContent = count;
       if(submitBtn) {
@@ -2460,8 +2458,7 @@ async function submitPronosticos() {
   if(!prodeSession || !prodeUser?.id) { showProdeToast('Ingresá para guardar tus pronósticos'); return; }
   if(window.prodeAlreadySubmitted) { showProdeToast('Ya enviaste tus pronósticos para esta fecha'); return; }
   if(window.prodeLocked) { showProdeToast('El prode está cerrado'); return; }
-  const count = Object.keys(prodePronosticos).length;
-  if(count === 0) { showProdeToast('Seleccioná al menos un pronóstico'); return; }
+  if(Object.keys(prodePronosticos).length === 0) { showProdeToast('Seleccioná al menos un pronóstico'); return; }
 
   const btn = document.getElementById('prodeSubmitBtn');
   btn.disabled = true;
