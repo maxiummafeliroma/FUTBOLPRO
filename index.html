@@ -1827,11 +1827,26 @@ async function loadArgentinaESPN() {
   const cached = cacheGet(ck, CACHE_TTL.fixtures);
   if(cached) return cached;
   try {
+    // ESPN necesita fecha sin guiones: 20260411
     const dateStr = today().replace(/-/g,'');
-    const data = await espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr);
-    if(!data || !data.events || !data.events.length) return [];
-    const matches = data.events.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
-    cacheSet(ck, matches);
+    // Traer partidos de hoy Y los próximos (sin fecha = todos los programados)
+    const [todayData, upcomingData] = await Promise.all([
+      espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr),
+      espnFetch('/soccer/arg.1/scoreboard'),
+    ]);
+    const seenIds = new Set();
+    const matches = [];
+    for(const data of [todayData, upcomingData]) {
+      if(data && data.events) {
+        data.events.forEach(e => {
+          if(!seenIds.has(e.id)) {
+            seenIds.add(e.id);
+            matches.push(normalizeESPNMatch(e, '128', 'Liga Profesional'));
+          }
+        });
+      }
+    }
+    if(matches.length) cacheSet(ck, matches);
     return matches;
   } catch(e) { console.warn('[ESPN ARG]', e.message); return []; }
 }
@@ -2156,9 +2171,6 @@ async function openPredModal(fixtureId) {
   const isLive = ['1H','HT','2H','ET'].includes(match.fixture.status.short);
   const isFT   = ['FT','AET','PEN'].includes(match.fixture.status.short);
 
-  const confidences = ['Alta','Media-Alta','Media'];
-  const confidence = confidences[seed % 3];
-  const confColor = confidence === 'Alta' ? 'var(--green)' : confidence === 'Media-Alta' ? 'var(--gold)' : 'var(--blue)';
 
 
   document.getElementById('predBarsRow').innerHTML = `
@@ -2194,7 +2206,6 @@ async function openPredModal(fixtureId) {
   `;
 
   document.getElementById('predStatsBox').innerHTML = `
-    <div class="pred-stat-row"><span class="pred-stat-key">Confianza IA</span><span class="pred-stat-val" style="color:${confColor};font-weight:700">${confidence}</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Goles esperados</span><span class="pred-stat-val">${expectedGoals.toFixed(1)} aprox.</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Ventaja local</span><span class="pred-stat-val">+${homeAdv}% jugando de local</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Estado</span><span class="pred-stat-val">${isLive ? '🔴 En vivo' : isFT ? '✅ Finalizado' : '📅 Próximo'}</span></div>
