@@ -1999,7 +1999,8 @@ async function loadMatches() {
       const cntLive = document.getElementById('cnt-live');
       if(btnLive) btnLive.style.display = 'flex';
       if(cntLive) cntLive.textContent = liveMatches.length;
-      renderLiveBanner(liveMatches);
+      // Banner en vivo — mostrar contador en el strip
+      // (renderLiveBanner se maneja por el btn-live)
     }
 
     // Cargar Argentina vía ESPN (gratis, sin límite)
@@ -2077,7 +2078,7 @@ function renderMatchCard(m) {
   const isFT = ['FT','AET','PEN'].includes(s.short);
   const statusClass = isLive ? 'is-live' : isFT ? 'is-finished' : '';
   const statusHtml = isLive
-    ? `<span class="match-status status-live"><span class="live-dot"></span>${s.elapsed}'</span>`
+    ? `<span class="match-status status-live"><span class="live-dot"></span>${s.elapsed ? s.elapsed+"'" : 'EN VIVO'}</span>`
     : isFT ? `<span class="match-status status-ft">FT</span>`
     : `<span class="match-status status-sched">${new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>`;
   const scoreHtml = (isLive||isFT)
