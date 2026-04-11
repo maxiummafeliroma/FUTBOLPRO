@@ -1821,6 +1821,61 @@ async function loadArgentinaScorers() {
   return [];
 }
 
+// ── Argentina vía ESPN API (gratis, sin límite) ───────────────────
+async function loadArgentinaESPN() {
+  const ck = 'fp_espn_arg_' + today();
+  const cached = cacheGet(ck, CACHE_TTL.fixtures);
+  if(cached) return cached;
+  try {
+    const dateStr = today().replace(/-/g,'');
+    const data = await espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr);
+    if(!data || !data.events || !data.events.length) return [];
+    const matches = data.events.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
+    cacheSet(ck, matches);
+    return matches;
+  } catch(e) { console.warn('[ESPN ARG]', e.message); return []; }
+}
+
+// Normalizar evento ESPN al formato interno
+function normalizeESPNMatch(e, leagueId, leagueName) {
+  const comp = e.competitions?.[0];
+  const home = comp?.competitors?.find(t => t.homeAway === 'home');
+  const away = comp?.competitors?.find(t => t.homeAway === 'away');
+  const status = e.status?.type;
+  const isLive = status?.state === 'in';
+  const isFin  = status?.state === 'post';
+  const isPre  = status?.state === 'pre';
+
+  const statusShort = isLive ? '1H' : isFin ? 'FT' : 'NS';
+  const elapsed = isLive ? (e.status?.displayClock || null) : null;
+
+  return {
+    fixture: {
+      id: 'espn_' + e.id,
+      date: e.date,
+      status: { short: statusShort, elapsed: elapsed, long: status?.description || '' }
+    },
+    league: { id: leagueId, name: leagueName, country: 'Argentina', logo: '' },
+    teams: {
+      home: {
+        id: home?.team?.id,
+        name: home?.team?.displayName || home?.team?.shortDisplayName || '?',
+        logo: home?.team?.logo || ''
+      },
+      away: {
+        id: away?.team?.id,
+        name: away?.team?.displayName || away?.team?.shortDisplayName || '?',
+        logo: away?.team?.logo || ''
+      }
+    },
+    goals: {
+      home: (isLive||isFin) ? parseInt(home?.score||0) : null,
+      away: (isLive||isFin) ? parseInt(away?.score||0) : null
+    },
+    odds: null
+  };
+}
+
 // Cargar cualquier liga de api-sports con caché
 async function loadApiSportsLeague(leagueId) {
   const ck = 'fp_apisports_' + leagueId + '_' + today();
@@ -1929,27 +1984,19 @@ async function loadMatches() {
       renderLiveBanner(liveMatches);
     }
 
-    // Cargar Argentina + Libertadores + Sudamericana (api-sports)
-    Promise.all([
-      loadApiSportsLeague('128'),
-      loadApiSportsLeague('13'),
-      loadApiSportsLeague('11'),
-    ]).then(([argFix, libFix, sudFix]) => {
-      const extra = [
-        ...(argFix||[]).map(m => normalizeApiSportsMatch(m,'128')),
-        ...(libFix||[]).map(m => normalizeApiSportsMatch(m,'13')),
-        ...(sudFix||[]).map(m => normalizeApiSportsMatch(m,'11')),
-      ];
-      if(extra.length) {
+    // Cargar Argentina vía ESPN (gratis, sin límite)
+    loadArgentinaESPN().then(argMatches => {
+      if(argMatches && argMatches.length) {
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
-        extra.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+        argMatches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
         const counts = {};
         allMatches.forEach(m => { const id=String(m.league.id); counts[id]=(counts[id]||0)+1; });
         document.getElementById('cnt-all').textContent = allMatches.length;
-        ['128','13','11'].forEach(id => { const el=document.getElementById('cnt-'+id); if(el) el.textContent=counts[id]||0; });
+        const cntEl = document.getElementById('cnt-128');
+        if(cntEl) cntEl.textContent = counts['128']||0;
         const liveNow = allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short));
         updateLeftPanel(liveNow);
-        if(['128','13','11','all'].includes(currentLeague)) renderMatches();
+        if(['128','all'].includes(currentLeague)) renderMatches();
       }
     });
 
@@ -2079,55 +2126,80 @@ async function openPredModal(fixtureId) {
   document.getElementById('predScoreBox').innerHTML = '';
   document.getElementById('predStatsBox').innerHTML = '';
 
-  // Predicción IA basada en el partido — genera análisis inteligente
-  const isFDMatch = match.league.logo === ''; // Partido de api-sports (sin logo = ARG/Lib/Sud)
-  
-  // Intentar traer stats de football-data.org si está disponible
-  let fdStats = null;
-  try {
-    const fdCompCode = {'39':'PL','140':'PD','135':'SA','78':'BL1','61':'FL1','2':'CL','3':'EL'}[String(match.league.id)];
-    if(fdCompCode && match.teams.home.id) {
-      const r = await fdFetch('/teams/' + match.teams.home.id + '/matches?competitions=' + fdCompCode + '&limit=5');
-      if(r && r.matches) fdStats = r;
-    }
-  } catch(e) {}
-
-  // Generar predicción inteligente con seed basado en los equipos
-  const seed = (hName.charCodeAt(0) + aName.charCodeAt(0) + fixtureId) % 100;
-  const homeAdv = 8; // ventaja de local
-  let pHome = 35 + homeAdv + (seed % 15);
-  let pAway = 25 + (seed % 12);
+  // Predicción IA con análisis tipo apuestas
+  const seed = (hName.charCodeAt(0) + aName.charCodeAt(0) + (fixtureId % 1000)) % 100;
+  const homeAdv = 7;
+  let pHome = 38 + homeAdv + (seed % 13);
+  let pAway = 22 + (seed % 14);
   let pDraw = 100 - pHome - pAway;
-  if(pDraw < 15) { pDraw = 15; pAway = 100 - pHome - pDraw; }
-  pHome = Math.min(pHome, 65); pAway = Math.min(pAway, 50);
+  if(pDraw < 14) { pDraw = 14; pAway = 100 - pHome - pDraw; }
+  pHome = Math.min(pHome, 65); pAway = Math.min(pAway, 48);
   pDraw = 100 - pHome - pAway;
 
+  // Determinar resultado más probable
+  const maxP = Math.max(pHome, pDraw, pAway);
+  const resultLabel = maxP === pHome ? 'Victoria Local' : maxP === pAway ? 'Victoria Visitante' : 'Empate';
+  const resultCode  = maxP === pHome ? '1' : maxP === pAway ? '2' : 'X';
+
+  // Goals prediction basada en seed
+  const expectedGoals = 1.8 + (seed % 20) / 10; // entre 1.8 y 3.8
+  const goalsLine = expectedGoals > 2.5 ? '+2.5' : expectedGoals > 1.5 ? '+1.5' : '-1.5';
+  const goalsLabel = expectedGoals > 2.5 ? 'Más de 2.5 goles' : 'Más de 1.5 goles';
+  const ambosMarcan = (seed % 3 !== 0); // 66% de probabilidad
+
+  // Cuotas simuladas realistas
+  const oddsHome = (100 / pHome * 0.9).toFixed(2);
+  const oddsDraw = (100 / pDraw * 0.9).toFixed(2);
+  const oddsAway = (100 / pAway * 0.9).toFixed(2);
+  const oddsOver = expectedGoals > 2.5 ? (1.70 + seed%30/100).toFixed(2) : (1.90 + seed%20/100).toFixed(2);
+
   const isLive = ['1H','HT','2H','ET'].includes(match.fixture.status.short);
-  const isFT = ['FT','AET','PEN'].includes(match.fixture.status.short);
-  
-  const advices = [
-    'El local parte como favorito en casa.',
-    'Partido muy parejo, cualquier resultado es posible.',
-    'El visitante llega en buen momento.',
-    'Se espera un partido intenso con pocas diferencias.',
-    'El local tiene ventaja por jugar de local.',
-    'Partido equilibrado, el empate es una opción válida.',
-  ];
-  const advice = advices[seed % advices.length];
-  const winner = pHome > pAway ? hName : (pAway > pHome ? aName : 'Empate');
+  const isFT   = ['FT','AET','PEN'].includes(match.fixture.status.short);
+
+  const confidences = ['Alta','Media-Alta','Media'];
+  const confidence = confidences[seed % 3];
+  const confColor = confidence === 'Alta' ? 'var(--green)' : confidence === 'Media-Alta' ? 'var(--gold)' : 'var(--blue)';
+
 
   document.getElementById('predBarsRow').innerHTML = `
     <div class="pred-bar-col"><div class="pred-bar-track"><div class="pred-bar-fill" style="height:${pHome}%;background:var(--green)"></div></div><div class="pred-pct" style="color:var(--green)">${pHome}%</div><div class="pred-lbl">Local</div></div>
     <div class="pred-bar-col"><div class="pred-bar-track"><div class="pred-bar-fill" style="height:${pDraw}%;background:var(--gold)"></div></div><div class="pred-pct" style="color:var(--gold)">${pDraw}%</div><div class="pred-lbl">Empate</div></div>
     <div class="pred-bar-col"><div class="pred-bar-track"><div class="pred-bar-fill" style="height:${pAway}%;background:var(--blue)"></div></div><div class="pred-pct" style="color:var(--blue)">${pAway}%</div><div class="pred-lbl">Visita</div></div>
   `;
-  document.getElementById('predScoreBox').innerHTML = `<div class="pred-score-lbl">${isLive ? 'Partido en curso' : isFT ? 'Partido finalizado' : 'Favorito según IA'}</div><div class="pred-score-val">${winner}</div>`;
+
+  document.getElementById('predScoreBox').innerHTML = `
+    <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">⚡ Recomendación IA</div>
+      <div style="font-size:16px;font-weight:700;color:var(--green)">${resultLabel} (${resultCode})</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:2px">${goalsLabel} · ${ambosMarcan?'Ambos marcan':'No ambos marcan'}</div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:6px">
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
+        <div style="font-size:9px;color:var(--muted2)">Local</div>
+        <div style="font-size:14px;font-weight:700;color:var(--green)">${oddsHome}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
+        <div style="font-size:9px;color:var(--muted2)">Empate</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gold)">${oddsDraw}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
+        <div style="font-size:9px;color:var(--muted2)">Visita</div>
+        <div style="font-size:14px;font-weight:700;color:var(--blue)">${oddsAway}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
+        <div style="font-size:9px;color:var(--muted2)">${goalsLine} goles</div>
+        <div style="font-size:14px;font-weight:700;color:var(--txt)">${oddsOver}</div>
+      </div>
+    </div>
+  `;
+
   document.getElementById('predStatsBox').innerHTML = `
-    <div class="pred-stat-row"><span class="pred-stat-key">Análisis IA</span><span class="pred-stat-val">${advice}</span></div>
-    <div class="pred-stat-row"><span class="pred-stat-key">Ventaja local</span><span class="pred-stat-val">+${homeAdv}% en su cancha</span></div>
-    <div class="pred-stat-row"><span class="pred-stat-key">Liga</span><span class="pred-stat-val">${match.league.name}</span></div>
+    <div class="pred-stat-row"><span class="pred-stat-key">Confianza IA</span><span class="pred-stat-val" style="color:${confColor};font-weight:700">${confidence}</span></div>
+    <div class="pred-stat-row"><span class="pred-stat-key">Goles esperados</span><span class="pred-stat-val">${expectedGoals.toFixed(1)} aprox.</span></div>
+    <div class="pred-stat-row"><span class="pred-stat-key">Ventaja local</span><span class="pred-stat-val">+${homeAdv}% jugando de local</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Estado</span><span class="pred-stat-val">${isLive ? '🔴 En vivo' : isFT ? '✅ Finalizado' : '📅 Próximo'}</span></div>
-    ${fdStats ? '<div class="pred-stat-row"><span class="pred-stat-key">Fuente</span><span class="pred-stat-val">Football-data.org</span></div>' : ''}
+    <div class="pred-stat-row"><span class="pred-stat-key">Liga</span><span class="pred-stat-val">${match.league.name}</span></div>
+    <div style="font-size:9px;color:var(--muted);margin-top:8px;text-align:center">⚠️ Solo con fines informativos. No constituye asesoramiento de apuestas.</div>
   `;
 }
 
@@ -2460,50 +2532,66 @@ async function prodeLogout() {
 }
 
 // ===================================================
-// CARGA DE PARTIDOS (usa api-sports Argentina)
+// CARGA DE PARTIDOS PRODE — ESPN + fallback estático
+// ===================================================
+// CARGA DE PARTIDOS PRODE — ESPN + fallback estático
 // ===================================================
 async function loadProdeFixtures() {
   const grid = document.getElementById('prodeMatchesGrid');
   grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div><br>Cargando partidos...</div>';
 
-  // FECHA 14 — Liga Profesional Argentina 2025
-  // Cargada manualmente hasta que se active el plan pago de API
-  const FECHA_14 = [
-    {id:14001, date:'2026-04-10T21:00:00-03:00', home:'Belgrano',           away:'Aldosivi'},
-    {id:14002, date:'2026-04-11T15:00:00-03:00', home:'Riestra',            away:'Instituto'},
-    {id:14003, date:'2026-04-11T15:30:00-03:00', home:'Ind. Rivadavia',     away:'Argentinos Jrs.'},
-    {id:14004, date:'2026-04-11T17:15:00-03:00', home:'Estudiantes',        away:'Unión'},
-    {id:14005, date:'2026-04-11T19:30:00-03:00', home:'Boca Juniors',       away:'Independiente'},
-    {id:14006, date:'2026-04-11T21:45:00-03:00', home:'Estudiantes RC',     away:'Barracas Central'},
-    {id:14007, date:'2026-04-12T15:00:00-03:00', home:"Newell's",           away:'San Lorenzo'},
-    {id:14008, date:'2026-04-12T15:00:00-03:00', home:'Platense',           away:'Gimnasia (M)'},
-    {id:14009, date:'2026-04-12T17:30:00-03:00', home:'Huracán',            away:'Rosario Central'},
-    {id:14010, date:'2026-04-12T17:30:00-03:00', home:'Atl. Tucumán',       away:'Tigre'},
-    {id:14011, date:'2026-04-12T20:00:00-03:00', home:'Racing Club',        away:'River Plate'},
-    {id:14012, date:'2026-04-13T16:30:00-03:00', home:'Def. y Justicia',    away:'Talleres'},
-    {id:14013, date:'2026-04-13T16:30:00-03:00', home:'Sarmiento',          away:'Gimnasia LP'},
-    {id:14014, date:'2026-04-13T19:00:00-03:00', home:'Lanús',              away:'Banfield'},
-    {id:14015, date:'2026-04-13T21:30:00-03:00', home:'Vélez',              away:'Central Córdoba'},
-  ];
+  let fixtures = [];
+  try {
+    const data = await espnFetch('/soccer/arg.1/scoreboard');
+    if(data && data.events && data.events.length) {
+      fixtures = data.events
+        .filter(e => e.status?.type?.state !== 'post')
+        .map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
+    }
+  } catch(e) { console.warn('[ESPN prode]', e.message); }
 
-  prodeMatches = FECHA_14.map(p => ({
-    fixture: { id: p.id, date: p.date, status: { short: 'NS', elapsed: null } },
-    league:  { id: '128', name: 'Liga Profesional Argentina' },
-    teams:   { home: { id: 0, name: p.home, logo: '' }, away: { id: 0, name: p.away, logo: '' } },
-    goals:   { home: null, away: null }
-  }));
+  if(!fixtures.length) {
+    const FECHA_14 = [
+      {id:14001, date:'2026-04-10T21:00:00-03:00', home:'Belgrano',        away:'Aldosivi'},
+      {id:14002, date:'2026-04-11T15:00:00-03:00', home:'Riestra',         away:'Instituto'},
+      {id:14003, date:'2026-04-11T15:30:00-03:00', home:'Ind. Rivadavia',  away:'Argentinos Jrs.'},
+      {id:14004, date:'2026-04-11T17:15:00-03:00', home:'Estudiantes',     away:'Union'},
+      {id:14005, date:'2026-04-11T19:30:00-03:00', home:'Boca Juniors',    away:'Independiente'},
+      {id:14006, date:'2026-04-11T21:45:00-03:00', home:'Estudiantes RC',  away:'Barracas Central'},
+      {id:14007, date:'2026-04-12T15:00:00-03:00', home:'Newells',         away:'San Lorenzo'},
+      {id:14008, date:'2026-04-12T15:00:00-03:00', home:'Platense',        away:'Gimnasia (M)'},
+      {id:14009, date:'2026-04-12T17:30:00-03:00', home:'Huracan',         away:'Rosario Central'},
+      {id:14010, date:'2026-04-12T17:30:00-03:00', home:'Atl. Tucuman',    away:'Tigre'},
+      {id:14011, date:'2026-04-12T20:00:00-03:00', home:'Racing Club',     away:'River Plate'},
+      {id:14012, date:'2026-04-13T16:30:00-03:00', home:'Def. y Justicia', away:'Talleres'},
+      {id:14013, date:'2026-04-13T16:30:00-03:00', home:'Sarmiento',       away:'Gimnasia LP'},
+      {id:14014, date:'2026-04-13T19:00:00-03:00', home:'Lanus',           away:'Banfield'},
+      {id:14015, date:'2026-04-13T21:30:00-03:00', home:'Velez',           away:'Central Cordoba'},
+    ];
+    fixtures = FECHA_14.map(p => ({
+      fixture: { id: p.id, date: p.date, status: { short: 'NS', elapsed: null } },
+      league:  { id: '128', name: 'Liga Profesional Argentina' },
+      teams:   { home: { id: 0, name: p.home, logo: '' }, away: { id: 0, name: p.away, logo: '' } },
+      goals:   { home: null, away: null }
+    }));
+  }
 
-  // Lock: 1 hora antes del primer partido (Belgrano vs Aldosivi, vie 10/04 21:00)
-  const firstMatch = new Date('2026-04-10T21:00:00-03:00');
-  window.prodeLockTime = new Date(firstMatch.getTime() - 60*60*1000);
+  prodeMatches = fixtures
+    .filter(m => !['FT','AET','PEN'].includes(m.fixture.status.short))
+    .slice(0, 15);
+
+  if(!prodeMatches.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No hay proximos partidos disponibles.</div>';
+    return;
+  }
+
+  const sorted = [...prodeMatches].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+  window.prodeLockTime = new Date(new Date(sorted[0].fixture.date).getTime() - 60*60*1000);
   window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
 
-  // Si hay sesión, cargar pronósticos previos
   if(prodeSession) await loadPronosticosPrevios();
-
   renderProdeGrid();
 }
-
 async function loadPronosticosPrevios() {
   if(!prodeUser?.id || !prodeMatches.length) return;
   const fixtureIds = prodeMatches.map(m => m.fixture.id);
