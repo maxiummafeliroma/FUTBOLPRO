@@ -1828,26 +1828,11 @@ async function loadArgentinaESPN() {
   const cached = cacheGet(ck, CACHE_TTL.fixtures);
   if(cached) return cached;
   try {
-    // ESPN necesita fecha sin guiones: 20260411
     const dateStr = today().replace(/-/g,'');
-    // Traer partidos de hoy Y los próximos (sin fecha = todos los programados)
-    const [todayData, upcomingData] = await Promise.all([
-      espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr),
-      espnFetch('/soccer/arg.1/scoreboard'),
-    ]);
-    const seenIds = new Set();
-    const matches = [];
-    for(const data of [todayData, upcomingData]) {
-      if(data && data.events) {
-        data.events.forEach(e => {
-          if(!seenIds.has(e.id)) {
-            seenIds.add(e.id);
-            matches.push(normalizeESPNMatch(e, '128', 'Liga Profesional'));
-          }
-        });
-      }
-    }
-    if(matches.length) cacheSet(ck, matches);
+    const data = await espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr);
+    if(!data || !data.events || !data.events.length) return [];
+    const matches = data.events.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
+    cacheSet(ck, matches);
     return matches;
   } catch(e) { console.warn('[ESPN ARG]', e.message); return []; }
 }
@@ -2022,6 +2007,8 @@ async function loadMatches() {
     updateLeftPanel(liveMatches);
     renderMatches();
     loadSidebarScorers();
+    loadF1SidebarOnly();
+    loadNBASidebarOnly();
 
     // Auto-refresh cada 60s si hay partidos en vivo
     if(liveMatches.length > 0) {
@@ -2335,20 +2322,106 @@ async function loadScorers() {
 }
 
 
+async function loadNBASidebarOnly() {
+  const sNba = document.getElementById('sidebarNba');
+  if(!sNba) return;
+  try {
+    const data = await espnFetch('/basketball/nba/scoreboard');
+    const events = data?.events || [];
+    if(!events.length) {
+      sNba.innerHTML = '<div style="font-size:11px;color:var(--muted2);text-align:center;padding:4px">Sin partidos hoy</div>';
+      return;
+    }
+    const g = events[0];
+    const hw = g.competitions?.[0]?.competitors?.find(t=>t.homeAway==='home');
+    const aw = g.competitions?.[0]?.competitors?.find(t=>t.homeAway==='away');
+    const isLv = g.status?.type?.state === 'in';
+    const isFn = g.status?.type?.state === 'post';
+    const gt = new Date(g.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const sc = (isLv||isFn) ? (aw?.score||0)+' - '+(hw?.score||0) : gt;
+    sNba.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--txt);margin-bottom:4px">'+(aw?.team?.abbreviation||'?')+' vs '+(hw?.team?.abbreviation||'?')+'</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+(isLv?'var(--red)':'var(--muted2)')+'">'+(isLv?'🔴 ':'')+sc+'</div>'+
+      (events.length>1?'<div style="font-size:10px;color:var(--muted);margin-top:4px">+'+(events.length-1)+' partidos mas</div>':'');
+  } catch(e) { sNba.innerHTML = '<div style="font-size:11px;color:var(--muted2);text-align:center">—</div>'; }
+}
+
+async function loadF1SidebarOnly() {
+  const sidebar = document.getElementById('sidebarF1');
+  if(!sidebar) return;
+  try {
+    const data = await espnFetch('/racing/f1/schedule');
+    const now = Date.now();
+    const events = data?.events || [];
+    const next = events.find(e => new Date(e.date).getTime() > now);
+    if(next) {
+      const raceDate = new Date(next.date);
+      const diff = raceDate - now;
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const raceName = next.shortName || next.name || 'Próximo GP';
+      sidebar.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--txt);margin-bottom:4px">' + raceName + '</div>' +
+        '<div style="font-size:11px;color:var(--muted2)">' + raceDate.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}) + '</div>' +
+        '<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:11px">' +
+        '<span style="color:var(--muted2)">Faltan</span>' +
+        '<span style="font-weight:700;color:var(--f1red)">' + days + 'd ' + hours + 'h</span></div>';
+    } else {
+      sidebar.innerHTML = '<div style="font-size:11px;color:var(--muted2)">Sin próximas carreras</div>';
+    }
+  } catch(e) { console.warn('[F1 sidebar]', e.message); }
+}
+
+async function loadF1SidebarOnly() {
+  const sidebar = document.getElementById('sidebarF1');
+  if(!sidebar) return;
+  try {
+    const cacheKey = 'fp_f1_sidebar';
+    const cached = cacheGet(cacheKey, CACHE_TTL.f1);
+    const data = cached || await espnFetch('/racing/f1/schedule');
+    if(!cached && data) cacheSet(cacheKey, data);
+    const now = Date.now();
+    const events = data?.events || [];
+    const next = events.find(e => new Date(e.date).getTime() > now);
+    if(next) {
+      const raceDate = new Date(next.date);
+      const diff = raceDate - now;
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const raceName = next.shortName || next.name || 'Proximo GP';
+      sidebar.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--txt);margin-bottom:4px">' + raceName + '</div>' +
+        '<div style="font-size:11px;color:var(--muted2)">' + raceDate.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}) + '</div>' +
+        '<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:11px">' +
+        '<span style="color:var(--muted2)">Faltan</span>' +
+        '<span style="font-weight:700;color:var(--f1red)">' + days + 'd ' + hours + 'h</span></div>';
+    } else {
+      sidebar.innerHTML = '<div style="font-size:11px;color:var(--muted2)">Sin proximas carreras</div>';
+    }
+  } catch(e) { console.warn('[F1 sidebar]', e.message); }
+}
+
 async function loadSidebarScorers() {
   const container = document.getElementById('sidebarScorers');
   if(!container) return;
-  const cacheKey = 'fp_fd_sidebar_sc';
+  const cacheKey = 'fp_espn_arg_scorers';
   const cached = cacheGet(cacheKey, CACHE_TTL.scorers);
   let scorers = cached;
   if(!scorers) {
-    const data = await fdFetch('/competitions/PL/scorers?limit=5');
-    if(data && data.scorers) {
-      scorers = data.scorers.slice(0,5);
-      cacheSet(cacheKey, scorers);
-    }
+    try {
+      // ESPN Argentina goleadores temporada actual
+      const data = await espnFetch('/soccer/arg.1/leaders');
+      if(data && data.categories) {
+        const goals = data.categories.find(c => c.name === 'goals' || c.abbreviation === 'G');
+        if(goals && goals.leaders) {
+          scorers = goals.leaders.slice(0,5).map(l => ({
+            player: { name: l.athlete?.displayName || l.athlete?.shortName || '?' },
+            team: { name: l.team?.displayName || l.team?.shortDisplayName || '?' },
+            goals: l.value || 0
+          }));
+          cacheSet(cacheKey, scorers);
+        }
+      }
+    } catch(e) { console.warn('[ESPN scorers]', e.message); }
   }
-  if(!scorers || !scorers.length) { container.innerHTML = ''; return; }
+  if(!scorers || !scorers.length) { container.innerHTML = '<div style="font-size:11px;color:var(--muted2);padding:8px 0">Sin datos disponibles</div>'; return; }
   container.innerHTML = scorers.map((s,i) => {
     const initials = (s.player?.name||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
@@ -2356,7 +2429,7 @@ async function loadSidebarScorers() {
       <div style="width:28px;height:28px;border-radius:50%;background:rgba(0,230,118,0.1);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--green);flex-shrink:0">${initials}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.player?.name||'—'}</div>
-        <div style="font-size:10px;color:var(--muted2)">${s.team?.shortName||s.team?.name||'—'}</div>
+        <div style="font-size:10px;color:var(--muted2)">${s.team?.name||'—'}</div>
       </div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--green)">${s.goals||0}</div>
     </div>`;
@@ -2910,7 +2983,24 @@ async function loadNBAGames() {
   const hasLive = events.some(e => e.status?.type?.state === 'in');
   if(badge) badge.style.display = hasLive ? '' : 'none';
 
-  container.innerHTML = events.map(e => {
+  const games = events;
+
+  // Sidebar NBA — primer partido
+  const sNba2 = document.getElementById('sidebarNba');
+  if(sNba2 && games.length) {
+    const g = games[0];
+    const hw = g.competitions?.[0]?.competitors?.find(t=>t.homeAway==='home');
+    const aw = g.competitions?.[0]?.competitors?.find(t=>t.homeAway==='away');
+    const isLv = g.status?.type?.state === 'in';
+    const isFn = g.status?.type?.state === 'post';
+    const gt = new Date(g.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const sc = (isLv||isFn) ? (aw?.score||0)+' – '+(hw?.score||0) : gt;
+    sNba2.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--txt);margin-bottom:4px">'+(aw?.team?.abbreviation||'?')+' vs '+(hw?.team?.abbreviation||'?')+'</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+(isLv?'var(--red)':'var(--muted2)')+'">'+(isLv?'🔴 ':'')+sc+'</div>'+
+      (games.length>1?'<div style="font-size:10px;color:var(--muted);margin-top:4px">+' + (games.length-1)+' partidos más</div>':'');
+  }
+
+  container.innerHTML = games.map(e => {
     const comp = e.competitions?.[0];
     const home = comp?.competitors?.find(t => t.homeAway === 'home');
     const away = comp?.competitors?.find(t => t.homeAway === 'away');
