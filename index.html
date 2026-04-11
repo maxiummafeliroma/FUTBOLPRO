@@ -906,6 +906,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .grupo-team-row:hover{background:var(--card2)}
 .grupo-team-row.primero{background:rgba(0,230,118,0.08);border-left:3px solid var(--green)}
 .grupo-team-row.segundo{background:rgba(0,176,255,0.06);border-left:3px solid var(--blue)}
+.grupo-team-row.tercero{background:rgba(255,214,0,0.04);border-left:3px solid rgba(255,214,0,0.4)}
+.grupo-team-pos.p3{color:var(--gold)}
 .grupo-team-pos{font-size:10px;font-weight:700;width:16px;text-align:center;flex-shrink:0}
 .grupo-team-pos.p1{color:var(--green)}
 .grupo-team-pos.p2{color:var(--blue)}
@@ -1790,19 +1792,40 @@ async function loadArgentinaFixtures() {
 }
 
 async function loadArgentinaStandings() {
-  const cacheKey = 'fp_arg_standings';
+  const cacheKey = 'fp_espn_arg_standings';
   const cached = cacheGet(cacheKey, CACHE_TTL.standings);
   if(cached) return cached;
   try {
-    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/standings?league=128&season=2025'));
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if(data && data.response && data.response.length) {
-      const rows = data.response[0]?.league?.standings?.[0] || [];
-      cacheSet(cacheKey, rows);
-      return rows;
+    const data = await espnFetch('/soccer/arg.1/standings');
+    if(data && data.standings && data.standings.length) {
+      const entries = data.standings[0]?.entries || data.standings.flatMap(s => s.entries||[]);
+      if(entries.length) {
+        const rows = entries.map(e => ({
+          rank: e.stats?.find(s=>s.name==='rank')?.value || 0,
+          team: {
+            id: e.team?.id,
+            name: e.team?.displayName || e.team?.shortDisplayName || '?',
+            logo: e.team?.logos?.[0]?.href || e.team?.logo || ''
+          },
+          points: e.stats?.find(s=>s.name==='points')?.value || 0,
+          all: {
+            played: e.stats?.find(s=>s.name==='gamesPlayed')?.value || 0,
+            win:    e.stats?.find(s=>s.name==='wins')?.value || 0,
+            draw:   e.stats?.find(s=>s.name==='ties')?.value || 0,
+            lose:   e.stats?.find(s=>s.name==='losses')?.value || 0,
+            goals:  {
+              for:     e.stats?.find(s=>s.name==='pointsFor')?.value || 0,
+              against: e.stats?.find(s=>s.name==='pointsAgainst')?.value || 0,
+            }
+          },
+          goalsDiff: e.stats?.find(s=>s.name==='pointDifferential')?.value || 0,
+          form: e.stats?.find(s=>s.name==='streak')?.displayValue || ''
+        })).sort((a,b) => b.points - a.points);
+        cacheSet(cacheKey, rows);
+        return rows;
+      }
     }
-  } catch(e) { console.warn('[api-sports ARG standings]', e.message); }
+  } catch(e) { console.warn('[ESPN ARG standings]', e.message); }
   return [];
 }
 
@@ -4027,25 +4050,26 @@ function renderGrupos() {
     return `<div class="grupo-card">
       <div class="grupo-header">
         <span class="grupo-name">GRUPO ${letra}</span>
-        <span style="font-size:10px;color:var(--muted2)">${sel.primero&&sel.segundo ? '✅ Listo' : sel.primero ? '1° elegido' : 'Elegí 1° y 2°'}</span>
+        <span style="font-size:10px;color:var(--muted2)">${sel.primero&&sel.segundo&&sel.tercero ? '✅ Listo' : sel.primero&&sel.segundo ? '3° pendiente' : sel.primero ? '1° elegido' : 'Elegí 1°, 2° y 3°'}</span>
       </div>
       <div class="grupo-body">
         ${data.pais.map((p,i) => {
           const isPrimero = sel.primero?.n === p.n;
           const isSegundo = sel.segundo?.n === p.n;
-          return `<div class="grupo-team-row ${isPrimero?'primero':isSegundo?'segundo':''}" onclick="selectGrupoTeam('${letra}',${i})">
-            <span class="grupo-team-pos ${isPrimero?'p1':isSegundo?'p2':''}">${isPrimero?'1°':isSegundo?'2°':''}</span>
+          const isTercero = sel.tercero?.n === p.n;
+          return `<div class="grupo-team-row ${isPrimero?'primero':isSegundo?'segundo':isTercero?'tercero':''}" onclick="selectGrupoTeam('${letra}',${i})">
+            <span class="grupo-team-pos ${isPrimero?'p1':isSegundo?'p2':isTercero?'p3':''}">${isPrimero?'1°':isSegundo?'2°':isTercero?'3°':''}</span>
             <span class="grupo-team-flag">${p.f}</span>
             <span class="grupo-team-name">${p.n}</span>
           </div>`;
         }).join('')}
-        <div class="grupo-select-hint">${sel.primero&&sel.segundo?sel.primero.f+' '+sel.primero.n+' y '+sel.segundo.f+' '+sel.segundo.n:'Hacé clic para elegir clasificados'}</div>
+        <div class="grupo-select-hint">${sel.primero&&sel.segundo&&sel.tercero?sel.primero.f+' '+sel.primero.n+', '+sel.segundo.f+' '+sel.segundo.n+' (3°: '+sel.tercero.f+' '+sel.tercero.n+')':sel.primero&&sel.segundo?'Ahora elegí el 3° puesto':'Hacé clic para elegir 1°, 2° y 3°'}</div>
       </div>
     </div>`;
   }).join('');
 
   // Habilitar botón si todos los grupos tienen 1° y 2°
-  const allReady = Object.keys(MUNDIAL_GRUPOS_DATA).every(g => mundialGrupoSelec[g]?.primero && mundialGrupoSelec[g]?.segundo);
+  const allReady = Object.keys(MUNDIAL_GRUPOS_DATA).every(g => mundialGrupoSelec[g]?.primero && mundialGrupoSelec[g]?.segundo && mundialGrupoSelec[g]?.tercero);
   const btn = document.getElementById('btnIrBracket');
   if(btn) {
     btn.disabled = !allReady;
@@ -4059,16 +4083,16 @@ function selectGrupoTeam(letra, idx) {
   const sel = mundialGrupoSelec[letra];
   const team = MUNDIAL_GRUPOS_DATA[letra].pais[idx];
 
-  // Si ya es primero → quitar
+  // Si ya está marcado → quitar
   if(sel.primero?.n === team.n) { delete sel.primero; }
-  // Si ya es segundo → quitar
   else if(sel.segundo?.n === team.n) { delete sel.segundo; }
-  // Si no hay primero → asignar primero
+  else if(sel.tercero?.n === team.n) { delete sel.tercero; }
+  // Asignar en orden
   else if(!sel.primero) { sel.primero = team; }
-  // Si no hay segundo y no es el mismo que primero → asignar segundo
   else if(!sel.segundo) { sel.segundo = team; }
-  // Si hay ambos → reemplazar el primero y borrar el segundo
-  else { sel.primero = team; delete sel.segundo; }
+  else if(!sel.tercero) { sel.tercero = team; }
+  // Si hay los tres, rotar: nuevo primero
+  else { sel.primero = team; delete sel.segundo; delete sel.tercero; }
 
   mundialGrupoSelec[letra] = sel;
   mundialBracketResults = {}; // reset bracket al cambiar grupos
@@ -4076,28 +4100,46 @@ function selectGrupoTeam(letra, idx) {
 }
 
 function irAlBracket() {
-  const allReady = Object.keys(MUNDIAL_GRUPOS_DATA).every(g => mundialGrupoSelec[g]?.primero && mundialGrupoSelec[g]?.segundo);
-  if(!allReady) { showProdeToast('Elegí el 1° y 2° de todos los grupos primero'); return; }
+  const allReady = Object.keys(MUNDIAL_GRUPOS_DATA).every(g => mundialGrupoSelec[g]?.primero && mundialGrupoSelec[g]?.segundo && mundialGrupoSelec[g]?.tercero);
+  if(!allReady) { showProdeToast('Elegí el 1°, 2° y 3° de todos los grupos primero'); return; }
   setMundialTab('bracket', document.getElementById('mundialBracketTab'));
 }
 
 // ── Bracket de 16avos hasta la final ──────────────────────────────
 // Cruzamientos: 1A vs 2B, 1C vs 2D, 1E vs 2F, 1G vs 2H, 1I vs 2J, 1K vs 2L, ...
 function getBracketR16() {
-  const g = (letra, pos) => mundialGrupoSelec[letra]?.[pos==='1'?'primero':'segundo'] || null;
+  const p = (letra) => mundialGrupoSelec[letra]?.primero || null;
+  const s = (letra) => mundialGrupoSelec[letra]?.segundo || null;
+  const t = (letra) => mundialGrupoSelec[letra]?.tercero || null;
+
+  // 8 mejores terceros ordenados por los grupos ABCD, ABCE, etc.
+  // Simplificamos: tomamos los 8 terceros en orden de grupos
+  const grupos = Object.keys(MUNDIAL_GRUPOS_DATA);
+  const terceros = grupos.map(g => mundialGrupoSelec[g]?.tercero).filter(Boolean).slice(0,8);
+  const t3 = (i) => terceros[i] || null;
+
   return [
-    // Llave izquierda
-    [g('A','1'), g('B','2')], [g('C','1'), g('D','2')],
-    [g('E','1'), g('F','2')], [g('G','1'), g('H','2')],
-    // Llave derecha
-    [g('B','1'), g('A','2')], [g('D','1'), g('C','2')],
-    [g('F','1'), g('E','2')], [g('H','1'), g('G','2')],
-    // Grupos I-L
-    [g('I','1'), g('J','2')], [g('K','1'), g('L','2')],
-    [g('J','1'), g('I','2')], [g('L','1'), g('K','2')],
-    // Cruces extra para 48 equipos → 32 en 16avos
-    [g('C','2'), g('D','1')], [g('G','2'), g('H','1')],
-    [g('K','2'), g('L','1')], [g('I','2'), g('J','1')],
+    // 16avos — cruzamiento oficial FIFA 2026
+    // Llave 1 (izquierda): grupos A-D
+    [p('A'), s('B')],   // 1A vs 2B
+    [p('C'), s('D')],   // 1C vs 2D
+    [t3(0),  t3(1)],    // mejor 3° vs 2° mejor 3°
+    [p('B'), s('A')],   // 1B vs 2A
+    // Llave 2: grupos E-H
+    [p('E'), s('F')],   // 1E vs 2F
+    [p('G'), s('H')],   // 1G vs 2H
+    [t3(2),  t3(3)],    // 3° mejor vs 4° mejor
+    [p('F'), s('E')],   // 1F vs 2E
+    // Llave 3: grupos I-L
+    [p('I'), s('J')],   // 1I vs 2J
+    [p('K'), s('L')],   // 1K vs 2L
+    [t3(4),  t3(5)],    // 5° y 6° mejores terceros
+    [p('J'), s('I')],   // 1J vs 2I
+    // Llave 4: cruces
+    [p('D'), s('C')],   // 1D vs 2C
+    [p('H'), s('G')],   // 1H vs 2G
+    [t3(6),  t3(7)],    // 7° y 8° mejores terceros
+    [p('L'), s('K')],   // 1L vs 2K
   ];
 }
 
