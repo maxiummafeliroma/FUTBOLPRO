@@ -1038,6 +1038,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
   <div id="leaguesStrip" style="max-width:1400px;margin:0 auto">
     <div class="leagues-strip">
       <button class="lg-btn active" onclick="filterLeague('all',this)">🌍 Todas <span class="lg-count" id="cnt-all">—</span></button>
+      <button class="lg-btn" onclick="filterLeague('live',this)" id="btn-live" style="display:none;border-color:rgba(244,67,54,0.4);color:var(--red)"><span class="live-dot"></span> EN VIVO <span class="lg-count" id="cnt-live" style="background:rgba(244,67,54,0.2);color:var(--red)">—</span></button>
       <button class="lg-btn" onclick="filterLeague('39',this)">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier <span class="lg-count" id="cnt-39">—</span></button>
       <button class="lg-btn" onclick="filterLeague('140',this)">🇪🇸 La Liga <span class="lg-count" id="cnt-140">—</span></button>
       <button class="lg-btn" onclick="filterLeague('135',this)">🇮🇹 Serie A <span class="lg-count" id="cnt-135">—</span></button>
@@ -1994,8 +1995,10 @@ async function loadMatches() {
     const LIVE_ST = ['1H','HT','2H','ET','BT','P','INT'];
     const liveMatches = allMatches.filter(m => LIVE_ST.includes(m.fixture.status.short));
     if(liveMatches.length > 0) {
-      document.getElementById('btn-live').style.display = 'flex';
-      document.getElementById('cnt-live').textContent = liveMatches.length;
+      const btnLive = document.getElementById('btn-live');
+      const cntLive = document.getElementById('cnt-live');
+      if(btnLive) btnLive.style.display = 'flex';
+      if(cntLive) cntLive.textContent = liveMatches.length;
       renderLiveBanner(liveMatches);
     }
 
@@ -2078,7 +2081,7 @@ function renderMatchCard(m) {
     : isFT ? `<span class="match-status status-ft">FT</span>`
     : `<span class="match-status status-sched">${new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>`;
   const scoreHtml = (isLive||isFT)
-    ? `<div class="match-score">${m.goals.home??0} – ${m.goals.away??0}</div>`
+    ? `<div class="match-score">${m.goals.home !== null ? m.goals.home : '—'} – ${m.goals.away !== null ? m.goals.away : '—'}</div>`
     : `<div class="match-vs">vs</div>`;
   const hasPred = isLive || isFT;
   const odds = m.odds ? m.odds[0]?.values : null;
@@ -2897,6 +2900,8 @@ async function loadNBAGames() {
 
   if(!events || !events.length) {
     container.innerHTML = '<div class="empty-state">No hay partidos NBA hoy.</div>';
+    const sNba = document.getElementById('sidebarNba');
+    if(sNba) sNba.innerHTML = '<div style="font-size:11px;color:var(--muted2);text-align:center;padding:4px">Sin partidos hoy</div>';
     return;
   }
 
