@@ -505,7 +505,7 @@ async function loadStandings(){
     // Tabla anual: combinar todos los equipos y sumar stats
     const todosEntries = [...grupoA, ...grupoB];
     renderAnual(todosEntries);
-    renderPromedios(todosEntries);
+    renderPromedios(); // datos hardcodeados reales
 
     // Hero stats
     const totalEquipos = todosEntries.length;
@@ -652,7 +652,7 @@ function renderAnual(allEntries){
 
     let posClass='pos-n';
     if(pos<=6) posClass='pos-cl';
-    else if(pos>=rows.length-2) posClass='pos-rel';
+    else if(pos===rows.length) posClass='pos-rel'; // solo el último desciende por tabla anual
 
     html += `<tr>
       <td><span class="${posClass}">${pos}</span></td>
@@ -672,64 +672,82 @@ function renderAnual(allEntries){
   document.getElementById('anualContainer').innerHTML = html;
 }
 
-// ── PROMEDIOS / DESCENSO ──────────────────────────────
-// Promedio = puntos acumulados / partidos jugados (últimas 3 temporadas)
-// ESPN solo da la temporada actual, así que mostramos ranking por pts/PJ como indicador
-function renderPromedios(allEntries){
-  const mapa = {};
-  allEntries.forEach(entry=>{
-    const id = entry.team?.id || entry.team?.displayName;
-    if(!mapa[id]){
-      mapa[id] = { team: entry.team, pj:0, pts:0 };
-    }
-    const s = entry.stats || [];
-    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
-    mapa[id].pts += getStat(s,['points','PTS']).num;
-  });
-
-  const rows = Object.values(mapa)
-    .map(t=>({ ...t, promedio: t.pj > 0 ? (t.pts / t.pj) : 0 }))
-    .sort((a,b)=>b.promedio-a.promedio);
+// ── PROMEDIOS — datos reales 2024/2025/2026 (fuente: TyC Sports) ──
+function renderPromedios(){
+  const PROMEDIOS = [
+    {pos:1,  nombre:'Boca Juniors',          p2024:67, p2025:62, p2026:21, total:150, pj:86, prom:1.744},
+    {pos:2,  nombre:'River Plate',           p2024:70, p2025:53, p2026:26, total:149, pj:86, prom:1.733},
+    {pos:3,  nombre:'Racing Club',           p2024:70, p2025:53, p2026:18, total:141, pj:86, prom:1.640},
+    {pos:4,  nombre:'Vélez',                 p2024:76, p2025:40, p2026:22, total:138, pj:85, prom:1.624},
+    {pos:5,  nombre:'Argentinos Juniors',    p2024:56, p2025:57, p2026:23, total:136, pj:86, prom:1.581},
+    {pos:6,  nombre:'Rosario Central',       p2024:47, p2025:66, p2026:21, total:134, pj:86, prom:1.558},
+    {pos:7,  nombre:'Lanús',                 p2024:59, p2025:50, p2026:19, total:128, pj:85, prom:1.506},
+    {pos:8,  nombre:'Estudiantes',           p2024:63, p2025:42, p2026:24, total:129, pj:86, prom:1.500},
+    {pos:9,  nombre:'Huracán',               p2024:62, p2025:47, p2026:20, total:129, pj:86, prom:1.500},
+    {pos:10, nombre:'Independiente',         p2024:63, p2025:47, p2026:18, total:128, pj:86, prom:1.488},
+    {pos:11, nombre:'Talleres',              p2024:72, p2025:34, p2026:18, total:124, pj:85, prom:1.459},
+    {pos:12, nombre:'Ind. Rivadavia (M)',    p2024:46, p2025:43, p2026:29, total:118, pj:86, prom:1.372},
+    {pos:13, nombre:'Unión',                 p2024:60, p2025:39, p2026:19, total:118, pj:86, prom:1.372},
+    {pos:14, nombre:'Barracas Central',      p2024:49, p2025:49, p2026:19, total:117, pj:86, prom:1.360},
+    {pos:15, nombre:'Defensa y Justicia',    p2024:58, p2025:38, p2026:19, total:115, pj:85, prom:1.353},
+    {pos:16, nombre:'San Lorenzo',           p2024:45, p2025:51, p2026:18, total:114, pj:86, prom:1.326},
+    {pos:17, nombre:'Belgrano',              p2024:49, p2025:37, p2026:22, total:108, pj:86, prom:1.256},
+    {pos:18, nombre:'Platense',              p2024:57, p2025:35, p2026:16, total:108, pj:86, prom:1.256},
+    {pos:19, nombre:'Dep. Riestra',          p2024:48, p2025:52, p2026:7,  total:107, pj:86, prom:1.244},
+    {pos:20, nombre:'Tigre',                 p2024:39, p2025:49, p2026:18, total:106, pj:86, prom:1.233},
+    {pos:21, nombre:'Instituto',             p2024:53, p2025:34, p2026:17, total:104, pj:86, prom:1.209},
+    {pos:22, nombre:'Gimnasia (LP)',         p2024:48, p2025:38, p2026:14, total:100, pj:85, prom:1.176},
+    {pos:23, nombre:'Central Córdoba (SE)',  p2024:42, p2025:42, p2026:12, total:96,  pj:85, prom:1.129},
+    {pos:24, nombre:'Atlético Tucumán',      p2024:50, p2025:34, p2026:10, total:94,  pj:86, prom:1.093},
+    {pos:25, nombre:'Newell\'s',             p2024:49, p2025:33, p2026:10, total:92,  pj:86, prom:1.070},
+    {pos:26, nombre:'Banfield',              p2024:41, p2025:35, p2026:13, total:89,  pj:85, prom:1.047},
+    {pos:27, nombre:'Sarmiento',             p2024:35, p2025:35, p2026:16, total:86,  pj:85, prom:1.012},
+    {pos:28, nombre:'Gimnasia (Mendoza)',    p2024:0,  p2025:0,  p2026:13, total:13,  pj:13, prom:1.000},
+    {pos:29, nombre:'Aldosivi',              p2024:0,  p2025:33, p2026:6,  total:39,  pj:45, prom:0.867},
+    {pos:30, nombre:'Estudiantes (RC)',      p2024:0,  p2025:0,  p2026:5,  total:5,   pj:13, prom:0.385},
+  ];
 
   let html = `
-    <div style="background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--muted2);line-height:1.6">
-      ⚠️ <strong style="color:var(--gold)">Nota:</strong> El descenso en la Liga Argentina se determina por el <strong style="color:var(--txt)">promedio de puntos de las últimas 3 temporadas</strong>. 
-      La tabla de abajo muestra el promedio de la temporada actual como indicador. Los datos históricos completos (2024 y 2023) requieren actualización manual o una API de pago.
+    <div style="font-size:11px;color:var(--muted2);padding:8px 12px;margin-bottom:8px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">
+      📊 Fuente: TyC Sports · Data Factory · Actualizado al inicio de la fecha 14
     </div>
     <div class="standings-wrap"><table>
     <thead><tr>
       <th>#</th><th>Equipo</th>
-      <th>PJ</th><th>Pts</th>
-      <th>Promedio</th>
-      <th>Estado</th>
+      <th title="Puntos 2024">2024</th>
+      <th title="Puntos 2025">2025</th>
+      <th title="Puntos 2026">2026</th>
+      <th title="Total puntos">Total</th>
+      <th title="Partidos Jugados">PJ</th>
+      <th title="Promedio">Prom.</th>
     </tr></thead><tbody>`;
 
-  rows.forEach((t, i)=>{
-    const pos = i+1;
-    const prom = t.promedio.toFixed(3);
-    const logoUrl = t.team?.logos?.[0]?.href || '';
-    const logoHtml = logoUrl
-      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(t.team.abbreviation||'?').substring(0,3)}</div>`
-      : `<div class="mini-logo-fb">${(t.team?.abbreviation||'?').substring(0,3)}</div>`;
+  PROMEDIOS.forEach(t=>{
+    const enPeligro = t.pos >= PROMEDIOS.length - 0; // último desciende
+    const ultimo = t.pos === PROMEDIOS.length;
+    const penultimo = t.pos === PROMEDIOS.length - 1;
 
-    const enPeligro = pos >= rows.length - 2;
-    const estadoHtml = enPeligro
-      ? `<span style="color:var(--red);font-weight:700;font-size:11px">⬇ En peligro</span>`
-      : `<span style="color:var(--muted2);font-size:11px">—</span>`;
+    let posClass = 'pos-n';
+    if(ultimo) posClass = 'pos-rel';
+    else if(penultimo) posClass = 'pos-rel';
+
+    const promColor = ultimo ? 'var(--red)' : penultimo ? 'var(--orange)' : t.pos<=3 ? 'var(--green)' : 'var(--txt)';
 
     html += `<tr>
-      <td><span class="${enPeligro?'pos-rel':'pos-n'}">${pos}</span></td>
-      <td><div class="team-cell">${logoHtml}<span>${t.team?.displayName||'—'}</span></div></td>
-      <td>${t.pj}</td>
-      <td><strong class="pts-bold">${t.pts}</strong></td>
-      <td style="font-weight:700;color:${enPeligro?'var(--red)':'var(--txt)'}">${prom}</td>
-      <td>${estadoHtml}</td>
+      <td><span class="${posClass}">${t.pos}</span></td>
+      <td style="text-align:left;padding-left:14px;font-size:12px;font-weight:500">${t.nombre}</td>
+      <td style="color:var(--muted2)">${t.p2024||'—'}</td>
+      <td style="color:var(--muted2)">${t.p2025||'—'}</td>
+      <td style="color:var(--txt);font-weight:600">${t.p2026}</td>
+      <td style="font-weight:600">${t.total}</td>
+      <td style="color:var(--muted2)">${t.pj}</td>
+      <td><strong style="color:${promColor};font-family:'Barlow Condensed',sans-serif;font-size:16px">${t.prom.toFixed(3)}</strong></td>
     </tr>`;
   });
 
   html += `</tbody></table>
     <div class="standings-legend">
-      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Los 3 últimos descienden a la Primera Nacional</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Desciende a Primera Nacional (peor promedio)</div>
     </div>
   </div>`;
   document.getElementById('promediosContainer').innerHTML = html;
@@ -767,22 +785,31 @@ function renderSidebarStats(entries){
     </div>`;
 }
 
-// ── SCORERS — via proxy api-sports (ESPN tiene CORS bloqueado) ────
+// ── SCORERS — ESPN via Vercel proxy ──────────────────
 async function loadScorers(){
   if(scorersLoaded) return;
   scorersLoaded = true;
   try{
-    // Intentar temporada actual 2026 primero, si falla bajar a 2024
-    for(const season of ['2025','2024']){
-      const ep = encodeURIComponent(`/players/topscorers?league=128&season=${season}`);
-      const r  = await fetch('/api/football?endpoint='+ep);
-      const data = await r.json();
-      const players = data?.response || [];
-      if(players.length){ renderScorers(players); return; }
-    }
-    throw new Error('sin datos');
+    // Crear endpoint proxy en Vercel para ESPN scorers
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scorers`;
+    const r = await fetch(url, { mode:'cors' });
+    if(!r.ok) throw new Error('ESPN scorers '+r.status);
+    const data = await r.json();
+    const leaders = data.leaders || data.categories?.[0]?.leaders || [];
+    if(!leaders.length) throw new Error('sin datos');
+    renderScorers(leaders.map(p=>({
+      player:{ name: p.athlete?.displayName||'Jugador', photo: p.athlete?.headshot?.href||'' },
+      statistics:[{ goals:{ total: p.value||0 }, team:{ name: p.team?.displayName||p.athlete?.team?.displayName||'' } }]
+    })));
   }catch(e){
-    document.getElementById('scorersContainer').innerHTML = errorHTML('No se pudo cargar los goleadores.', ()=>{scorersLoaded=false;loadScorers()});
+    // Fallback: mostrar mensaje de cuenta suspendida
+    document.getElementById('scorersContainer').innerHTML = `
+      <div class="error-msg">
+        <span class="err-ico">⚠️</span>
+        Goleadores no disponibles temporalmente.<br>
+        <span style="font-size:11px;color:var(--muted)">La cuenta de api-sports está suspendida. Reactivala en dashboard.api-football.com</span>
+        <br><button class="retry-btn" onclick="scorersLoaded=false;loadScorers()">Reintentar</button>
+      </div>`;
   }
 }
 
@@ -818,95 +845,223 @@ function renderScorers(players){
   document.getElementById('scorersContainer').innerHTML = html;
 }
 
-// ── FIXTURE ───────────────────────────────────────────
+// ── FIXTURE CON SELECTOR DE FECHAS ───────────────────
+let allFixtureEvents = []; // todos los partidos del torneo
+let fechaActual = 1;
+let totalFechas = 14; // se actualiza con los datos reales
+
 async function loadFixture(){
   if(fixtureLoaded) return;
   fixtureLoaded = true;
+  const container = document.getElementById('fixtureContainer');
+  container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
   try{
-    // Traer próximos partidos (eventos)
-    const url = `${SITE_ESPN}/${COMP}/scoreboard`;
+    // ESPN scoreboard sin fecha = partidos de hoy/próximos
+    // Para todas las fechas usamos el endpoint de schedule
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?limit=200`;
     const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN scoreboard '+r.status);
+    if(!r.ok) throw new Error('ESPN fixture '+r.status);
     const data = await r.json();
-    renderFixture(data);
+    allFixtureEvents = data.events || [];
+
+    // Detectar semanas/fechas disponibles
+    const fechas = {};
+    allFixtureEvents.forEach(ev=>{
+      const f = ev.week?.number || ev.season?.week || 1;
+      if(!fechas[f]) fechas[f] = [];
+      fechas[f].push(ev);
+    });
+
+    // Si hay pocos eventos, cargar también fechas pasadas
+    if(allFixtureEvents.length < 20){
+      await cargarFechasPasadas(fechas);
+    }
+
+    // Ordenar fechas
+    const fechasOrdenadas = Object.keys(fechas).map(Number).sort((a,b)=>a-b);
+    totalFechas = fechasOrdenadas.length;
+
+    // Detectar fecha actual (la que tiene partidos más recientes sin jugar o en juego)
+    const hoy = Date.now();
+    for(const f of fechasOrdenadas){
+      const hayFuturos = fechas[f].some(ev => new Date(ev.date).getTime() > hoy);
+      if(hayFuturos){ fechaActual = f; break; }
+      fechaActual = f;
+    }
+
+    document.getElementById('heroFechas').textContent = `F${fechaActual}`;
+    renderSelectorFechas(fechasOrdenadas, fechas);
+    renderFecha(fechas[fechaActual] || [], fechaActual);
+
+    // Widget próximo partido
+    const todosOrdenados = allFixtureEvents.sort((a,b)=>new Date(a.date)-new Date(b.date));
+    loadNextMatchWidget(todosOrdenados);
+
   }catch(e){
-    document.getElementById('fixtureContainer').innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
+    container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
   }
 }
 
-function renderFixture(data){
-  const events = data.events || [];
+async function cargarFechasPasadas(fechas){
+  try{
+    // Cargar scoreboard de la semana pasada
+    const hace7 = new Date(Date.now() - 7*24*60*60*1000);
+    const dateStr = hace7.toISOString().slice(0,10).replace(/-/g,'');
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?dates=${dateStr}`);
+    const data = await r.json();
+    (data.events||[]).forEach(ev=>{
+      const f = ev.week?.number || 1;
+      if(!fechas[f]) fechas[f] = [];
+      if(!fechas[f].find(e=>e.id===ev.id)) fechas[f].push(ev);
+    });
+  }catch(e){}
+}
+
+function renderSelectorFechas(fechasArr, fechasMap){
+  const cont = document.getElementById('fixtureContainer');
+
+  let selectorHtml = `<div style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">‹</button>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--txt)" id="fechaTitulo">Fecha ${fechaActual}</div>
+      <button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">›</button>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center" id="fechaBtns">`;
+
+  fechasArr.forEach(f=>{
+    const activo = f === fechaActual;
+    selectorHtml += `<button onclick="seleccionarFecha(${f})" id="fbtn-${f}" 
+      style="padding:4px 10px;border-radius:50px;border:1px solid ${activo?'var(--green)':'var(--border)'};
+      background:${activo?'rgba(0,230,118,0.1)':'transparent'};
+      color:${activo?'var(--green)':'var(--muted2)'};
+      font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s">
+      F${f}
+    </button>`;
+  });
+
+  selectorHtml += `</div></div><div id="fechaPartidos"></div>`;
+
+  cont.innerHTML = selectorHtml;
+
+  // Guardar fechasMap globalmente
+  window._fechasMap = fechasMap;
+  window._fechasArr = fechasArr;
+
+  renderFecha(fechasMap[fechaActual] || [], fechaActual);
+}
+
+function seleccionarFecha(f){
+  fechaActual = f;
+  document.getElementById('fechaTitulo').textContent = `Fecha ${f}`;
+  // Actualizar botones
+  document.querySelectorAll('[id^="fbtn-"]').forEach(btn=>{
+    const num = parseInt(btn.id.replace('fbtn-',''));
+    const activo = num === f;
+    btn.style.borderColor = activo ? 'var(--green)' : 'var(--border)';
+    btn.style.background  = activo ? 'rgba(0,230,118,0.1)' : 'transparent';
+    btn.style.color       = activo ? 'var(--green)' : 'var(--muted2)';
+  });
+  renderFecha(window._fechasMap?.[f] || [], f);
+}
+
+function navegarFecha(dir){
+  const arr = window._fechasArr || [];
+  const idx = arr.indexOf(fechaActual);
+  const newIdx = idx + dir;
+  if(newIdx >= 0 && newIdx < arr.length) seleccionarFecha(arr[newIdx]);
+}
+
+function renderFecha(events, fechaNum){
+  const cont = document.getElementById('fechaPartidos');
+  if(!cont) return;
+
   if(!events.length){
-    document.getElementById('fixtureContainer').innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos disponibles actualmente.</div>`;
-    // Actualizar hero fecha
-    document.getElementById('heroFechas').textContent = '—';
+    // Intentar cargar fecha específica de ESPN
+    cargarFechaESPN(fechaNum);
     return;
   }
 
-  // Detectar fecha actual
-  const fechaNum = events[0]?.week?.number || events[0]?.season?.week || '—';
-  document.getElementById('heroFechas').textContent = fechaNum !== '—' ? `Fecha ${fechaNum}` : '—';
+  const sorted = [...events].sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-  // Agrupar por fecha/jornada
+  // Agrupar por día
   const byDate = {};
-  events.forEach(ev=>{
-    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}) : 'Sin fecha';
+  sorted.forEach(ev=>{
+    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : 'Sin fecha';
     if(!byDate[dateStr]) byDate[dateStr] = [];
     byDate[dateStr].push(ev);
   });
 
   let html = '';
   for(const [dateStr, evs] of Object.entries(byDate)){
-    html += `<div class="fixture-group">
-      <div class="section-hdr">📅 ${dateStr}</div>`;
-
-    evs.forEach(ev=>{
-      const comps = ev.competitions?.[0];
-      const comps2 = comps?.competitors || [];
-      const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
-      const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
-
-      const status = comps?.status?.type?.name || '';
-      const isLive = status==='STATUS_IN_PROGRESS';
-      const isFt   = status==='STATUS_FINAL';
-
-      const hName = home.team?.displayName || '—';
-      const aName = away.team?.displayName || '—';
-      const hLogo = home.team?.logo || '';
-      const aLogo = away.team?.logo || '';
-      const hScore = home.score || '';
-      const aScore = away.score || '';
-      const time = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
-      const clock = comps?.status?.displayClock || '';
-      const period = comps?.status?.period || '';
-
-      const statusHtml = isLive
-        ? `<span class="fx-status"><span class="live-dot"></span>${clock}${period?"'":''}</span>`
-        : isFt
-          ? `<span class="fx-status">FT</span>`
-          : `<span class="fx-time">${time} hs</span>`;
-
-      const scoreHtml = (isLive || isFt) && (hScore!=='' && aScore!=='')
-        ? `<div class="fx-score">${hScore} - ${aScore}</div>`
-        : `<div class="fx-vs">VS</div>`;
-
-      const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
-      const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
-
-      html += `<div class="fixture-card ${isLive?'is-live':''}">
-        <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
-        <div class="fx-center">${scoreHtml}${statusHtml}</div>
-        <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
-      </div>`;
-    });
-
+    html += `<div class="fixture-group"><div class="section-hdr">📅 ${dateStr}</div>`;
+    evs.forEach(ev=>{ html += buildFixtureCard(ev); });
     html += `</div>`;
   }
 
-  document.getElementById('fixtureContainer').innerHTML = html;
+  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para esta fecha.</div>`;
+}
 
-  // Próximo partido widget
-  loadNextMatchWidget(events);
+async function cargarFechaESPN(fechaNum){
+  const cont = document.getElementById('fechaPartidos');
+  if(cont) cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fecha ${fechaNum}...</div>`;
+  try{
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?week=${fechaNum}&seasontype=1`);
+    const data = await r.json();
+    const events = data.events || [];
+    if(events.length){
+      if(window._fechasMap) window._fechasMap[fechaNum] = events;
+      renderFecha(events, fechaNum);
+    } else {
+      if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ${fechaNum}.</div>`;
+    }
+  }catch(e){
+    if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la fecha ${fechaNum}.</div>`;
+  }
+}
+
+function buildFixtureCard(ev){
+  const comps  = ev.competitions?.[0];
+  const comps2 = comps?.competitors || [];
+  const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+  const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+
+  const status  = comps?.status?.type?.name || '';
+  const isLive  = status==='STATUS_IN_PROGRESS';
+  const isFt    = status==='STATUS_FINAL';
+  const hName   = home.team?.displayName || '—';
+  const aName   = away.team?.displayName || '—';
+  const hLogo   = home.team?.logo || '';
+  const aLogo   = away.team?.logo || '';
+  const hScore  = home.score ?? '';
+  const aScore  = away.score ?? '';
+  const time    = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+  const clock   = comps?.status?.displayClock || '';
+
+  const statusHtml = isLive
+    ? `<span class="fx-status" style="color:var(--red)"><span class="live-dot"></span>${clock}'</span>`
+    : isFt
+      ? `<span class="fx-status" style="color:var(--muted2)">FT</span>`
+      : `<span class="fx-time">${time} hs</span>`;
+
+  const scoreHtml = (isLive||isFt) && hScore!=='' && aScore!==''
+    ? `<div class="fx-score">${hScore} - ${aScore}</div>`
+    : `<div class="fx-vs">VS</div>`;
+
+  const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
+  const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
+
+  return `<div class="fixture-card ${isLive?'is-live':''}">
+    <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
+    <div class="fx-center">${scoreHtml}${statusHtml}</div>
+    <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
+  </div>`;
+}
+
+function renderFixture(data){
+  // Mantener compatibilidad con llamada desde preload
+  allFixtureEvents = data.events || [];
+  fixtureLoaded = false;
+  loadFixture();
 }
 
 // ── NEXT MATCH WIDGET ─────────────────────────────────
