@@ -846,47 +846,71 @@ async function loadFixture(){
   fixtureLoaded = true;
   const container = document.getElementById('fixtureContainer');
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
-  try{
-    // ESPN scoreboard sin fecha = partidos de hoy/próximos
-    // Para todas las fechas usamos el endpoint de schedule
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?limit=200`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN fixture '+r.status);
-    const data = await r.json();
-    allFixtureEvents = data.events || [];
 
-    // Detectar semanas/fechas disponibles
+  try{
+    // Torneo Apertura 2026: arranca ~enero, son ~14 fechas
+    // Cargamos un rango de fechas amplio para capturar todo el torneo
     const fechas = {};
-    allFixtureEvents.forEach(ev=>{
-      const f = ev.week?.number || ev.season?.week || 1;
-      if(!fechas[f]) fechas[f] = [];
-      fechas[f].push(ev);
+
+    // Cargar múltiples rangos de fechas en paralelo
+    const rangos = [
+      '20260101-20260131', // enero
+      '20260201-20260228', // febrero
+      '20260301-20260331', // marzo
+      '20260401-20260430', // abril
+      '20260501-20260531', // mayo
+    ];
+
+    const fetches = rangos.map(rango =>
+      fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?dates=${rango}&limit=50`)
+        .then(r => r.ok ? r.json() : { events:[] })
+        .catch(() => ({ events:[] }))
+    );
+
+    const resultados = await Promise.all(fetches);
+
+    resultados.forEach(data => {
+      (data.events || []).forEach(ev => {
+        const f = ev.week?.number || ev.season?.week || 1;
+        if(!fechas[f]) fechas[f] = [];
+        if(!fechas[f].find(e => e.id === ev.id)) fechas[f].push(ev);
+      });
     });
 
-    // Si hay pocos eventos, cargar también fechas pasadas
-    if(allFixtureEvents.length < 20){
-      await cargarFechasPasadas(fechas);
+    // Si no hay nada, fallback a scoreboard de hoy
+    if(Object.keys(fechas).length === 0){
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard`);
+      const data = await r.json();
+      (data.events||[]).forEach(ev => {
+        const f = ev.week?.number || 1;
+        if(!fechas[f]) fechas[f] = [];
+        fechas[f].push(ev);
+      });
     }
 
-    // Ordenar fechas
     const fechasOrdenadas = Object.keys(fechas).map(Number).sort((a,b)=>a-b);
-    totalFechas = fechasOrdenadas.length;
+    if(!fechasOrdenadas.length) throw new Error('sin fechas');
 
-    // Detectar fecha actual (la que tiene partidos más recientes sin jugar o en juego)
+    allFixtureEvents = Object.values(fechas).flat();
+
+    // Detectar fecha actual
     const hoy = Date.now();
+    fechaActual = fechasOrdenadas[0];
     for(const f of fechasOrdenadas){
       const hayFuturos = fechas[f].some(ev => new Date(ev.date).getTime() > hoy);
       if(hayFuturos){ fechaActual = f; break; }
-      fechaActual = f;
+      fechaActual = f; // última jugada
     }
 
     document.getElementById('heroFechas').textContent = `F${fechaActual}`;
-    renderSelectorFechas(fechasOrdenadas, fechas);
-    renderFecha(fechas[fechaActual] || [], fechaActual);
 
     // Widget próximo partido
-    const todosOrdenados = allFixtureEvents.sort((a,b)=>new Date(a.date)-new Date(b.date));
-    loadNextMatchWidget(todosOrdenados);
+    const proximos = allFixtureEvents
+      .filter(ev => new Date(ev.date).getTime() > hoy)
+      .sort((a,b) => new Date(a.date) - new Date(b.date));
+    if(proximos.length) loadNextMatchWidget(proximos);
+
+    renderSelectorFechas(fechasOrdenadas, fechas);
 
   }catch(e){
     container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
@@ -1041,10 +1065,51 @@ function buildFixtureCard(ev){
   const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
   const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
 
-  return `<div class="fixture-card ${isLive?'is-live':''}">
-    <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
-    <div class="fx-center">${scoreHtml}${statusHtml}</div>
-    <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
+  // Cuotas simuladas (sin NaN)
+  const _n1 = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
+  const _n2 = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
+  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (parseInt(ev.id||0) % 1000)) % 100;
+  let pH = Math.min(62, 36 + 7 + (seed % 13));
+  let pA = Math.min(45, 20 + (seed % 14));
+  let pD = Math.max(15, 100 - pH - pA);
+
+  // Ajustar cuotas en vivo según marcador
+  if(isLive && hScore !== '' && aScore !== ''){
+    const diff = parseInt(hScore) - parseInt(aScore);
+    if(diff > 0){ pH = Math.min(82, pH + diff*8); pA = Math.max(6, pA - diff*6); }
+    else if(diff < 0){ pA = Math.min(82, pA + Math.abs(diff)*8); pH = Math.max(6, pH - Math.abs(diff)*6); }
+    pD = Math.max(6, 100 - pH - pA);
+  }
+
+  const oH = (100/pH*0.9).toFixed(2);
+  const oD = (100/pD*0.9).toFixed(2);
+  const oA = (100/pA*0.9).toFixed(2);
+
+  // Cuotas solo si no terminó
+  const cuotasHtml = !isFt ? `
+    <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg3);border-top:1px solid var(--border)">
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Local</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--green)':'var(--blue)'}">${oH}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Empate</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--gold)':'var(--blue)'}">${oD}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Visita</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--red)':'var(--blue)'}">${oA}</div>
+      </div>
+      ${isLive ? `<div style="display:flex;align-items:center;padding:0 4px;font-size:9px;color:var(--red);font-weight:700">EN<br>VIVO</div>` : ''}
+    </div>` : '';
+
+  return `<div class="fixture-card ${isLive?'is-live':''}" style="display:block;padding:0;overflow:hidden">
+    <div style="display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;padding:11px 14px">
+      <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
+      <div class="fx-center">${scoreHtml}${statusHtml}</div>
+      <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
+    </div>
+    ${cuotasHtml}
   </div>`;
 }
 
