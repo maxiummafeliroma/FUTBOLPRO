@@ -785,14 +785,12 @@ function renderSidebarStats(entries){
     </div>`;
 }
 
-// ── SCORERS — ESPN via Vercel proxy ──────────────────
+// ── SCORERS — via proxy ESPN (/api/espn) ─────────────
 async function loadScorers(){
   if(scorersLoaded) return;
   scorersLoaded = true;
   try{
-    // Crear endpoint proxy en Vercel para ESPN scorers
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scorers`;
-    const r = await fetch(url, { mode:'cors' });
+    const r = await fetch('/api/espn?path=/soccer/arg.1/scorers');
     if(!r.ok) throw new Error('ESPN scorers '+r.status);
     const data = await r.json();
     const leaders = data.leaders || data.categories?.[0]?.leaders || [];
@@ -802,14 +800,7 @@ async function loadScorers(){
       statistics:[{ goals:{ total: p.value||0 }, team:{ name: p.team?.displayName||p.athlete?.team?.displayName||'' } }]
     })));
   }catch(e){
-    // Fallback: mostrar mensaje de cuenta suspendida
-    document.getElementById('scorersContainer').innerHTML = `
-      <div class="error-msg">
-        <span class="err-ico">⚠️</span>
-        Goleadores no disponibles temporalmente.<br>
-        <span style="font-size:11px;color:var(--muted)">La cuenta de api-sports está suspendida. Reactivala en dashboard.api-football.com</span>
-        <br><button class="retry-btn" onclick="scorersLoaded=false;loadScorers()">Reintentar</button>
-      </div>`;
+    document.getElementById('scorersContainer').innerHTML = errorHTML('No se pudo cargar los goleadores.', ()=>{scorersLoaded=false;loadScorers()});
   }
 }
 
