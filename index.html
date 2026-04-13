@@ -1637,7 +1637,7 @@ const FOOTBALL_BASE = ''; // migrado a football-data.org — mantener para compa
 // ===================================================
 // STATE
 // ===================================================
-let oddsOn = false;
+let oddsOn = localStorage.getItem('fp_odds') === '1';
 let allMatches = [];
 let currentLeague = 'all';
 let currentSport = 'futbol';
@@ -1748,6 +1748,7 @@ function setInnerTab(id, el) {
 // ===================================================
 function toggleOdds() {
   oddsOn = !oddsOn;
+  localStorage.setItem('fp_odds', oddsOn ? '1' : '0');
   document.getElementById('oddsToggle').classList.toggle('on', oddsOn);
   document.querySelectorAll('.match-odds').forEach(o => o.classList.toggle('show', oddsOn));
 }
@@ -2117,7 +2118,8 @@ function renderMatchCard(m) {
   // Generar cuotas simuladas si no hay reales
   const _n1 = m.teams.home.name.replace(/[^a-zA-Z]/g,'') || 'AAA';
   const _n2 = m.teams.away.name.replace(/[^a-zA-Z]/g,'') || 'BBB';
-  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (Math.abs(m.fixture.id||0) % 1000)) % 100;
+  const _id = parseInt(String(m.fixture.id).replace(/[^0-9]/g,'') || '0');
+  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (_id % 1000)) % 100;
   let pHome = Math.min(62, 36 + 7 + (seed % 13));
   let pAway = Math.min(45, 20 + (seed % 14));
   let pDraw = Math.max(15, 100 - pHome - pAway);
@@ -4400,6 +4402,12 @@ async function compartirImagen() {
 // INIT
 // ===================================================
 loadMatches();
+
+// Restaurar estado cuotas
+if(oddsOn){
+  const toggle = document.getElementById('oddsToggle');
+  if(toggle) toggle.classList.add('on');
+}
 </script>
 </body>
 </html>
