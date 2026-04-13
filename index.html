@@ -256,14 +256,14 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 }
 .lp-item:hover{background:var(--card2);color:var(--txt);border-left-color:var(--border)}
 .lp-item.active{background:rgba(0,230,118,0.06);color:var(--green);border-left-color:var(--green);font-weight:600}
-.lp-item.live-item{color:var(--red)}
+.lp-item.live-item{color:var(--txt)}
 .lp-item.live-item .live-dot{flex-shrink:0}
 .lp-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lp-item-cnt{
   font-size:10px;background:rgba(255,255,255,0.06);
   color:var(--muted2);padding:1px 5px;border-radius:50px;flex-shrink:0;
 }
-.lp-item.live-item .lp-item-cnt{background:rgba(244,67,54,0.15);color:var(--red)}
+.lp-item.live-item .lp-item-cnt{background:rgba(244,67,54,0.15);color:var(--txt)}
 .lp-sub{display:flex;gap:3px;padding:3px 12px 7px 12px;flex-wrap:wrap}
 .lp-sub-btn{
   font-size:10px;padding:2px 7px;border-radius:50px;
@@ -2104,10 +2104,21 @@ function renderMatchCard(m) {
   const odds = m.odds ? m.odds[0]?.values : null;
 
   // Generar cuotas simuladas si no hay reales
-  const seed = (m.teams.home.name.charCodeAt(0) + m.teams.away.name.charCodeAt(0) + (m.fixture.id % 1000)) % 100;
-  const pHome = Math.min(65, 38 + 7 + (seed % 13));
-  const pAway = Math.min(48, 22 + (seed % 14));
-  const pDraw = 100 - pHome - pAway;
+  const _n1 = m.teams.home.name.replace(/[^a-zA-Z]/g,'') || 'AAA';
+  const _n2 = m.teams.away.name.replace(/[^a-zA-Z]/g,'') || 'BBB';
+  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (Math.abs(m.fixture.id||0) % 1000)) % 100;
+  let pHome = Math.min(62, 36 + 7 + (seed % 13));
+  let pAway = Math.min(45, 20 + (seed % 14));
+  let pDraw = Math.max(15, 100 - pHome - pAway);
+
+  // Si hay partido en vivo, ajustar cuotas según el marcador
+  if(isLive && m.goals.home !== null && m.goals.away !== null){
+    const diff = m.goals.home - m.goals.away;
+    if(diff > 0){ pHome = Math.min(80, pHome + diff*8); pAway = Math.max(8, pAway - diff*6); }
+    else if(diff < 0){ pAway = Math.min(80, pAway + Math.abs(diff)*8); pHome = Math.max(8, pHome - Math.abs(diff)*6); }
+    pDraw = Math.max(8, 100 - pHome - pAway);
+  }
+
   const oddsHome = odds ? odds.find(v=>v.value==='Home')?.odd : (100/pHome*0.9).toFixed(2);
   const oddsDraw = odds ? odds.find(v=>v.value==='Draw')?.odd : (100/pDraw*0.9).toFixed(2);
   const oddsAway = odds ? odds.find(v=>v.value==='Away')?.odd : (100/pAway*0.9).toFixed(2);
