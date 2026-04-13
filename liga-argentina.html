@@ -316,7 +316,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     <div class="liga-badge">🇦🇷</div>
     <div class="page-hero-info">
       <div class="page-hero-title">Liga Profesional <span>Argentina</span></div>
-      <div class="page-hero-sub">Temporada 2025 · AFA · Primera División</div>
+      <div class="page-hero-sub">Temporada 2026 · AFA · Primera División</div>
       <div class="hero-stats" id="heroStats">
         <div class="hero-stat"><div class="hero-stat-val" id="heroEquipos">—</div><div class="hero-stat-lbl">Equipos</div></div>
         <div class="hero-stat"><div class="hero-stat-val" id="heroFechas">—</div><div class="hero-stat-lbl">Fecha actual</div></div>
@@ -330,17 +330,41 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <div class="main-wrap">
   <div class="content">
 
-    <!-- TABS -->
-    <div class="inner-tabs">
-      <button class="inner-tab active" onclick="showTab('tabla',this)">📊 Tabla</button>
-      <button class="inner-tab" onclick="showTab('goleadores',this)">⚽ Goleadores</button>
-      <button class="inner-tab" onclick="showTab('fixture',this)">📅 Fixture</button>
+    <!-- TABS FILA 1 -->
+    <div class="inner-tabs" style="margin-bottom:4px">
+      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">🅰 Zona A</button>
+      <button class="inner-tab" onclick="showTab('zonaB',this)" id="btn-zonaB">🅱 Zona B</button>
+      <button class="inner-tab" onclick="showTab('anual',this)" id="btn-anual">📊 Anual</button>
+      <button class="inner-tab" onclick="showTab('promedios',this)" id="btn-promedios">📉 Promedios</button>
+      <button class="inner-tab" onclick="showTab('goleadores',this)" id="btn-goleadores">⚽ Goleadores</button>
+      <button class="inner-tab" onclick="showTab('fixture',this)" id="btn-fixture">📅 Fixture</button>
     </div>
 
-    <!-- TABLA DE POSICIONES -->
-    <div class="tab-section active" id="tab-tabla">
-      <div id="standingsContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando tabla...</div>
+    <!-- ZONA A -->
+    <div class="tab-section active" id="tab-zonaA">
+      <div id="zonaAContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando Zona A...</div>
+      </div>
+    </div>
+
+    <!-- ZONA B -->
+    <div class="tab-section" id="tab-zonaB">
+      <div id="zonaBContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando Zona B...</div>
+      </div>
+    </div>
+
+    <!-- TABLA ANUAL -->
+    <div class="tab-section" id="tab-anual">
+      <div id="anualContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando tabla anual...</div>
+      </div>
+    </div>
+
+    <!-- PROMEDIOS / DESCENSO -->
+    <div class="tab-section" id="tab-promedios">
+      <div id="promediosContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando promedios...</div>
       </div>
     </div>
 
@@ -425,20 +449,17 @@ function showTab(id, btn){
   document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
-  // Lazy load
   if(id==='goleadores' && !scorersLoaded) loadScorers();
-  if(id==='fixture' && !fixtureLoaded) loadFixture();
+  if(id==='fixture'    && !fixtureLoaded) loadFixture();
 }
 
-// ── ESPN API (pública, sin key) ──────────────────────
-// Liga Profesional Argentina = arg.1 en ESPN
+// ── ESPN API ──────────────────────────────────────────
 const COMP = 'ARG.1';
-const BASE_ESPN = 'https://site.api.espn.com/apis/v2/sports/soccer';
 const SITE_ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
 let scorersLoaded = false;
 let fixtureLoaded = false;
-let standingsData = null;
+let allGroups = []; // guardamos los grupos de ESPN para reusar
 
 // ── COLORES AVATAR ─────────────────────────────────────
 const avatarColors = [
@@ -452,7 +473,7 @@ function initials(name){
   return name.substring(0,2).toUpperCase();
 }
 
-// ── STANDINGS — ESPN standings arg.1 (datos actuales 2026) ────────
+// ── STANDINGS — ESPN standings arg.1 ─────────────────
 async function loadStandings(){
   try{
     const url = `https://site.api.espn.com/apis/v2/sports/soccer/arg.1/standings`;
@@ -460,71 +481,111 @@ async function loadStandings(){
     if(!r.ok) throw new Error('ESPN standings '+r.status);
     const data = await r.json();
 
-    // ESPN devuelve data.standings array de grupos
-    const groups = data.standings || data.children || [];
-    let entries = [];
-    for(const g of groups){
-      const arr = g.entries || g.standings?.entries || [];
-      if(arr.length > entries.length) entries = arr;
-    }
-    if(!entries.length) throw new Error('sin entries');
-    renderStandingsESPN(entries);
+    // data.children = [ { name:"Group A", standings:{entries:[...]} }, { name:"Group B", ... } ]
+    const children = data.children || [];
+    if(!children.length) throw new Error('sin grupos');
+
+    allGroups = children;
+
+    // Zona A y Zona B
+    const grupoA = children[0]?.standings?.entries || children[0]?.entries || [];
+    const grupoB = children[1]?.standings?.entries || children[1]?.entries || [];
+
+    // Nombre real de los grupos
+    const nombreA = children[0]?.name || 'Zona A';
+    const nombreB = children[1]?.name || 'Zona B';
+
+    document.getElementById('btn-zonaA').textContent = `🅰 ${nombreA}`;
+    document.getElementById('btn-zonaB').textContent = `🅱 ${nombreB}`;
+
+    // Renderizar ambas zonas
+    renderZona(grupoA, 'zonaAContainer', false);
+    renderZona(grupoB, 'zonaBContainer', false);
+
+    // Tabla anual: combinar todos los equipos y sumar stats
+    const todosEntries = [...grupoA, ...grupoB];
+    renderAnual(todosEntries);
+    renderPromedios(todosEntries);
+
+    // Hero stats
+    const totalEquipos = todosEntries.length;
+    document.getElementById('heroEquipos').textContent = totalEquipos;
+    const liderA = grupoA[0];
+    if(liderA) document.getElementById('heroLider').textContent = shortName(liderA.team?.shortDisplayName || liderA.team?.displayName || '');
+
+    // Sidebar stats
+    renderSidebarStats(todosEntries);
+
   }catch(e){
-    // Fallback: api-sports season 2024
-    try{
-      const ep = encodeURIComponent('/standings?league=128&season=2024');
-      const r2 = await fetch('/api/football?endpoint='+ep);
-      const data2 = await r2.json();
-      const rows = data2?.response?.[0]?.league?.standings?.[0];
-      if(rows && rows.length){ renderStandings(rows); return; }
-    }catch(e2){}
-    document.getElementById('standingsContainer').innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
+    ['zonaAContainer','zonaBContainer','anualContainer','promediosContainer'].forEach(id=>{
+      document.getElementById(id).innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
+    });
   }
 }
 
-function renderStandingsESPN(entries){
-  document.getElementById('heroEquipos').textContent = entries.length;
-  const lider = entries[0];
-  if(lider) document.getElementById('heroLider').textContent = shortName(lider.team?.displayName||lider.team?.shortDisplayName||'');
+// ── HELPER getStat ────────────────────────────────────
+function getStat(stats, names){
+  for(const n of names){
+    const s = stats.find(x=>x.name===n||x.abbreviation===n);
+    if(s) return { val: s.displayValue ?? String(s.value ?? '—'), num: parseFloat(s.value||0) };
+  }
+  return { val:'—', num:0 };
+}
 
-  const getStat = (stats, names) => {
-    for(const n of names){
-      const s = stats.find(x=>x.name===n||x.abbreviation===n);
-      if(s) return s.displayValue ?? s.value ?? '—';
-    }
-    return '—';
-  };
+// ── TABLA GENÉRICA (zona A o B) ───────────────────────
+function renderZona(entries, containerId, esAnual){
+  if(!entries.length){
+    document.getElementById(containerId).innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
+    return;
+  }
+
+  // Ordenar por puntos desc
+  const sorted = [...entries].sort((a,b)=>{
+    const pa = getStat(a.stats||[],['points','PTS']).num;
+    const pb = getStat(b.stats||[],['points','PTS']).num;
+    return pb-pa;
+  });
 
   let html = `<div class="standings-wrap"><table>
     <thead><tr>
       <th>#</th><th>Equipo</th>
-      <th>PJ</th><th>G</th><th>E</th><th>P</th>
-      <th>GF</th><th>GC</th><th>DIF</th><th>Pts</th>
+      <th title="Partidos Jugados">PJ</th>
+      <th title="Ganados">G</th>
+      <th title="Empates">E</th>
+      <th title="Perdidos">P</th>
+      <th title="Goles a Favor">GF</th>
+      <th title="Goles en Contra">GC</th>
+      <th title="Diferencia de Goles">DIF</th>
+      <th title="Puntos">Pts</th>
     </tr></thead><tbody>`;
 
-  entries.forEach((entry, i)=>{
+  sorted.forEach((entry, i)=>{
     const pos = i+1;
     const team = entry.team || {};
     const stats = entry.stats || [];
-    const pj  = getStat(stats,['gamesPlayed','GP']);
-    const g   = getStat(stats,['wins','W','gamesWon']);
-    const e   = getStat(stats,['ties','D','draws','gamesDrawn']);
-    const p   = getStat(stats,['losses','L','gamesLost']);
-    const gf  = getStat(stats,['pointsFor','goalsFor','GF']);
-    const gc  = getStat(stats,['pointsAgainst','goalsAgainst','GA']);
-    const dif = getStat(stats,['pointDifferential','differential','GD']);
-    const pts = getStat(stats,['points','PTS']);
+    const pj  = getStat(stats,['gamesPlayed','GP']).val;
+    const g   = getStat(stats,['wins','W','gamesWon']).val;
+    const e   = getStat(stats,['ties','D','draws','gamesDrawn']).val;
+    const p   = getStat(stats,['losses','L','gamesLost']).val;
+    const gf  = getStat(stats,['pointsFor','goalsFor','GF']).val;
+    const gc  = getStat(stats,['pointsAgainst','goalsAgainst','GA']).val;
+    const difN= getStat(stats,['pointDifferential','differential','GD']).num;
+    const pts = getStat(stats,['points','PTS']).val;
+    const difStr = difN >= 0 ? '+'+difN : String(difN);
 
     const logoUrl = team.logos?.[0]?.href || '';
     const logoHtml = logoUrl
       ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(team.abbreviation||'?').substring(0,3)}</div>`
       : `<div class="mini-logo-fb">${(team.abbreviation||team.displayName||'?').substring(0,3)}</div>`;
 
+    // Colores posición
     let posClass = 'pos-n';
-    if(pos<=6) posClass='pos-cl';
-    else if(pos>=entries.length-2) posClass='pos-rel';
-
-    const difStr = dif!=='—' ? (Number(dif)>=0?'+'+dif:dif) : '—';
+    if(!esAnual){
+      if(pos===1) posClass='pos-cl';       // clasifica copa
+    } else {
+      if(pos<=6)  posClass='pos-cl';       // clasifica Libertadores/Suda
+      if(pos>=sorted.length-2) posClass='pos-rel'; // descenso
+    }
 
     html += `<tr>
       <td><span class="${posClass}">${pos}</span></td>
@@ -535,84 +596,215 @@ function renderStandingsESPN(entries){
     </tr>`;
   });
 
+  html += `</tbody></table>`;
+
+  if(esAnual){
+    html += `<div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Clasifica a Libertadores / Sudamericana</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Zona de descenso (por promedios)</div>
+    </div>`;
+  } else {
+    html += `<div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>1° clasifica a fase final</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ── TABLA ANUAL (suma de las 2 zonas) ─────────────────
+function renderAnual(allEntries){
+  // Agrupar por equipo y sumar stats
+  const mapa = {};
+  allEntries.forEach(entry=>{
+    const id = entry.team?.id || entry.team?.displayName;
+    if(!mapa[id]){
+      mapa[id] = { team: entry.team, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 };
+    }
+    const s = entry.stats || [];
+    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
+    mapa[id].g   += getStat(s,['wins','W','gamesWon']).num;
+    mapa[id].e   += getStat(s,['ties','D','draws','gamesDrawn']).num;
+    mapa[id].p   += getStat(s,['losses','L','gamesLost']).num;
+    mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
+    mapa[id].gc  += getStat(s,['pointsAgainst','goalsAgainst','GA']).num;
+    mapa[id].pts += getStat(s,['points','PTS']).num;
+  });
+
+  const rows = Object.values(mapa).sort((a,b)=>b.pts-a.pts);
+
+  let html = `<div class="standings-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Equipo</th>
+      <th>PJ</th><th>G</th><th>E</th><th>P</th>
+      <th>GF</th><th>GC</th><th>DIF</th><th>Pts</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((t, i)=>{
+    const pos = i+1;
+    const dif = t.gf - t.gc;
+    const difStr = dif>=0?'+'+dif:String(dif);
+    const logoUrl = t.team?.logos?.[0]?.href || '';
+    const logoHtml = logoUrl
+      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(t.team.abbreviation||'?').substring(0,3)}</div>`
+      : `<div class="mini-logo-fb">${(t.team?.abbreviation||t.team?.displayName||'?').substring(0,3)}</div>`;
+
+    let posClass='pos-n';
+    if(pos<=6) posClass='pos-cl';
+    else if(pos>=rows.length-2) posClass='pos-rel';
+
+    html += `<tr>
+      <td><span class="${posClass}">${pos}</span></td>
+      <td><div class="team-cell">${logoHtml}<span>${t.team?.displayName||'—'}</span></div></td>
+      <td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+      <td>${t.gf}</td><td>${t.gc}</td><td>${difStr}</td>
+      <td><strong class="pts-bold">${t.pts}</strong></td>
+    </tr>`;
+  });
+
   html += `</tbody></table>
     <div class="standings-legend">
-      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Clasifica a Libertadores/Sudamericana</div>
-      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Descenso</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Clasifica a Libertadores / Sudamericana</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Zona de descenso (por promedios)</div>
     </div>
   </div>`;
+  document.getElementById('anualContainer').innerHTML = html;
+}
 
-  document.getElementById('standingsContainer').innerHTML = html;
+// ── PROMEDIOS / DESCENSO ──────────────────────────────
+// Promedio = puntos acumulados / partidos jugados (últimas 3 temporadas)
+// ESPN solo da la temporada actual, así que mostramos ranking por pts/PJ como indicador
+function renderPromedios(allEntries){
+  const mapa = {};
+  allEntries.forEach(entry=>{
+    const id = entry.team?.id || entry.team?.displayName;
+    if(!mapa[id]){
+      mapa[id] = { team: entry.team, pj:0, pts:0 };
+    }
+    const s = entry.stats || [];
+    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
+    mapa[id].pts += getStat(s,['points','PTS']).num;
+  });
 
-  // Sidebar stats desde ESPN entries
-  const totalGf = entries.reduce((acc,e)=>{
-    const gf = e.stats?.find(s=>['pointsFor','goalsFor','GF'].includes(s.name));
-    return acc + (parseFloat(gf?.value||0));
-  },0);
-  const maxPtsEntry = entries.reduce((a,b)=>{
-    const ap = parseFloat(a.stats?.find(s=>s.name==='points')?.value||0);
-    const bp = parseFloat(b.stats?.find(s=>s.name==='points')?.value||0);
-    return bp>ap?b:a;
-  }, entries[0]);
-  const maxPts = parseFloat(maxPtsEntry?.stats?.find(s=>s.name==='points')?.value||0);
-  const maxTeam = maxPtsEntry?.team?.shortDisplayName||'';
-  const prom = (totalGf/entries.length).toFixed(1);
+  const rows = Object.values(mapa)
+    .map(t=>({ ...t, promedio: t.pj > 0 ? (t.pts / t.pj) : 0 }))
+    .sort((a,b)=>b.promedio-a.promedio);
+
+  let html = `
+    <div style="background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--muted2);line-height:1.6">
+      ⚠️ <strong style="color:var(--gold)">Nota:</strong> El descenso en la Liga Argentina se determina por el <strong style="color:var(--txt)">promedio de puntos de las últimas 3 temporadas</strong>. 
+      La tabla de abajo muestra el promedio de la temporada actual como indicador. Los datos históricos completos (2024 y 2023) requieren actualización manual o una API de pago.
+    </div>
+    <div class="standings-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Equipo</th>
+      <th>PJ</th><th>Pts</th>
+      <th>Promedio</th>
+      <th>Estado</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((t, i)=>{
+    const pos = i+1;
+    const prom = t.promedio.toFixed(3);
+    const logoUrl = t.team?.logos?.[0]?.href || '';
+    const logoHtml = logoUrl
+      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(t.team.abbreviation||'?').substring(0,3)}</div>`
+      : `<div class="mini-logo-fb">${(t.team?.abbreviation||'?').substring(0,3)}</div>`;
+
+    const enPeligro = pos >= rows.length - 2;
+    const estadoHtml = enPeligro
+      ? `<span style="color:var(--red);font-weight:700;font-size:11px">⬇ En peligro</span>`
+      : `<span style="color:var(--muted2);font-size:11px">—</span>`;
+
+    html += `<tr>
+      <td><span class="${enPeligro?'pos-rel':'pos-n'}">${pos}</span></td>
+      <td><div class="team-cell">${logoHtml}<span>${t.team?.displayName||'—'}</span></div></td>
+      <td>${t.pj}</td>
+      <td><strong class="pts-bold">${t.pts}</strong></td>
+      <td style="font-weight:700;color:${enPeligro?'var(--red)':'var(--txt)'}">${prom}</td>
+      <td>${estadoHtml}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Los 3 últimos descienden a la Primera Nacional</div>
+    </div>
+  </div>`;
+  document.getElementById('promediosContainer').innerHTML = html;
+}
+
+// ── SIDEBAR STATS ─────────────────────────────────────
+function renderSidebarStats(entries){
+  if(!entries.length){ document.getElementById('statsWidget').innerHTML=''; return; }
+  const mapa = {};
+  entries.forEach(entry=>{
+    const id = entry.team?.id || entry.team?.displayName;
+    if(!mapa[id]) mapa[id]={ pj:0, gf:0, pts:0, team:entry.team };
+    const s = entry.stats||[];
+    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
+    mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
+    mapa[id].pts += getStat(s,['points','PTS']).num;
+  });
+  const rows = Object.values(mapa);
+  const totalGf = rows.reduce((a,t)=>a+t.gf,0);
+  const prom = rows.length ? (totalGf/rows.length).toFixed(1) : '—';
+  const lider = rows.sort((a,b)=>b.pts-a.pts)[0];
 
   document.getElementById('statsWidget').innerHTML = `
     <div class="stat-bar-row">
-      <div class="stat-bar-label"><span>Promedio goles por equipo</span><span>${prom}</span></div>
+      <div class="stat-bar-label"><span>Prom. goles por equipo</span><span>${prom}</span></div>
       <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,prom*2)}%"></div></div>
     </div>
     <div class="stat-bar-row">
-      <div class="stat-bar-label"><span>Líder: ${maxTeam}</span><span>${maxPts} pts</span></div>
-      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(maxPts/60)*100)}%"></div></div>
+      <div class="stat-bar-label"><span>Líder: ${shortName(lider?.team?.shortDisplayName||'')}</span><span>${lider?.pts||0} pts</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(lider?.pts||0)/60*100)}%"></div></div>
     </div>
     <div class="stat-bar-row">
-      <div class="stat-bar-label"><span>Equipos</span><span>${entries.length}</span></div>
-      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(entries.length/28)*100)}%;background:var(--blue)"></div></div>
+      <div class="stat-bar-label"><span>Equipos totales</span><span>${rows.length}</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(rows.length/28)*100)}%;background:var(--blue)"></div></div>
     </div>`;
 }
 
-// ── SCORERS — ESPN scorers arg.1 (datos actuales 2026) ───────────
+// ── SCORERS — via proxy api-sports (ESPN tiene CORS bloqueado) ────
 async function loadScorers(){
   if(scorersLoaded) return;
   scorersLoaded = true;
   try{
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scorers`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN scorers '+r.status);
-    const data = await r.json();
-    const leaders = data.leaders || data.categories?.[0]?.leaders || [];
-    if(!leaders.length) throw new Error('sin datos');
-    renderScorersESPN(leaders);
-  }catch(e){
-    // Fallback api-sports 2024
-    try{
-      const ep = encodeURIComponent('/players/topscorers?league=128&season=2024');
-      const r2 = await fetch('/api/football?endpoint='+ep);
-      const data2 = await r2.json();
-      const players = data2?.response || [];
+    // Intentar temporada actual 2026 primero, si falla bajar a 2024
+    for(const season of ['2025','2024']){
+      const ep = encodeURIComponent(`/players/topscorers?league=128&season=${season}`);
+      const r  = await fetch('/api/football?endpoint='+ep);
+      const data = await r.json();
+      const players = data?.response || [];
       if(players.length){ renderScorers(players); return; }
-    }catch(e2){}
+    }
+    throw new Error('sin datos');
+  }catch(e){
     document.getElementById('scorersContainer').innerHTML = errorHTML('No se pudo cargar los goleadores.', ()=>{scorersLoaded=false;loadScorers()});
   }
 }
 
-function renderScorersESPN(leaders){
-  if(!leaders.length){
+function renderScorers(players){
+  if(!players.length){
     document.getElementById('scorersContainer').innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos de goleadores.</div>`;
     return;
   }
   let html = '';
-  leaders.slice(0,20).forEach((player, i)=>{
-    const goals = player.value || '0';
-    const name  = player.athlete?.displayName || player.athlete?.fullName || 'Jugador';
-    const club  = player.team?.displayName || player.athlete?.team?.displayName || '';
+  players.slice(0,20).forEach((p, i)=>{
+    const goals = p.statistics?.[0]?.goals?.total || 0;
+    const name  = p.player?.name || 'Jugador';
+    const club  = p.statistics?.[0]?.team?.name || '';
+    const foto  = p.player?.photo || '';
     const color = getAvatarColor(i);
     const rank  = i+1;
+    const avatarHtml = foto
+      ? `<img src="${foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+      : '';
     html += `<div class="scorer-row">
       <span class="scorer-rank ${rank<=3?'top':''}">${rank}</span>
-      <div class="scorer-av" style="background:${color}22;color:${color}">${initials(name)}</div>
+      ${avatarHtml}<div class="scorer-av" style="background:${color}22;color:${color};${foto?'display:none':''}">${initials(name)}</div>
       <div class="scorer-info">
         <div class="scorer-name">${name}</div>
         <div class="scorer-club">${club}</div>
