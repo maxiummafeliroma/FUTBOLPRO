@@ -1522,18 +1522,20 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="ad-card">
-    <div class="ad-tag">Publicidad · +18</div>
-    <div class="ad-brand">BETANO</div>
-    <div class="ad-promo">Bono bienvenida hasta $50.000 ARS</div>
-    <button class="ad-btn">APOSTAR AHORA</button>
+  <!-- Banner Instagram FutbolPro -->
+  <div class="ad-card" style="background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border-color:rgba(170,0,255,0.3);cursor:pointer" onclick="window.open('https://www.instagram.com/futbolpro.com.ar','_blank')">
+    <div class="ad-tag">Seguinos en Instagram</div>
+    <div class="ad-brand" style="color:#e040fb;font-size:28px">📸 FutbolPro</div>
+    <div class="ad-promo" style="color:var(--muted2)">@futbolpro.com.ar · Resultados, análisis y más</div>
+    <button class="ad-btn" style="background:linear-gradient(135deg,#e040fb,#aa00ff)">SEGUIR EN IG →</button>
   </div>
 
-  <div class="sponsor-section">
-    <div class="sponsor-tag">Sponsor Oficial · Prode FutbolPro</div>
-    <div class="sponsor-name">⚽ TU TIENDA</div>
-    <div class="sponsor-desc">Los ganadores del prode reciben remeras oficiales gracias a nuestro sponsor. ¡Participá gratis!</div>
-    <button class="sponsor-btn">VER TIENDA →</button>
+  <!-- Banner Hecho con Amor -->
+  <div class="sponsor-section" style="background:linear-gradient(135deg,#2a1810,#1a0f08);border-color:rgba(255,109,0,0.3);cursor:pointer" onclick="window.open('https://www.instagram.com/hecho.con.amor.mdz','_blank')">
+    <div class="sponsor-tag">Emprendimiento · Sublimado</div>
+    <div class="sponsor-name" style="color:var(--orange);font-size:22px">💛 Hecho con Amor</div>
+    <div class="sponsor-desc">Productos sublimados únicos, personalizados con amor. ¡Consultanos!</div>
+    <button class="sponsor-btn" style="color:var(--orange);border-color:var(--orange)">VER EN INSTAGRAM →</button>
   </div>
 
   <div class="widget">
@@ -1543,11 +1545,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     </div>
   </div>
 
-  <div class="ad-card" style="background:linear-gradient(135deg,#0a1a0a,#0d1e14);border-color:rgba(0,230,118,0.2)">
-    <div class="ad-tag">Publicidad · +18</div>
-    <div class="ad-brand" style="color:var(--green)">CODERE</div>
-    <div class="ad-promo">$30.000 gratis en tu primer registro</div>
-    <button class="ad-btn" style="background:var(--green);color:#030a05">REGISTRARME</button>
+  <div class="ad-card" style="background:linear-gradient(135deg,#2a1810,#1a0f08);border-color:rgba(255,109,0,0.25);cursor:pointer" onclick="window.open('https://www.instagram.com/hecho.con.amor.mdz','_blank')">
+    <div class="ad-tag">Regalos · Sublimado · Mendoza</div>
+    <div class="ad-brand" style="color:var(--orange)">HECHO CON AMOR</div>
+    <div class="ad-promo">Tazas, remeras, cuadros personalizados y más</div>
+    <button class="ad-btn" style="background:var(--orange);color:#fff">CONSULTANOS →</button>
   </div>
 
   <div class="widget">
@@ -1687,10 +1689,15 @@ async function tsdbFetch(endpoint) {
   } catch(e) { console.warn('[TheSportsDB]', endpoint, e.message); return null; }
 }
 
-// ── Fetcher ESPN (sin key) ─────────────────────────────────────────
+// ── Fetcher ESPN — via proxy /api/espn para evitar CORS ───────────
 async function espnFetch(path) {
   try {
-    const res = await fetch(ESPN_BASE + path);
+    // Detectar si es v2 o site/v2
+    const isV2 = path.startsWith('/sports/') || path.includes('/standings') || path.includes('/groups');
+    const proxyUrl = isV2
+      ? `/api/espn?v2=1&path=${encodeURIComponent(path)}`
+      : `/api/espn?path=${encodeURIComponent(path)}`;
+    const res = await fetch(proxyUrl);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
   } catch(e) { console.warn('[ESPN]', path, e.message); return null; }
@@ -2136,7 +2143,7 @@ function renderMatchCard(m) {
   const oddsDraw = odds ? odds.find(v=>v.value==='Draw')?.odd : (100/pDraw*0.9).toFixed(2);
   const oddsAway = odds ? odds.find(v=>v.value==='Away')?.odd : (100/pAway*0.9).toFixed(2);
 
-  return `<div class="match-card ${statusClass}" onclick="openPredModal(${m.fixture.id})">
+  return `<div class="match-card ${statusClass}" onclick="openPredModal('${m.fixture.id}')">
     <div class="team-side">
       ${teamLogo(m.teams.home.logo, m.teams.home.name)}
       <span class="team-name">${m.teams.home.name}</span>
@@ -2174,7 +2181,7 @@ function filterLeague(id, el) {
 // PREDICCION MODAL
 // ===================================================
 async function openPredModal(fixtureId) {
-  const match = allMatches.find(m => m.fixture.id === fixtureId);
+  const match = allMatches.find(m => String(m.fixture.id) === String(fixtureId));
   if(!match) return;
 
   document.getElementById('predModal').classList.add('open');
