@@ -317,11 +317,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     <div class="page-hero-info">
       <div class="page-hero-title">Liga Profesional <span>Argentina</span></div>
       <div class="page-hero-sub">Temporada 2026 · AFA · Primera División</div>
-      <div class="hero-stats" id="heroStats">
-        <div class="hero-stat"><div class="hero-stat-val" id="heroEquipos">—</div><div class="hero-stat-lbl">Equipos</div></div>
-        <div class="hero-stat"><div class="hero-stat-val" id="heroFechas">—</div><div class="hero-stat-lbl">Fecha actual</div></div>
-        <div class="hero-stat"><div class="hero-stat-val" id="heroLider">—</div><div class="hero-stat-lbl">Líder</div></div>
-      </div>
     </div>
   </div>
 </div>
@@ -506,12 +501,6 @@ async function loadStandings(){
     const todosEntries = [...grupoA, ...grupoB];
     renderAnual(todosEntries);
     renderPromedios(); // datos hardcodeados reales
-
-    // Hero stats
-    const totalEquipos = todosEntries.length;
-    document.getElementById('heroEquipos').textContent = totalEquipos;
-    const liderA = grupoA[0];
-    if(liderA) document.getElementById('heroLider').textContent = shortName(liderA.team?.shortDisplayName || liderA.team?.displayName || '');
 
     // Sidebar stats
     renderSidebarStats(todosEntries);
@@ -848,17 +837,24 @@ async function loadFixture(){
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
 
   try{
-    // Torneo Apertura 2026: arranca ~enero, son ~14 fechas
-    // Cargamos un rango de fechas amplio para capturar todo el torneo
     const fechas = {};
 
-    // Cargar múltiples rangos de fechas en paralelo
+    // Cargar todos los meses del torneo Apertura 2026 en paralelo
     const rangos = [
-      '20260101-20260131', // enero
-      '20260201-20260228', // febrero
-      '20260301-20260331', // marzo
-      '20260401-20260430', // abril
-      '20260501-20260531', // mayo
+      '20260119-20260126', // fecha 1
+      '20260126-20260202', // fecha 2
+      '20260202-20260209', // fecha 3
+      '20260209-20260216', // fecha 4
+      '20260216-20260223', // fecha 5
+      '20260223-20260302', // fecha 6
+      '20260302-20260309', // fecha 7
+      '20260309-20260316', // fecha 8
+      '20260316-20260323', // fecha 9
+      '20260323-20260330', // fecha 10
+      '20260330-20260406', // fecha 11
+      '20260406-20260413', // fecha 12-13
+      '20260413-20260420', // fecha 14
+      '20260420-20260504', // fechas finales
     ];
 
     const fetches = rangos.map(rango =>
@@ -877,7 +873,7 @@ async function loadFixture(){
       });
     });
 
-    // Si no hay nada, fallback a scoreboard de hoy
+    // Fallback si no hay nada
     if(Object.keys(fechas).length === 0){
       const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard`);
       const data = await r.json();
@@ -899,10 +895,8 @@ async function loadFixture(){
     for(const f of fechasOrdenadas){
       const hayFuturos = fechas[f].some(ev => new Date(ev.date).getTime() > hoy);
       if(hayFuturos){ fechaActual = f; break; }
-      fechaActual = f; // última jugada
+      fechaActual = f;
     }
-
-    document.getElementById('heroFechas').textContent = `F${fechaActual}`;
 
     // Widget próximo partido
     const proximos = allFixtureEvents
