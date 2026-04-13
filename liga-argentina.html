@@ -452,100 +452,61 @@ function initials(name){
   return name.substring(0,2).toUpperCase();
 }
 
-// ── STANDINGS ─────────────────────────────────────────
+// ── STANDINGS — usa api-sports via proxy igual que index ──────────
 async function loadStandings(){
   try{
-    const url = `${BASE_ESPN}/${COMP}/standings`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN standings '+r.status);
+    const ep = encodeURIComponent('/standings?league=128&season=2025');
+    const r  = await fetch('/api/football?endpoint=' + ep);
+    if(!r.ok) throw new Error('api-sports standings '+r.status);
     const data = await r.json();
-    renderStandings(data);
-    loadSidebarStats(data);
+    const rows = data?.response?.[0]?.league?.standings?.[0];
+    if(!rows || !rows.length) throw new Error('sin datos');
+    renderStandings(rows);
   }catch(e){
     document.getElementById('standingsContainer').innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
   }
 }
 
-function renderStandings(data){
-  // Estructura ESPN standings
-  const groups = data.standings || [];
-  if(!groups.length){
-    document.getElementById('standingsContainer').innerHTML = errorHTML('Sin datos de tabla disponibles.', loadStandings);
-    return;
-  }
-
-  // Buscar el grupo principal (tipo=Total)
-  let entries = [];
-  for(const group of groups){
-    if(group.entries && group.entries.length > entries.length) entries = group.entries;
-  }
-
-  if(!entries.length){
+function renderStandings(rows){
+  if(!rows || !rows.length){
     document.getElementById('standingsContainer').innerHTML = errorHTML('Sin datos de tabla disponibles.', loadStandings);
     return;
   }
 
   // Actualizar hero
-  document.getElementById('heroEquipos').textContent = entries.length;
-  const lider = entries[0];
-  if(lider) document.getElementById('heroLider').textContent = shortName(lider.team?.displayName||'');
-
-  standingsData = entries;
-
-  // Detectar columnas disponibles
-  const sample = entries[0].stats || [];
-  const hasDiff = sample.find(s=>s.name==='pointDifferential'||s.name==='pointsDifference'||s.name==='differential');
-  const hasForm = entries[0].note || null;
+  document.getElementById('heroEquipos').textContent = rows.length;
+  document.getElementById('heroLider').textContent = shortName(rows[0]?.team?.name || '');
 
   let html = `<div class="standings-wrap"><table>
     <thead><tr>
-      <th>#</th>
-      <th>Equipo</th>
+      <th>#</th><th>Equipo</th>
       <th>PJ</th><th>G</th><th>E</th><th>P</th>
-      <th>GF</th><th>GC</th><th>DIF</th>
-      <th>Pts</th>
+      <th>GF</th><th>GC</th><th>DIF</th><th>Pts</th>
     </tr></thead><tbody>`;
 
-  entries.forEach((entry, i)=>{
-    const pos = i+1;
-    const team = entry.team || {};
-    const stats = entry.stats || [];
-    const getStat = (names)=>{
-      for(const n of names){
-        const s = stats.find(x=>x.name===n||x.abbreviation===n);
-        if(s) return s.displayValue || s.value || '—';
-      }
-      return '—';
-    };
-
-    const pj  = getStat(['gamesPlayed','GP','played']);
-    const g   = getStat(['wins','W','gamesWon']);
-    const e   = getStat(['ties','D','T','draws','gamesDrawn']);
-    const p   = getStat(['losses','L','gamesLost']);
-    const gf  = getStat(['pointsFor','GF','goalsFor','points']);
-    const gc  = getStat(['pointsAgainst','GA','goalsAgainst']);
-    const dif = getStat(['pointDifferential','differential','GD','goalDifference','+/-']);
-    const pts = getStat(['points','PTS','totalPoints']);
-
-    const logoUrl = team.logos?.[0]?.href || '';
-    const logoHtml = logoUrl
-      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
-      : '';
-    const fbHtml = `<div class="mini-logo-fb" style="${logoUrl?'display:none':''}">
-        ${(team.abbreviation||team.displayName||'?').substring(0,3)}</div>`;
-
+  rows.forEach(t=>{
+    const pos = t.rank;
     let posClass = 'pos-n';
-    let posTitle = '';
-    if(pos<=6){ posClass='pos-cl'; posTitle='Clasifica a Libertadores/Sudamericana'; }
-    else if(pos>=entries.length-2){ posClass='pos-rel'; posTitle='Zona de descenso'; }
+    if(pos<=6)            posClass = 'pos-cl';
+    else if(pos>=rows.length-2) posClass = 'pos-rel';
+
+    const logoHtml = t.team?.logo
+      ? `<img class="mini-logo" src="${t.team.logo}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(t.team.name||'?').substring(0,3)}</div>`
+      : `<div class="mini-logo-fb">${(t.team?.name||'?').substring(0,3)}</div>`;
+
+    const dif = t.goalsDiff >= 0 ? '+'+t.goalsDiff : t.goalsDiff;
 
     html += `<tr>
-      <td><span class="${posClass}" title="${posTitle}">${pos}</span></td>
-      <td><div class="team-cell">${logoHtml}${fbHtml}<span>${team.displayName||'—'}</span></div></td>
-      <td>${pj}</td><td>${g}</td><td>${e}</td><td>${p}</td>
-      <td>${gf}</td><td>${gc}</td>
+      <td><span class="${posClass}">${pos}</span></td>
+      <td><div class="team-cell">${logoHtml}<span>${t.team?.name||'—'}</span></div></td>
+      <td>${t.all?.played||0}</td>
+      <td>${t.all?.win||0}</td>
+      <td>${t.all?.draw||0}</td>
+      <td>${t.all?.lose||0}</td>
+      <td>${t.all?.goals?.for||0}</td>
+      <td>${t.all?.goals?.against||0}</td>
       <td>${dif}</td>
-      <td><strong class="pts-bold">${pts}</strong></td>
+      <td><strong class="pts-bold">${t.points||0}</strong></td>
     </tr>`;
   });
 
@@ -557,35 +518,37 @@ function renderStandings(data){
   </div>`;
 
   document.getElementById('standingsContainer').innerHTML = html;
+  loadSidebarStatsFromRows(rows);
 }
 
-// ── SCORERS ───────────────────────────────────────────
+// ── SCORERS — usa api-sports via proxy ────────────────
 async function loadScorers(){
   if(scorersLoaded) return;
   scorersLoaded = true;
   try{
-    const url = `${SITE_ESPN}/${COMP}/scorers`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN scorers '+r.status);
+    const ep = encodeURIComponent('/players/topscorers?league=128&season=2025');
+    const r  = await fetch('/api/football?endpoint=' + ep);
+    if(!r.ok) throw new Error('api-sports scorers '+r.status);
     const data = await r.json();
-    renderScorers(data);
+    const players = data?.response || [];
+    if(!players.length) throw new Error('sin datos');
+    renderScorers(players);
   }catch(e){
     document.getElementById('scorersContainer').innerHTML = errorHTML('No se pudo cargar los goleadores.', ()=>{scorersLoaded=false;loadScorers()});
   }
 }
 
-function renderScorers(data){
-  const leaders = data.leaders || data.categories?.[0]?.leaders || [];
-  if(!leaders.length){
+function renderScorers(players){
+  if(!players.length){
     document.getElementById('scorersContainer').innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos de goleadores disponibles.</div>`;
     return;
   }
 
   let html = '';
-  leaders.slice(0,20).forEach((player, i)=>{
-    const goals = player.value || player.statistics?.goals || '?';
-    const name  = player.athlete?.displayName || player.athlete?.fullName || 'Jugador';
-    const club  = player.team?.displayName || player.athlete?.team?.displayName || '';
+  players.slice(0,20).forEach((p, i)=>{
+    const goals = p.statistics?.[0]?.goals?.total || 0;
+    const name  = p.player?.name || 'Jugador';
+    const club  = p.statistics?.[0]?.team?.name || '';
     const color = getAvatarColor(i);
     const rank  = i+1;
 
@@ -603,7 +566,7 @@ function renderScorers(data){
     </div>`;
   });
 
-  document.getElementById('scorersContainer').innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
+  document.getElementById('scorersContainer').innerHTML = html;
 }
 
 // ── FIXTURE ───────────────────────────────────────────
@@ -737,26 +700,17 @@ function loadNextMatchWidget(events){
 }
 
 // ── SIDEBAR STATS ─────────────────────────────────────
-function loadSidebarStats(data){
-  // Calcular stats desde la tabla
-  const groups = data.standings || [];
-  let entries = [];
-  for(const group of groups){
-    if(group.entries && group.entries.length > entries.length) entries = group.entries;
-  }
-  if(!entries.length){ document.getElementById('statsWidget').innerHTML=''; return; }
+function loadSidebarStatsFromRows(rows){
+  if(!rows || !rows.length){ document.getElementById('statsWidget').innerHTML=''; return; }
 
   let totalGoles = 0, maxPts = 0, maxPtsTeam = '';
-  entries.forEach(e=>{
-    const stats = e.stats||[];
-    const gf = stats.find(s=>['pointsFor','GF','goalsFor'].includes(s.name));
-    if(gf) totalGoles += parseFloat(gf.value||0);
-    const pts = stats.find(s=>['points','PTS','totalPoints'].includes(s.name));
-    const ptsVal = parseFloat(pts?.value||0);
-    if(ptsVal>maxPts){ maxPts=ptsVal; maxPtsTeam=e.team?.abbreviation||''; }
+  rows.forEach(t=>{
+    totalGoles += (t.all?.goals?.for || 0);
+    const pts = t.points || 0;
+    if(pts > maxPts){ maxPts = pts; maxPtsTeam = t.team?.name?.split(' ')[0] || ''; }
   });
 
-  const promGoles = entries.length ? (totalGoles / entries.length).toFixed(1) : '—';
+  const promGoles = rows.length ? (totalGoles / rows.length).toFixed(1) : '—';
   const maxPtsBar = Math.min(100, (maxPts/60)*100);
 
   document.getElementById('statsWidget').innerHTML = `
@@ -769,8 +723,8 @@ function loadSidebarStats(data){
       <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${maxPtsBar}%"></div></div>
     </div>
     <div class="stat-bar-row">
-      <div class="stat-bar-label"><span>Equipos en tabla</span><span>${entries.length}</span></div>
-      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(entries.length/28)*100)}%;background:var(--blue)"></div></div>
+      <div class="stat-bar-label"><span>Equipos en tabla</span><span>${rows.length}</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(rows.length/28)*100)}%;background:var(--blue)"></div></div>
     </div>`;
 }
 
