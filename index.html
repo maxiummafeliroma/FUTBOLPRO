@@ -1005,6 +1005,9 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <!-- HEADER -->
 <header class="header">
   <div class="header-top">
+    <button class="hamburger-btn" onclick="openDrawer()" aria-label="Abrir menú">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <div class="logo">
       <svg class="logo-ball" viewBox="0 0 28 28" fill="none">
         <circle cx="14" cy="14" r="13" stroke="#00e676" stroke-width="1.5"/>
@@ -1254,8 +1257,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
   <div id="sec-futbol" class="sport-section active">
     <div class="inner-tabs">
       <button class="inner-tab active" onclick="setInnerTab('fut-resultados',this)">Partidos</button>
-      <button class="inner-tab" onclick="setInnerTab('fut-posiciones',this)">Posiciones</button>
-      <button class="inner-tab" onclick="setInnerTab('fut-goleadores',this)">Goleadores</button>
       <button class="inner-tab" onclick="setInnerTab('fut-prode',this)">🏆 Prode</button>
       <button class="inner-tab" onclick="setInnerTab('fut-contacto',this)">Contacto</button>
     </div>
