@@ -313,7 +313,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <!-- HERO -->
 <div class="page-hero">
   <div class="page-hero-inner">
-    <div class="liga-badge">🇦🇷</div>
+    <div class="liga-badge" style="font-size:40px;background:transparent;box-shadow:none;border:none">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div>
     <div class="page-hero-info">
       <div class="page-hero-title">Premier <span>League</span></div>
       <div class="page-hero-sub">Temporada 2025/26 · England · First Division</div>
@@ -440,40 +440,24 @@ async function loadStandings(){
   try{
     const url = `https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings`;
     const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN standings '+r.status);
+    if(!r.ok) throw new Error("ESPN standings "+r.status);
     const data = await r.json();
-
-    // data.children = [ { name:"Group A", standings:{entries:[...]} }, { name:"Group B", ... } ]
-    const children = data.children || [];
-    if(!children.length) throw new Error('sin grupos');
-
-    allGroups = children;
-
-    // Zona A y Zona B
-    const grupoA = children[0]?.standings?.entries || children[0]?.entries || [];
-    const grupoB = children[1]?.standings?.entries || children[1]?.entries || [];
-
-    // Nombre real de los grupos
-    const nombreA = children[0]?.name || 'Zona A';
-    const nombreB = children[1]?.name || 'Zona B';
-
-    document.getElementById('btn-zonaA').textContent = `🅰 ${nombreA}`;
-    document.getElementById('btn-zonaB').textContent = `🅱 ${nombreB}`;
-
-    // Renderizar ambas zonas
-    renderZona(grupoA, 'zonaAContainer', false);
-    renderZona(grupoB, 'zonaBContainer', false);
-
-    // Tabla anual: combinar todos los equipos y sumar stats
-    const todosEntries = [...grupoA, ...grupoB];
-
-    // Sidebar stats
-    renderSidebarStats(todosEntries);
-
+    // ESPN puede devolver standings directos o con children
+    let entries = [];
+    if(data.children && data.children.length) {
+      // Buscar el grupo principal (evitar sub-grupos vacíos)
+      for(const child of data.children) {
+        const e = child?.standings?.entries || child?.entries || [];
+        if(e.length > entries.length) entries = e;
+      }
+    }
+    if(!entries.length) entries = data.standings?.entries || data.entries || [];
+    if(!entries.length) throw new Error("sin datos");
+    renderZona(entries, "zonaAContainer", false);
+    renderSidebarStats(entries);
   }catch(e){
-    ['zonaAContainer','zonaBContainer','anualContainer','promediosContainer'].forEach(id=>{
-      document.getElementById(id).innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
-    });
+    const c = document.getElementById("zonaAContainer");
+    if(c) c.innerHTML = errorHTML("No se pudo cargar la tabla.", loadStandings);
   }
 }
 
