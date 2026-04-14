@@ -802,55 +802,106 @@ async function loadFixture(){
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
 
   try{
-    // Estrategia: cargar scoreboard sin fecha (jornada actual de ESPN)
-    // + scoreboard con fechas recientes para tener contexto de semanas
-    const hoy = new Date();
-    const fechas = {};
-
-    // Generar rangos semanales cubriendo la temporada actual (agosto 2025 - mayo 2026)
-    const rangos = [];
-    const start = new Date('2025-08-01');
-    const end   = new Date('2026-06-30');
-    let cur = new Date(start);
-    while(cur <= end){
-      const from = cur.toISOString().slice(0,10).replace(/-/g,'');
-      cur.setDate(cur.getDate() + 7);
-      const to = cur.toISOString().slice(0,10).replace(/-/g,'');
-      rangos.push(from + '-' + to);
+    // Paso 1: obtener el calendario de la liga para saber las jornadas
+    const calUrl = `${SITE_ESPN}/${COMP.toLowerCase()}/calendar/ondays?seasontype=2`;
+    const calR = await fetch(calUrl);
+    let eventDates = [];
+    if(calR.ok){
+      const calData = await calR.json();
+      eventDates = calData.eventDate?.dates || [];
     }
 
-    // Cargar en lotes de 8 para no saturar
-    const batchSize = 8;
-    for(let i = 0; i < rangos.length; i += batchSize){
-      const lote = rangos.slice(i, i + batchSize);
+    // Si no hay calendar, generar fechas semanales de la temporada
+    if(!eventDates.length){
+      const s = new Date('2025-08-01');
+      const e = new Date('2026-06-30');
+      let d = new Date(s);
+      while(d <= e){
+        eventDates.push(d.toISOString().slice(0,10).replace(/-/g,''));
+        d.setDate(d.getDate() + 7);
+      }
+    }
+
+    const fechas = {}; // { jornada: [eventos] }
+    const now = Date.now();
+
+    // Paso 2: cargar en lotes de 6 fechas por request (usando ranges de 7 días)
+    // Agrupar eventDates de a 7 días
+    const ranges = [];
+    for(let i = 0; i < eventDates.length; i++){
+      const d = eventDates[i].toString().replace(/-/g,'');
+      if(i === 0 || i % 7 === 0){
+        const end7 = eventDates[Math.min(i+6, eventDates.length-1)].toString().replace(/-/g,'');
+        ranges.push(d + '-' + end7);
+      }
+    }
+
+    // Deduplicar rangos
+    const uniqueRanges = [...new Set(ranges)];
+
+    // Cargar en lotes de 6
+    const BATCH = 6;
+    let allEvents = [];
+    for(let i = 0; i < uniqueRanges.length; i += BATCH){
+      const batch = uniqueRanges.slice(i, i + BATCH);
       const results = await Promise.all(
-        lote.map(r => fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?dates=${r}&limit=100`)
-          .then(res => res.ok ? res.json() : {events:[]})
-          .catch(() => ({events:[]}))
+        batch.map(r =>
+          fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?dates=${r}&limit=100`)
+            .then(res => res.ok ? res.json() : {events:[]})
+            .catch(() => ({events:[]}))
         )
       );
       results.forEach(data => {
-        (data.events || []).forEach(ev => {
-          const w = ev.week?.number || ev.competitions?.[0]?.week?.number || 0;
-          if(!w) return;
-          if(!fechas[w]) fechas[w] = [];
-          if(!fechas[w].find(e => e.id === ev.id)) fechas[w].push(ev);
-        });
+        allEvents = allEvents.concat(data.events || []);
       });
-      // Si ya tenemos semanas con datos, podemos parar si pasamos de hoy
-      const rFin = new Date(lote[lote.length-1].split('-')[1].replace(/(.{4})(.{2})(.{2})/,'$1-$2-$3'));
-      if(rFin > hoy && Object.keys(fechas).length > 5) break;
+      // Si ya pasamos de hoy y tenemos suficientes datos, parar
+      const lastRange = batch[batch.length-1];
+      const lastDate = parseInt(lastRange.split('-')[1] || lastRange);
+      const nowStr = parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
+      if(lastDate > nowStr && Object.keys(fechas).length > 3) {
+        // Procesar lo que tenemos y seguir cargando en background
+        break;
+      }
     }
 
-    // Si no hay datos por semana, intentar directo
+    // Deduplicar eventos
+    const seen = new Set();
+    const uniqueEvents = allEvents.filter(ev => {
+      if(seen.has(ev.id)) return false;
+      seen.add(ev.id);
+      return true;
+    });
+
+    // Agrupar por jornada — usar season.slug, name, o week number
+    uniqueEvents.forEach(ev => {
+      // ESPN a veces tiene el número de jornada en season.displayName o competitions[0].series
+      let jornada = ev.week?.number
+        || ev.competitions?.[0]?.week?.number
+        || ev.season?.week
+        || 0;
+
+      if(!jornada){
+        // Fallback: agrupar por semana de la temporada
+        const evDate = new Date(ev.date);
+        const seasonStart = new Date('2025-08-01');
+        jornada = Math.ceil((evDate - seasonStart) / (7 * 24 * 60 * 60 * 1000));
+        jornada = Math.max(1, jornada);
+      }
+
+      if(!fechas[jornada]) fechas[jornada] = [];
+      if(!fechas[jornada].find(e => e.id === ev.id)) fechas[jornada].push(ev);
+    });
+
+    // Si aún no hay fechas, usar scoreboard actual (fallback final)
     if(Object.keys(fechas).length === 0){
       const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard`);
-      const data = await r.json();
-      (data.events||[]).forEach(ev=>{
-        const w = ev.week?.number || 1;
-        if(!fechas[w]) fechas[w] = [];
-        fechas[w].push(ev);
-      });
+      if(r.ok){
+        const data = await r.json();
+        (data.events||[]).forEach(ev => {
+          if(!fechas[1]) fechas[1] = [];
+          fechas[1].push(ev);
+        });
+      }
     }
 
     const fechasOrdenadas = Object.keys(fechas).map(Number).sort((a,b)=>a-b);
@@ -858,13 +909,15 @@ async function loadFixture(){
 
     allFixtureEvents = Object.values(fechas).flat();
 
-    // Detectar fecha actual: la primera con partidos futuros, si no la última con partidos
-    const now = Date.now();
+    // Detectar jornada actual: primera con partidos futuros o en curso
     fechaActual = fechasOrdenadas[0];
     for(const f of fechasOrdenadas){
-      const hayFuturos = (fechas[f]||[]).some(ev => new Date(ev.date).getTime() >= now - 3*60*60*1000);
-      if(hayFuturos){ fechaActual = f; break; }
-      fechaActual = f; // última con partidos pasados
+      const hayActivos = (fechas[f]||[]).some(ev => {
+        const t = new Date(ev.date).getTime();
+        return t >= now - 4*60*60*1000; // desde hace 4 horas
+      });
+      if(hayActivos){ fechaActual = f; break; }
+      fechaActual = f; // última jornada pasada
     }
 
     // Widget próximo partido
@@ -879,7 +932,6 @@ async function loadFixture(){
     container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
   }
 }
-
 async function cargarFechasPasadas(fechas){
   try{
     // Cargar scoreboard de la semana pasada
