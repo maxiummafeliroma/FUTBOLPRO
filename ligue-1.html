@@ -802,50 +802,54 @@ async function loadFixture(){
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
 
   try{
+    // Estrategia: cargar scoreboard sin fecha (jornada actual de ESPN)
+    // + scoreboard con fechas recientes para tener contexto de semanas
+    const hoy = new Date();
     const fechas = {};
 
-    // Cargar todos los meses del torneo Apertura 2026 en paralelo
-    const rangos = [
-      '20260119-20260126', // fecha 1
-      '20260126-20260202', // fecha 2
-      '20260202-20260209', // fecha 3
-      '20260209-20260216', // fecha 4
-      '20260216-20260223', // fecha 5
-      '20260223-20260302', // fecha 6
-      '20260302-20260309', // fecha 7
-      '20260309-20260316', // fecha 8
-      '20260316-20260323', // fecha 9
-      '20260323-20260330', // fecha 10
-      '20260330-20260406', // fecha 11
-      '20260406-20260413', // fecha 12-13
-      '20260413-20260420', // fecha 14
-      '20260420-20260504', // fechas finales
-    ];
+    // Generar rangos semanales cubriendo la temporada actual (agosto 2025 - mayo 2026)
+    const rangos = [];
+    const start = new Date('2025-08-01');
+    const end   = new Date('2026-06-30');
+    let cur = new Date(start);
+    while(cur <= end){
+      const from = cur.toISOString().slice(0,10).replace(/-/g,'');
+      cur.setDate(cur.getDate() + 7);
+      const to = cur.toISOString().slice(0,10).replace(/-/g,'');
+      rangos.push(from + '-' + to);
+    }
 
-    const fetches = rangos.map(rango =>
-      fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${rango}&limit=50`)
-        .then(r => r.ok ? r.json() : { events:[] })
-        .catch(() => ({ events:[] }))
-    );
-
-    const resultados = await Promise.all(fetches);
-
-    resultados.forEach(data => {
-      (data.events || []).forEach(ev => {
-        const f = ev.week?.number || ev.season?.week || 1;
-        if(!fechas[f]) fechas[f] = [];
-        if(!fechas[f].find(e => e.id === ev.id)) fechas[f].push(ev);
+    // Cargar en lotes de 8 para no saturar
+    const batchSize = 8;
+    for(let i = 0; i < rangos.length; i += batchSize){
+      const lote = rangos.slice(i, i + batchSize);
+      const results = await Promise.all(
+        lote.map(r => fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?dates=${r}&limit=100`)
+          .then(res => res.ok ? res.json() : {events:[]})
+          .catch(() => ({events:[]}))
+        )
+      );
+      results.forEach(data => {
+        (data.events || []).forEach(ev => {
+          const w = ev.week?.number || ev.competitions?.[0]?.week?.number || 0;
+          if(!w) return;
+          if(!fechas[w]) fechas[w] = [];
+          if(!fechas[w].find(e => e.id === ev.id)) fechas[w].push(ev);
+        });
       });
-    });
+      // Si ya tenemos semanas con datos, podemos parar si pasamos de hoy
+      const rFin = new Date(lote[lote.length-1].split('-')[1].replace(/(.{4})(.{2})(.{2})/,'$1-$2-$3'));
+      if(rFin > hoy && Object.keys(fechas).length > 5) break;
+    }
 
-    // Fallback si no hay nada
+    // Si no hay datos por semana, intentar directo
     if(Object.keys(fechas).length === 0){
-      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard`);
+      const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard`);
       const data = await r.json();
-      (data.events||[]).forEach(ev => {
-        const f = ev.week?.number || 1;
-        if(!fechas[f]) fechas[f] = [];
-        fechas[f].push(ev);
+      (data.events||[]).forEach(ev=>{
+        const w = ev.week?.number || 1;
+        if(!fechas[w]) fechas[w] = [];
+        fechas[w].push(ev);
       });
     }
 
@@ -854,18 +858,18 @@ async function loadFixture(){
 
     allFixtureEvents = Object.values(fechas).flat();
 
-    // Detectar fecha actual
-    const hoy = Date.now();
+    // Detectar fecha actual: la primera con partidos futuros, si no la última con partidos
+    const now = Date.now();
     fechaActual = fechasOrdenadas[0];
     for(const f of fechasOrdenadas){
-      const hayFuturos = fechas[f].some(ev => new Date(ev.date).getTime() > hoy);
+      const hayFuturos = (fechas[f]||[]).some(ev => new Date(ev.date).getTime() >= now - 3*60*60*1000);
       if(hayFuturos){ fechaActual = f; break; }
-      fechaActual = f;
+      fechaActual = f; // última con partidos pasados
     }
 
     // Widget próximo partido
     const proximos = allFixtureEvents
-      .filter(ev => new Date(ev.date).getTime() > hoy)
+      .filter(ev => new Date(ev.date).getTime() > now)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
     if(proximos.length) loadNextMatchWidget(proximos);
 
@@ -979,7 +983,7 @@ async function cargarFechaESPN(fechaNum){
   const cont = document.getElementById('fechaPartidos');
   if(cont) cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fecha ${fechaNum}...</div>`;
   try{
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?week=${fechaNum}&seasontype=1`);
+    const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?week=${fechaNum}&seasontype=1`);
     const data = await r.json();
     const events = data.events || [];
     if(events.length){
