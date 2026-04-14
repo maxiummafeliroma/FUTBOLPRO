@@ -437,43 +437,39 @@ function initials(name){
 
 // ── STANDINGS — ESPN standings arg.1 ─────────────────
 async function loadStandings(){
+  const container = document.getElementById('zonaAContainer');
+  if(!container) return;
   try{
-    const url = `https://site.api.espn.com/apis/v2/sports/soccer/ger.1/standings`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error('ESPN standings '+r.status);
-    const data = await r.json();
-
-    // data.children = [ { name:"Group A", standings:{entries:[...]} }, { name:"Group B", ... } ]
-    const children = data.children || [];
-    if(!children.length) throw new Error('sin grupos');
-
-    allGroups = children;
-
-    // Zona A y Zona B
-    const grupoA = children[0]?.standings?.entries || children[0]?.entries || [];
-    const grupoB = children[1]?.standings?.entries || children[1]?.entries || [];
-
-    // Nombre real de los grupos
-    const nombreA = children[0]?.name || 'Zona A';
-    const nombreB = children[1]?.name || 'Zona B';
-
-    document.getElementById('btn-zonaA').textContent = `🅰 ${nombreA}`;
-    document.getElementById('btn-zonaB').textContent = `🅱 ${nombreB}`;
-
-    // Renderizar ambas zonas
-    renderZona(grupoA, 'zonaAContainer', false);
-    renderZona(grupoB, 'zonaBContainer', false);
-
-    // Tabla anual: combinar todos los equipos y sumar stats
-    const todosEntries = [...grupoA, ...grupoB];
-
-    // Sidebar stats
-    renderSidebarStats(todosEntries);
-
+    const urls = [
+      'https://site.api.espn.com/apis/v2/sports/soccer/ger.1/standings',
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/standings',
+    ];
+    let entries = [];
+    for(const url of urls){
+      try{
+        const r = await fetch(url);
+        if(!r.ok) continue;
+        const data = await r.json();
+        // Estructura real ESPN: data.children[0].standings.entries
+        const children = data.children || [];
+        for(const child of children){
+          // Primero buscar .standings.entries (estructura real)
+          const fromStandings = child?.standings?.entries || [];
+          if(fromStandings.length){ entries = fromStandings; break; }
+          // Fallback: child.entries directamente
+          const fromChild = child?.entries || [];
+          if(fromChild.length){ entries = fromChild; break; }
+        }
+        // Último fallback: entries en raíz
+        if(!entries.length) entries = data.standings?.entries || data.entries || [];
+        if(entries.length) break;
+      }catch(err){ continue; }
+    }
+    if(!entries.length) throw new Error('sin datos');
+    renderZona(entries, 'zonaAContainer', false);
+    renderSidebarStats(entries);
   }catch(e){
-    ['zonaAContainer','zonaBContainer','anualContainer','promediosContainer'].forEach(id=>{
-      document.getElementById(id).innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
-    });
+    if(container) container.innerHTML = '<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la tabla. <button onclick="loadStandings()" style="background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green);padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Barlow,sans-serif;font-size:12px;margin-left:8px">Reintentar</button></div>';
   }
 }
 
@@ -488,8 +484,10 @@ function getStat(stats, names){
 
 // ── TABLA GENÉRICA (zona A o B) ───────────────────────
 function renderZona(entries, containerId, esAnual){
+  const container = document.getElementById(containerId);
+  if(!container) return;
   if(!entries.length){
-    document.getElementById(containerId).innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
+    container.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
     return;
   }
 
@@ -564,7 +562,8 @@ function renderZona(entries, containerId, esAnual){
   }
 
   html += `</div>`;
-  document.getElementById(containerId).innerHTML = html;
+  const cont = document.getElementById(containerId);
+  if(cont) cont.innerHTML = html;
 }
 
 // ── TABLA ANUAL (suma de las 2 zonas) ─────────────────

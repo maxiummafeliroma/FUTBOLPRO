@@ -437,27 +437,39 @@ function initials(name){
 
 // ── STANDINGS — ESPN standings arg.1 ─────────────────
 async function loadStandings(){
+  const container = document.getElementById('zonaAContainer');
+  if(!container) return;
   try{
-    const url = `https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings`;
-    const r = await fetch(url);
-    if(!r.ok) throw new Error("ESPN standings "+r.status);
-    const data = await r.json();
-    // ESPN puede devolver standings directos o con children
+    const urls = [
+      'https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings',
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/standings',
+    ];
     let entries = [];
-    if(data.children && data.children.length) {
-      // Buscar el grupo principal (evitar sub-grupos vacíos)
-      for(const child of data.children) {
-        const e = child?.standings?.entries || child?.entries || [];
-        if(e.length > entries.length) entries = e;
-      }
+    for(const url of urls){
+      try{
+        const r = await fetch(url);
+        if(!r.ok) continue;
+        const data = await r.json();
+        // Estructura real ESPN: data.children[0].standings.entries
+        const children = data.children || [];
+        for(const child of children){
+          // Primero buscar .standings.entries (estructura real)
+          const fromStandings = child?.standings?.entries || [];
+          if(fromStandings.length){ entries = fromStandings; break; }
+          // Fallback: child.entries directamente
+          const fromChild = child?.entries || [];
+          if(fromChild.length){ entries = fromChild; break; }
+        }
+        // Último fallback: entries en raíz
+        if(!entries.length) entries = data.standings?.entries || data.entries || [];
+        if(entries.length) break;
+      }catch(err){ continue; }
     }
-    if(!entries.length) entries = data.standings?.entries || data.entries || [];
-    if(!entries.length) throw new Error("sin datos");
-    renderZona(entries, "zonaAContainer", false);
+    if(!entries.length) throw new Error('sin datos');
+    renderZona(entries, 'zonaAContainer', false);
     renderSidebarStats(entries);
   }catch(e){
-    const c = document.getElementById("zonaAContainer");
-    if(c) c.innerHTML = errorHTML("No se pudo cargar la tabla.", loadStandings);
+    if(container) container.innerHTML = '<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la tabla. <button onclick="loadStandings()" style="background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green);padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Barlow,sans-serif;font-size:12px;margin-left:8px">Reintentar</button></div>';
   }
 }
 
@@ -472,8 +484,10 @@ function getStat(stats, names){
 
 // ── TABLA GENÉRICA (zona A o B) ───────────────────────
 function renderZona(entries, containerId, esAnual){
+  const container = document.getElementById(containerId);
+  if(!container) return;
   if(!entries.length){
-    document.getElementById(containerId).innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
+    container.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
     return;
   }
 
@@ -548,7 +562,8 @@ function renderZona(entries, containerId, esAnual){
   }
 
   html += `</div>`;
-  document.getElementById(containerId).innerHTML = html;
+  const cont = document.getElementById(containerId);
+  if(cont) cont.innerHTML = html;
 }
 
 // ── TABLA ANUAL (suma de las 2 zonas) ─────────────────
