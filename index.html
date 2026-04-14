@@ -943,6 +943,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-img{background:#1877f2;color:#fff}
 
 @media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}}
+.hamburger-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);cursor:pointer;flex-shrink:0;margin-right:6px}
+.hamburger-btn svg{width:16px;height:16px;stroke:var(--txt);fill:none;stroke-width:2;stroke-linecap:round}
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:998;backdrop-filter:blur(2px)}
+.drawer-overlay.open{display:block}
+.drawer{position:fixed;left:-280px;top:0;bottom:0;width:265px;background:var(--bg2);border-right:1px solid var(--border);z-index:999;overflow-y:auto;transition:left .22s ease}
+.drawer.open{left:0}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1}
+.drawer-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--green);letter-spacing:.5px}
+.drawer-close{width:28px;height:28px;border:none;background:transparent;color:var(--muted2);font-size:18px;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{background:var(--card2);color:var(--txt)}
+@media(max-width:750px){.hamburger-btn{display:flex}}
 @media(max-width:600px){.header-top{padding:8px 12px}.logo{font-size:20px}.main-wrap{padding:10px 12px}.match-card{grid-template-columns:1fr 80px 1fr}}
 </style>
 <!-- Google Analytics -->
@@ -1039,15 +1050,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
   <!-- FOOTBALL LEAGUES STRIP -->
   <div id="leaguesStrip" style="max-width:1400px;margin:0 auto">
     <div class="leagues-strip">
-      <button class="lg-btn active" onclick="filterLeague('all',this)">🌍 Todas <span class="lg-count" id="cnt-all">—</span></button>
+      <button class="lg-btn active" onclick="filterLeague('all',this)" id="btn-all">🌍 Todas <span class="lg-count" id="cnt-all">—</span></button>
       <button class="lg-btn" onclick="filterLeague('live',this)" id="btn-live" style="display:none;border-color:rgba(244,67,54,0.4);color:var(--red)"><span class="live-dot"></span> EN VIVO <span class="lg-count" id="cnt-live" style="background:rgba(244,67,54,0.2);color:var(--red)">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('39',this)">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier <span class="lg-count" id="cnt-39">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('140',this)">🇪🇸 La Liga <span class="lg-count" id="cnt-140">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('135',this)">🇮🇹 Serie A <span class="lg-count" id="cnt-135">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('78',this)">🇩🇪 Bundesliga <span class="lg-count" id="cnt-78">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('61',this)">🇫🇷 Ligue 1 <span class="lg-count" id="cnt-61">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('2',this)">🏆 Champions <span class="lg-count" id="cnt-2">—</span></button>
-      <button class="lg-btn" onclick="filterLeague('128',this)">🇦🇷 Argentina <span class="lg-count" id="cnt-128">—</span></button>
     </div>
   </div>
 
@@ -1063,6 +1067,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 </header>
 
 <!-- MAIN -->
+<!-- DRAWER MOBILE -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="mobileDrawer">
+  <div class="drawer-hdr">
+    <span class="drawer-title">⚽ FutbolPro</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div id="drawerInner"></div>
+</div>
+
 <div class="main-wrap">
 <div class="layout">
 
@@ -1136,7 +1150,34 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <button class="lp-sub-btn" onclick="lpOpenView('128','tabla')">Tabla</button>
         <button class="lp-sub-btn" onclick="lpOpenView('128','goles')">Goles</button>
         <button class="lp-sub-btn" onclick="lpOpenView('128','fixture')">Fixture</button>
-        <a class="lp-sub-btn" href="liga-argentina.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('eng.2','Championship')" id="lp-eng.2">
+        <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿</span><span class="lp-item-name">Championship</span><span class="lp-item-cnt" id="lpc-eng.2">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('eng.2','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('eng.2','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('mex.1','Liga MX')" id="lp-mex.1">
+        <span>🇲🇽</span><span class="lp-item-name">Liga MX</span><span class="lp-item-cnt" id="lpc-mex.1">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('mex.1','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('mex.1','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('usa.1','MLS')" id="lp-usa.1">
+        <span>🇺🇸</span><span class="lp-item-name">MLS</span><span class="lp-item-cnt" id="lpc-usa.1">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('usa.1','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('usa.1','fixture')">Fixture</button>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('bra.1','Brasileirao')" id="lp-bra.1">
+        <span>🇧🇷</span><span class="lp-item-name">Brasileirao</span><span class="lp-item-cnt" id="lpc-bra.1">—</span>
+      </div>
+      <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('bra.1','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('bra.1','fixture')">Fixture</button>
       </div>
     </div>
   </div>
@@ -2043,6 +2084,7 @@ async function loadMatches() {
     loadSidebarScorers();
     loadF1SidebarOnly();
     loadNBASidebarOnly();
+    loadESPNExtraLeagues();
 
     // Auto-refresh cada 60s si hay partidos en vivo
     if(liveMatches.length > 0) {
@@ -4393,6 +4435,74 @@ async function compartirImagen() {
     showProdeToast('✅ ¡Imagen descargada! Compartila en redes');
   });
 }
+
+// ===================================================
+// ESPN LIGAS EXTRA
+// ===================================================
+const ESPN_EXTRA_LEAGUES = {
+  'eng.2': { name:'Championship',  country:'Inglaterra', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  'mex.1': { name:'Liga MX',       country:'Mexico',     flag:'🇲🇽' },
+  'usa.1': { name:'MLS',           country:'EE.UU.',     flag:'🇺🇸' },
+  'bra.1': { name:'Brasileirao',   country:'Brasil',     flag:'🇧🇷' },
+};
+
+async function loadESPNExtraLeagues() {
+  const dateStr = today().replace(/-/g,'');
+  await Promise.all(Object.entries(ESPN_EXTRA_LEAGUES).map(async ([espnId, meta]) => {
+    try {
+      const ck = 'fp_espn_' + espnId + '_' + today();
+      const cached = cacheGet(ck, CACHE_TTL.fixtures);
+      let matches = cached;
+      if(!matches) {
+        const data = await espnFetch('/soccer/' + espnId + '/scoreboard?dates=' + dateStr);
+        if(data && data.events && data.events.length) {
+          matches = data.events.map(e => normalizeESPNMatch(e, espnId, meta.name));
+          cacheSet(ck, matches);
+        }
+      }
+      if(matches && matches.length) {
+        const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
+        matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+        document.getElementById('cnt-all').textContent = allMatches.length;
+        const cnt = allMatches.filter(m => String(m.league.id) === espnId).length;
+        const cntEl = document.getElementById('lpc-' + espnId);
+        if(cntEl) cntEl.textContent = cnt || '—';
+        if(['all', espnId].includes(currentLeague)) renderMatches();
+      }
+    } catch(e) { console.warn('[ESPN extra]', espnId, e.message); }
+  }));
+}
+
+// ===================================================
+// DRAWER MOBILE
+// ===================================================
+function openDrawer() {
+  // Copiar contenido del panel lateral al drawer
+  const inner = document.getElementById('drawerInner');
+  const leftPanel = document.getElementById('leftPanel');
+  if(inner && leftPanel) {
+    inner.innerHTML = leftPanel.innerHTML;
+  }
+  document.getElementById('mobileDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('mobileDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Interceptar clicks en el drawer para cerrar al seleccionar
+document.addEventListener('click', function(e) {
+  const drawer = document.getElementById('mobileDrawer');
+  if(!drawer) return;
+  const item = e.target.closest('.lp-item');
+  if(item && drawer.contains(item)) {
+    setTimeout(closeDrawer, 150);
+  }
+});
 
 // ===================================================
 // INIT
