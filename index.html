@@ -2878,15 +2878,35 @@ function updateProdeScore(fixtureId) {
 // GUARDAR PRONÓSTICOS EN SUPABASE
 // ===================================================
 async function submitPronosticos() {
-  if(!prodeSession || !prodeUser?.id) { showProdeToast('Ingresá para guardar tus pronósticos'); return; }
-  if(window.prodeAlreadySubmitted) { showProdeToast('Ya enviaste tus pronósticos para esta fecha'); return; }
-  if(window.prodeLocked) { showProdeToast('El prode está cerrado'); return; }
-  // Validar que todos los completados tengan ambos scores
-  const validCount = Object.values(prodePronosticos).filter(v => v && v.includes('-')).length;
-  if(validCount === 0) { showProdeToast('Completá al menos un marcador'); return; }
-  // Limpiar pronósticos incompletos
+  if (!prodeSession || !prodeUser?.id) {
+    showProdeToast('Ingresá para guardar tus pronósticos');
+    return;
+  }
+
+  if (window.prodeAlreadySubmitted) {
+    showProdeToast('Ya enviaste tus pronósticos para esta fecha');
+    return;
+  }
+
+  if (window.prodeLocked) {
+    showProdeToast('El prode está cerrado');
+    return;
+  }
+
+  // Validar que haya al menos un pronóstico válido
+  const validCount = Object.values(prodePronosticos)
+    .filter(v => v && v.includes('-')).length;
+
+  if (validCount === 0) {
+    showProdeToast('Completá al menos un marcador');
+    return;
+  }
+
+  // Limpiar incompletos
   Object.keys(prodePronosticos).forEach(k => {
-    if(!prodePronosticos[k] || !prodePronosticos[k].includes('-')) delete prodePronosticos[k];
+    if (!prodePronosticos[k] || !prodePronosticos[k].includes('-')) {
+      delete prodePronosticos[k];
+    }
   });
 
   const btn = document.getElementById('prodeSubmitBtn');
@@ -2901,21 +2921,24 @@ async function submitPronosticos() {
     updated_at: new Date().toISOString()
   }));
 
-  const res = await supaFetch('/rest/v1/pronosticos', {
-    method: 'POST',
-    prefer: 'resolution=ignore-duplicates',
-    body: JSON.stringify(rows)
-  });
+  // 🔥 INSERT CORRECTO SUPABASE
+  const { data, error } = await supabase
+    .from('pronosticos')
+    .upsert(rows, {
+      onConflict: 'user_id,fixture_id'
+    });
 
-  if(res !== null) {
-    window.prodeAlreadySubmitted = true;
-    showProdeToast('✅ Pronósticos enviados. ¡Buena suerte!');
-    renderProdeGrid();
-  } else {
+  if (error) {
+    console.log('Supabase error:', error);
     btn.disabled = false;
     btn.textContent = 'Guardar pronósticos';
     showProdeToast('❌ Error al guardar. Intentá de nuevo.');
+    return;
   }
+
+  window.prodeAlreadySubmitted = true;
+  showProdeToast('✅ Pronósticos enviados. ¡Buena suerte!');
+  renderProdeGrid();
 }
 
 // ===================================================
