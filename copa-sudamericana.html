@@ -438,60 +438,45 @@ function initials(name){
 // ── STANDINGS — ESPN standings arg.1 ─────────────────
 async function loadStandings(){
   const container = document.getElementById('zonaAContainer');
+  if(!container) return;
   try{
-    const urls = [
-      `https://site.api.espn.com/apis/v2/sports/soccer/conmebol.sudamericana/standings`,
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/standings`,
-    ];
-    let data = null;
-    for(const url of urls){
-      try{
-        const r = await fetch(url);
-        if(!r.ok) continue;
-        data = await r.json();
-        break;
-      }catch(e){ continue; }
-    }
-    if(!data) throw new Error('sin datos');
+    const r = await fetch('https://site.api.espn.com/apis/v2/sports/soccer/conmebol.sudamericana/standings');
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
 
-    // Copa tiene múltiples grupos (children)
     const children = data.children || [];
-    if(children.length){
-      let html = '';
-      children.forEach(group => {
-        const entries = group?.standings?.entries || group?.entries || [];
-        if(!entries.length) return;
-        html += '<div style="margin-bottom:16px">';
-        html += '<div style="font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;color:var(--green);padding:6px 0;margin-bottom:4px;border-bottom:1px solid var(--border)">📋 ' + (group.name || 'Grupo') + '</div>';
-        // Tabla del grupo
-        const tempDiv = document.createElement('div');
-        renderZona(entries, 'tempRender_' + Math.random(), false);
-        html += '</div>';
-      });
-      // Renderizar cada grupo
-      container.innerHTML = '';
-      children.forEach(group => {
-        const entries = group?.standings?.entries || group?.entries || [];
-        if(!entries.length) return;
-        const groupDiv = document.createElement('div');
-        groupDiv.style.marginBottom = '16px';
-        const title = document.createElement('div');
-        title.style.cssText = 'font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;color:var(--green);padding:6px 0;margin-bottom:4px;border-bottom:1px solid rgba(0,230,118,0.2)';
-        title.textContent = '📋 ' + (group.name || 'Grupo');
-        const tableDiv = document.createElement('div');
-        tableDiv.id = 'grp_' + (group.uid || group.name || Math.random()).toString().replace(/[^a-z0-9]/gi,'');
-        groupDiv.appendChild(title);
-        groupDiv.appendChild(tableDiv);
-        container.appendChild(groupDiv);
-        renderZona(entries, tableDiv.id, false);
-      });
-      renderSidebarStats(children[0]?.standings?.entries || children[0]?.entries || []);
-    } else {
-      const entries = data.standings?.entries || data.entries || [];
-      if(!entries.length) throw new Error('sin entries');
-      renderZona(entries, 'zonaAContainer', false);
-      renderSidebarStats(entries);
-    }
+    if(!children.length) throw new Error('sin grupos');
+
+    container.innerHTML = '';
+
+    children.forEach((group, idx) => {
+      const entries = group?.standings?.entries || group?.entries || [];
+      if(!entries.length) return;
+
+      // Contenedor del grupo
+      const groupWrap = document.createElement('div');
+      groupWrap.style.marginBottom = '20px';
+
+      // Título del grupo
+      const title = document.createElement('div');
+      title.style.cssText = 'font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:700;color:var(--green);padding:6px 0 6px 4px;margin-bottom:4px;border-bottom:1px solid rgba(0,230,118,0.2)';
+      title.textContent = group.name || ('Grupo ' + (idx+1));
+
+      // Tabla del grupo
+      const tableWrap = document.createElement('div');
+      tableWrap.id = 'grp' + idx;
+
+      groupWrap.appendChild(title);
+      groupWrap.appendChild(tableWrap);
+      container.appendChild(groupWrap);
+
+      renderZona(entries, 'grp' + idx, false);
+    });
+
+    // Sidebar stats con el primer grupo
+    const firstEntries = children[0]?.standings?.entries || children[0]?.entries || [];
+    if(firstEntries.length) renderSidebarStats(firstEntries);
+
   }catch(e){
     if(container) container.innerHTML = '<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar los grupos. <button onclick="loadStandings()" style="background:rgba(0,230,118,0.1);border:1px solid var(--green);color:var(--green);padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Barlow,sans-serif;font-size:12px;margin-left:8px">Reintentar</button></div>';
   }
