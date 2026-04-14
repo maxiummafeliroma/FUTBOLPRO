@@ -325,48 +325,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <div class="main-wrap">
   <div class="content">
 
-    <!-- TABS FILA 1 -->
+    <!-- TABS -->
     <div class="inner-tabs" style="margin-bottom:4px">
-      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">🅰 Zona A</button>
-      <button class="inner-tab" onclick="showTab('zonaB',this)" id="btn-zonaB">🅱 Zona B</button>
-      <button class="inner-tab" onclick="showTab('anual',this)" id="btn-anual">📊 Anual</button>
-      <button class="inner-tab" onclick="showTab('promedios',this)" id="btn-promedios">📉 Promedios</button>
-      <button class="inner-tab" onclick="showTab('goleadores',this)" id="btn-goleadores">⚽ Goleadores</button>
+      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">📊 Tabla</button>
       <button class="inner-tab" onclick="showTab('fixture',this)" id="btn-fixture">📅 Fixture</button>
     </div>
 
-    <!-- ZONA A -->
+    <!-- TABLA -->
     <div class="tab-section active" id="tab-zonaA">
       <div id="zonaAContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando Zona A...</div>
-      </div>
-    </div>
-
-    <!-- ZONA B -->
-    <div class="tab-section" id="tab-zonaB">
-      <div id="zonaBContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando Zona B...</div>
-      </div>
-    </div>
-
-    <!-- TABLA ANUAL -->
-    <div class="tab-section" id="tab-anual">
-      <div id="anualContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando tabla anual...</div>
-      </div>
-    </div>
-
-    <!-- PROMEDIOS / DESCENSO -->
-    <div class="tab-section" id="tab-promedios">
-      <div id="promediosContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando promedios...</div>
-      </div>
-    </div>
-
-    <!-- GOLEADORES -->
-    <div class="tab-section" id="tab-goleadores">
-      <div id="scorersContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando goleadores...</div>
+        <div class="load-msg"><span class="spin"></span>Cargando tabla...</div>
       </div>
     </div>
 
@@ -408,10 +376,10 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <span class="wh-title">ℹ️ Info</span>
       </div>
       <div class="wb" style="font-size:12px;color:var(--muted2);line-height:1.7">
-        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Organiza:</span> AFA</div>
-        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Formato:</span> 28 equipos, todos contra todos</div>
-        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Descenso:</span> Promedio 3 temporadas</div>
-        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Clasifican a Lib:</span> 1°, Copa Argentina y otros cupos</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Organiza:</span> LFP</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Formato:</span> 18 equipos, todos contra todos</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Descenso:</span> 3 últimos descienden</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Champions:</span> 1°-3° a Champions</div>
         <div style="color:var(--green);font-size:11px;margin-top:12px">Datos via ESPN API</div>
       </div>
     </div>
@@ -444,8 +412,7 @@ function showTab(id, btn){
   document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
-  if(id==='goleadores' && !scorersLoaded) loadScorers();
-  if(id==='fixture'    && !fixtureLoaded) loadFixture();
+  if(id==='fixture' && !fixtureLoaded) loadFixture();
 }
 
 // ── ESPN API ──────────────────────────────────────────
@@ -499,8 +466,6 @@ async function loadStandings(){
 
     // Tabla anual: combinar todos los equipos y sumar stats
     const todosEntries = [...grupoA, ...grupoB];
-    renderAnual(todosEntries);
-    renderPromedios(); // datos hardcodeados reales
 
     // Sidebar stats
     renderSidebarStats(todosEntries);
