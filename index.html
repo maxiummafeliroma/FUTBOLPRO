@@ -1107,7 +1107,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       </div>
 
       <div class="lp-item" onclick="lpSelectLeague('39','Premier League')" id="lp-39">
-        <img src="https://flagcdn.com/20x15/gb.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Premier League</span><span class="lp-item-cnt" id="lpc-39">—</span>
+        <img src="https://flagcdn.com/20x15/gb-eng.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Premier League</span><span class="lp-item-cnt" id="lpc-39">—</span>
       </div>
       <div class="lp-sub">
         <a class="lp-sub-btn" href="premier-league.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
@@ -1142,7 +1142,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       </div>
 
       <div class="lp-item" onclick="lpSelectLeague('eng.2','Championship')" id="lp-eng.2">
-        <img src="https://flagcdn.com/20x15/gb.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Championship</span><span class="lp-item-cnt" id="lpc-eng.2">—</span>
+        <img src="https://flagcdn.com/20x15/gb-eng.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Championship</span><span class="lp-item-cnt" id="lpc-eng.2">—</span>
       </div>
 
       <div class="lp-item" onclick="lpSelectLeague('mex.1','Liga MX')" id="lp-mex.1">
@@ -1197,13 +1197,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <span>🏆</span><span class="lp-item-name">Copa Libertadores</span><span class="lp-item-cnt" id="lpc-13">—</span>
       </div>
       <div class="lp-sub">
+        <button class="lp-sub-btn" onclick="lpOpenView('13','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('13','fixture')">Fixture</button>
         <a class="lp-sub-btn" href="copa-libertadores.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
       </div>
       <div class="lp-item" onclick="lpSelectLeague('11','Copa Sudamericana')" id="lp-11">
         <span>🏆</span><span class="lp-item-name">Copa Sudamericana</span><span class="lp-item-cnt" id="lpc-11">—</span>
       </div>
       <div class="lp-sub">
-        <a class="lp-sub-btn" href="copa-sudamericana.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
+        <button class="lp-sub-btn" onclick="lpOpenView('11','tabla')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('11','fixture')">Fixture</button>
       </div>
       <div class="lp-item" onclick="lpSelectLeague('35','Elim. CONMEBOL')" id="lp-35">
         <span>🌎</span><span class="lp-item-name">Eliminatorias</span><span class="lp-item-cnt" id="lpc-35">—</span>
