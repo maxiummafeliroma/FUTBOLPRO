@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ligue 1 - FutbolPro</title>
+<meta name="description" content="Tabla de posiciones, goleadores y fixture de la Liga Profesional de Fútbol Argentina.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===================================================
+   FUTBOLPRO — VARIABLES Y BASE (mismo que index)
+=================================================== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;--bg2:#0c1018;--bg3:#111827;
+  --card:#0f1520;--card2:#141e2d;--card3:#1a2540;
+  --green:#00e676;--green2:#00c853;
+  --blue:#00b0ff;--blue2:#0091ea;
+  --orange:#ff6d00;--red:#f44336;
+  --gold:#ffd600;--purple:#aa00ff;
+  --f1red:#e10600;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(0,230,118,0.2);
+  --txt:#e8f0fe;--muted:#546e7a;--muted2:#78909c;
+}
+[data-theme="light"]{
+  --bg:#f0f6ff;--bg2:#e4eef9;--bg3:#d6e8f7;
+  --card:#ffffff;--card2:#eaf2fb;--card3:#d0e7f8;
+  --green:#0066cc;--green2:#0052a3;
+  --blue:#0099dd;--blue2:#0077bb;
+  --orange:#ff6d00;--red:#d32f2f;
+  --gold:#e6a817;--purple:#7b1fa2;
+  --border:rgba(0,80,160,0.12);--border2:rgba(0,102,204,0.25);
+  --txt:#0d1b2e;--muted:#5a7a9a;--muted2:#4a6a8a;
+}
+[data-theme="light"] body{background:var(--bg);color:var(--txt)}
+[data-theme="light"] .header{background:rgba(26,86,160,0.97);border-bottom-color:rgba(0,80,160,0.3)}
+[data-theme="light"] .logo{color:#ffffff;text-shadow:0 0 20px rgba(255,255,255,0.3)}
+[data-theme="light"] .logo span{color:#75c8ff}
+[data-theme="light"] .standings-wrap{background:var(--card);border-color:var(--border)}
+[data-theme="light"] .standings-wrap th{background:var(--card2);color:var(--muted)}
+[data-theme="light"] .standings-wrap td{color:var(--txt)}
+[data-theme="light"] .scorer-row{background:var(--card);border-color:var(--border)}
+[data-theme="light"] .match-card{background:var(--card);border-color:var(--border)}
+[data-theme="light"] .match-card:hover{background:var(--card2)}
+[data-theme="light"] .inner-tabs{background:var(--card2);border-color:var(--border)}
+[data-theme="light"] .inner-tab.active{background:var(--card3);color:var(--green)}
+[data-theme="light"] .page-hero{background:linear-gradient(135deg,#1a56a0,#0d2a5e)}
+[data-theme="light"] .widget{background:var(--card);border-color:var(--border)}
+[data-theme="light"] .wh{border-bottom-color:var(--border)}
+[data-theme="light"] .fixture-card{background:var(--card);border-color:var(--border)}
+[data-theme="light"] .fixture-card:hover{background:var(--card2)}
+[data-theme="light"] .section-hdr{background:var(--card2);border-color:var(--border)}
+[data-theme="light"] .theme-toggle{border-color:rgba(255,255,255,0.4)}
+[data-theme="light"] .theme-toggle-lbl{color:rgba(255,255,255,0.9)}
+
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-height:100vh}
+
+/* HEADER */
+.header{
+  position:sticky;top:0;z-index:500;
+  background:rgba(7,9,15,0.97);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+}
+.header-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 20px;max-width:1400px;margin:0 auto;
+}
+.logo{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:26px;font-weight:900;letter-spacing:-1px;
+  color:var(--green);display:flex;align-items:center;gap:8px;
+  text-shadow:0 0 30px rgba(0,230,118,0.4);
+  text-decoration:none;
+}
+.logo span{color:var(--blue)}
+.header-right{display:flex;align-items:center;gap:10px}
+.back-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:50px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted2);font-family:'Barlow',sans-serif;
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s;text-decoration:none;
+}
+.back-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--txt)}
+.theme-toggle{
+  display:flex;align-items:center;gap:6px;
+  background:transparent;border:1px solid rgba(255,255,255,0.2);
+  border-radius:50px;padding:5px 10px;cursor:pointer;
+  transition:all .25s;user-select:none;
+}
+.theme-toggle:hover{border-color:rgba(255,255,255,0.5)}
+.theme-toggle-icon{font-size:14px;transition:transform .3s}
+.theme-toggle-lbl{font-size:11px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:.5px}
+
+/* HERO */
+.page-hero{
+  background:linear-gradient(135deg,#0f3460,#07090f);
+  border-bottom:1px solid var(--border);
+  padding:24px 20px 20px;
+}
+.page-hero-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:16px}
+.liga-badge{
+  width:64px;height:64px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(0,230,118,0.15),rgba(0,176,255,0.1));
+  border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;flex-shrink:0;
+}
+.page-hero-info{}
+.page-hero-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:30px;font-weight:900;letter-spacing:-0.5px;
+  color:#fff;line-height:1;margin-bottom:4px;
+}
+.page-hero-title span{color:var(--green)}
+.page-hero-sub{font-size:13px;color:var(--muted2)}
+.hero-stats{display:flex;gap:20px;margin-top:12px}
+.hero-stat{text-align:center}
+.hero-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--green)}
+.hero-stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+
+/* MAIN */
+.main-wrap{max-width:1400px;margin:0 auto;padding:16px 20px;display:grid;grid-template-columns:1fr 300px;gap:14px}
+.content{min-width:0}
+.sidebar{display:flex;flex-direction:column;gap:12px}
+
+/* INNER TABS */
+.inner-tabs{
+  display:flex;gap:2px;background:var(--card2);
+  border-radius:10px;padding:4px;margin-bottom:14px;
+  border:1px solid var(--border);
+}
+.inner-tab{
+  flex:1;padding:9px 6px;text-align:center;
+  border-radius:7px;font-size:12px;font-weight:600;
+  letter-spacing:.3px;text-transform:uppercase;
+  cursor:pointer;color:var(--muted2);
+  transition:all .2s;border:none;background:transparent;
+  font-family:'Barlow',sans-serif;
+}
+.inner-tab.active{background:var(--card3);color:var(--green)}
+.inner-tab:hover:not(.active){color:var(--txt)}
+
+/* SECTION */
+.tab-section{display:none}
+.tab-section.active{display:block}
+
+/* STANDINGS */
+.standings-wrap{background:var(--card);border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.standings-wrap table{width:100%;border-collapse:collapse}
+.standings-wrap th{
+  font-size:10px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.8px;
+  padding:10px 8px;text-align:center;
+  border-bottom:1px solid var(--border2);background:var(--card2);
+}
+.standings-wrap th:first-child{text-align:left;padding-left:14px;width:32px}
+.standings-wrap th:nth-child(2){text-align:left}
+.standings-wrap td{padding:8px 8px;font-size:12px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.03)}
+.standings-wrap td:first-child{text-align:left;padding-left:14px}
+.standings-wrap td:nth-child(2){text-align:left}
+.standings-wrap tr:last-child td{border-bottom:none}
+.standings-wrap tr:hover td{background:rgba(255,255,255,0.02);cursor:default}
+.pos-cl{color:var(--green);font-weight:700}
+.pos-rel{color:var(--red);font-weight:700}
+.pos-n{color:var(--muted2);font-size:11px}
+.team-cell{display:flex;align-items:center;gap:7px}
+.mini-logo{width:20px;height:20px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.04);padding:1px}
+.mini-logo-fb{width:20px;height:20px;border-radius:50%;background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--muted2)}
+.pts-bold{font-weight:700;color:var(--txt)}
+.form-badges{display:flex;gap:2px;justify-content:center}
+.fb{width:15px;height:15px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700}
+.fb-w{background:rgba(0,230,118,0.2);color:var(--green)}
+.fb-d{background:rgba(255,214,0,0.2);color:var(--gold)}
+.fb-l{background:rgba(244,67,54,0.2);color:var(--red)}
+.standings-legend{display:flex;gap:14px;padding:10px 14px;background:var(--card2);border-top:1px solid var(--border)}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted2)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+
+/* SCORERS */
+.scorer-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:var(--card);
+  border-radius:8px;margin-bottom:4px;
+  border:1px solid var(--border);
+  transition:border-color .2s;
+}
+.scorer-row:hover{border-color:rgba(255,255,255,0.1)}
+.scorer-rank{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--muted);width:22px;text-align:center}
+.scorer-rank.top{color:var(--gold)}
+.scorer-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.scorer-info{flex:1;min-width:0}
+.scorer-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scorer-club{font-size:11px;color:var(--muted2)}
+.scorer-goals{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--green)}
+.scorer-goles-lbl{font-size:9px;color:var(--muted);text-align:right;text-transform:uppercase;letter-spacing:.5px}
+
+/* FIXTURE */
+.section-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;
+  background:var(--card2);
+  border-radius:8px 8px 0 0;
+  border:1px solid var(--border);border-bottom:none;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--blue);
+}
+.fixture-card{
+  background:var(--card);border:1px solid var(--border);border-top:none;
+  padding:11px 14px;display:grid;
+  grid-template-columns:1fr 90px 1fr;
+  align-items:center;gap:8px;
+  transition:background .15s;
+}
+.fixture-card:last-child{border-radius:0 0 8px 8px}
+.fixture-card:hover{background:var(--card2)}
+.fixture-card.is-live{border-left:2px solid var(--red)}
+.fixture-card.is-live .fx-status{color:var(--red)}
+.fixture-group{margin-bottom:12px}
+.fx-team{display:flex;align-items:center;gap:7px}
+.fx-team.right{flex-direction:row-reverse}
+.fx-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.fx-team.right .fx-name{text-align:right}
+.fx-center{text-align:center}
+.fx-score{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:2px}
+.fx-vs{font-size:12px;color:var(--muted);font-weight:600}
+.fx-time{font-size:11px;color:var(--muted2);margin-top:1px}
+.fx-status{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted2)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.live-dot{display:inline-block;width:6px;height:6px;background:var(--red);border-radius:50%;margin-right:4px;animation:blink 1.2s infinite;vertical-align:middle}
+
+/* WIDGET SIDEBAR */
+.widget{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.wh{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.wh-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--blue)}
+.wb{padding:12px 14px}
+.wh-sub{font-size:10px;color:var(--muted2)}
+
+/* SKELETON */
+.skeleton{background:linear-gradient(90deg,var(--card2) 25%,var(--card3) 50%,var(--card2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-row{height:36px;margin-bottom:4px}
+.skel-tall{height:50px;margin-bottom:4px}
+
+/* LOADING / ERROR */
+.load-msg{text-align:center;padding:32px;color:var(--muted2);font-size:13px}
+.load-msg .spin{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{text-align:center;padding:24px;color:var(--muted2);font-size:13px}
+.error-msg .err-ico{font-size:28px;display:block;margin-bottom:8px}
+.retry-btn{margin-top:10px;padding:7px 18px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.retry-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* NEXT MATCH WIDGET */
+.next-match{padding:12px 14px}
+.nm-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+.nm-teams{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}
+.nm-team{text-align:center;flex:1}
+.nm-team-logo{width:40px;height:40px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.04);padding:3px;margin:0 auto 4px}
+.nm-team-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm-vs{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--muted);flex-shrink:0}
+.nm-info{text-align:center;font-size:11px;color:var(--muted2)}
+.nm-date{font-weight:600;color:var(--txt);margin-bottom:2px}
+
+/* STATS WIDGET */
+.stat-bar-row{margin-bottom:10px}
+.stat-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted2);margin-bottom:4px}
+.stat-bar-label span{color:var(--txt);font-weight:600}
+.stat-bar-bg{height:5px;background:var(--card3);border-radius:3px;overflow:hidden}
+.stat-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:width .8s ease}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .main-wrap{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+@media(max-width:600px){
+  .hero-stats{gap:12px}
+  .standings-wrap th:nth-child(n+8){display:none}
+  .standings-wrap td:nth-child(n+8){display:none}
+  .form-badges{display:none}
+  .fx-name{max-width:80px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <a href="index.html" class="logo">
+      <svg class="logo-ball" viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="16" r="15" fill="#1a2540" stroke="rgba(0,230,118,0.3)" stroke-width="1"/>
+        <path d="M16 4 L20 12 L28 12 L22 18 L24 26 L16 21 L8 26 L10 18 L4 12 L12 12 Z" fill="rgba(0,230,118,0.15)" stroke="rgba(0,230,118,0.5)" stroke-width="1"/>
+      </svg>
+      Futbol<span>Pro</span>
+    </a>
+    <div class="header-right">
+      <a href="index.html" class="back-btn">← Inicio</a>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+        <span class="theme-toggle-icon">🌙</span>
+        <span class="theme-toggle-lbl" id="themeLbl">OSCURO</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="liga-badge">🇦🇷</div>
+    <div class="page-hero-info">
+      <div class="page-hero-title">Ligue <span>1</span></div>
+      <div class="page-hero-sub">Temporada 2025/26 · Francia · Ligue 1</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+  <div class="content">
+
+    <!-- TABS FILA 1 -->
+    <div class="inner-tabs" style="margin-bottom:4px">
+      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">🅰 Zona A</button>
+      <button class="inner-tab" onclick="showTab('zonaB',this)" id="btn-zonaB">🅱 Zona B</button>
+      <button class="inner-tab" onclick="showTab('anual',this)" id="btn-anual">📊 Anual</button>
+      <button class="inner-tab" onclick="showTab('promedios',this)" id="btn-promedios">📉 Promedios</button>
+      <button class="inner-tab" onclick="showTab('goleadores',this)" id="btn-goleadores">⚽ Goleadores</button>
+      <button class="inner-tab" onclick="showTab('fixture',this)" id="btn-fixture">📅 Fixture</button>
+    </div>
+
+    <!-- ZONA A -->
+    <div class="tab-section active" id="tab-zonaA">
+      <div id="zonaAContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando Zona A...</div>
+      </div>
+    </div>
+
+    <!-- ZONA B -->
+    <div class="tab-section" id="tab-zonaB">
+      <div id="zonaBContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando Zona B...</div>
+      </div>
+    </div>
+
+    <!-- TABLA ANUAL -->
+    <div class="tab-section" id="tab-anual">
+      <div id="anualContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando tabla anual...</div>
+      </div>
+    </div>
+
+    <!-- PROMEDIOS / DESCENSO -->
+    <div class="tab-section" id="tab-promedios">
+      <div id="promediosContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando promedios...</div>
+      </div>
+    </div>
+
+    <!-- GOLEADORES -->
+    <div class="tab-section" id="tab-goleadores">
+      <div id="scorersContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando goleadores...</div>
+      </div>
+    </div>
+
+    <!-- FIXTURE -->
+    <div class="tab-section" id="tab-fixture">
+      <div id="fixtureContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando fixture...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Próximo partido -->
+    <div class="widget">
+      <div class="wh">
+        <span class="wh-title">🔜 Próximo Partido</span>
+      </div>
+      <div id="nextMatchWidget"><div class="load-msg" style="padding:20px"><span class="spin"></span></div></div>
+    </div>
+
+    <!-- Stats de la temporada -->
+    <div class="widget">
+      <div class="wh">
+        <span class="wh-title">📈 Stats Temporada</span>
+      </div>
+      <div class="wb" id="statsWidget">
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+        <div class="skeleton skel-row"></div>
+      </div>
+    </div>
+
+    <!-- Info Liga -->
+    <div class="widget">
+      <div class="wh">
+        <span class="wh-title">ℹ️ Info</span>
+      </div>
+      <div class="wb" style="font-size:12px;color:var(--muted2);line-height:1.7">
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Organiza:</span> AFA</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Formato:</span> 28 equipos, todos contra todos</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Descenso:</span> Promedio 3 temporadas</div>
+        <div style="margin-bottom:8px"><span style="color:var(--txt);font-weight:600">Clasifican a Lib:</span> 1°, Copa Argentina y otros cupos</div>
+        <div style="color:var(--green);font-size:11px;margin-top:12px">Datos via ESPN API</div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<script>
+// ── THEME ──────────────────────────────────────────────
+const savedTheme = localStorage.getItem('fp-theme') || 'dark';
+if(savedTheme==='light') applyTheme('light');
+
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t==='light'?'light':'');
+  const btn = document.getElementById('themeBtn');
+  const lbl = document.getElementById('themeLbl');
+  if(btn){ btn.querySelector('.theme-toggle-icon').textContent = t==='light'?'☀️':'🌙'; }
+  if(lbl){ lbl.textContent = t==='light'?'CLARO':'OSCURO'; }
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur==='light' ? 'dark' : 'light';
+  localStorage.setItem('fp-theme', next);
+  applyTheme(next);
+}
+
+// ── TABS ──────────────────────────────────────────────
+function showTab(id, btn){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='goleadores' && !scorersLoaded) loadScorers();
+  if(id==='fixture'    && !fixtureLoaded) loadFixture();
+}
+
+// ── ESPN API ──────────────────────────────────────────
+const COMP = 'FRA.1';
+const SITE_ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+
+let scorersLoaded = false;
+let fixtureLoaded = false;
+let allGroups = []; // guardamos los grupos de ESPN para reusar
+
+// ── COLORES AVATAR ─────────────────────────────────────
+const avatarColors = [
+  '#00e676','#00b0ff','#ff6d00','#ffd600','#aa00ff',
+  '#f44336','#00bcd4','#ff4081','#76ff03','#ff9100'
+];
+function getAvatarColor(i){ return avatarColors[i % avatarColors.length]; }
+function initials(name){
+  const parts = name.trim().split(' ');
+  if(parts.length>=2) return (parts[0][0]+(parts[parts.length-1][0])).toUpperCase();
+  return name.substring(0,2).toUpperCase();
+}
+
+// ── STANDINGS — ESPN standings arg.1 ─────────────────
+async function loadStandings(){
+  try{
+    const url = `https://site.api.espn.com/apis/v2/sports/soccer/fra.1/standings`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('ESPN standings '+r.status);
+    const data = await r.json();
+
+    // data.children = [ { name:"Group A", standings:{entries:[...]} }, { name:"Group B", ... } ]
+    const children = data.children || [];
+    if(!children.length) throw new Error('sin grupos');
+
+    allGroups = children;
+
+    // Zona A y Zona B
+    const grupoA = children[0]?.standings?.entries || children[0]?.entries || [];
+    const grupoB = children[1]?.standings?.entries || children[1]?.entries || [];
+
+    // Nombre real de los grupos
+    const nombreA = children[0]?.name || 'Zona A';
+    const nombreB = children[1]?.name || 'Zona B';
+
+    document.getElementById('btn-zonaA').textContent = `🅰 ${nombreA}`;
+    document.getElementById('btn-zonaB').textContent = `🅱 ${nombreB}`;
+
+    // Renderizar ambas zonas
+    renderZona(grupoA, 'zonaAContainer', false);
+    renderZona(grupoB, 'zonaBContainer', false);
+
+    // Tabla anual: combinar todos los equipos y sumar stats
+    const todosEntries = [...grupoA, ...grupoB];
+    renderAnual(todosEntries);
+    renderPromedios(); // datos hardcodeados reales
+
+    // Sidebar stats
+    renderSidebarStats(todosEntries);
+
+  }catch(e){
+    ['zonaAContainer','zonaBContainer','anualContainer','promediosContainer'].forEach(id=>{
+      document.getElementById(id).innerHTML = errorHTML('No se pudo cargar la tabla.', loadStandings);
+    });
+  }
+}
+
+// ── HELPER getStat ────────────────────────────────────
+function getStat(stats, names){
+  for(const n of names){
+    const s = stats.find(x=>x.name===n||x.abbreviation===n);
+    if(s) return { val: s.displayValue ?? String(s.value ?? '—'), num: parseFloat(s.value||0) };
+  }
+  return { val:'—', num:0 };
+}
+
+// ── TABLA GENÉRICA (zona A o B) ───────────────────────
+function renderZona(entries, containerId, esAnual){
+  if(!entries.length){
+    document.getElementById(containerId).innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
+    return;
+  }
+
+  // Ordenar por puntos desc
+  const sorted = [...entries].sort((a,b)=>{
+    const pa = getStat(a.stats||[],['points','PTS']).num;
+    const pb = getStat(b.stats||[],['points','PTS']).num;
+    return pb-pa;
+  });
+
+  let html = `<div class="standings-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Equipo</th>
+      <th title="Partidos Jugados">PJ</th>
+      <th title="Ganados">G</th>
+      <th title="Empates">E</th>
+      <th title="Perdidos">P</th>
+      <th title="Goles a Favor">GF</th>
+      <th title="Goles en Contra">GC</th>
+      <th title="Diferencia de Goles">DIF</th>
+      <th title="Puntos">Pts</th>
+    </tr></thead><tbody>`;
+
+  sorted.forEach((entry, i)=>{
+    const pos = i+1;
+    const team = entry.team || {};
+    const stats = entry.stats || [];
+    const pj  = getStat(stats,['gamesPlayed','GP']).val;
+    const g   = getStat(stats,['wins','W','gamesWon']).val;
+    const e   = getStat(stats,['ties','D','draws','gamesDrawn']).val;
+    const p   = getStat(stats,['losses','L','gamesLost']).val;
+    const gf  = getStat(stats,['pointsFor','goalsFor','GF']).val;
+    const gc  = getStat(stats,['pointsAgainst','goalsAgainst','GA']).val;
+    const difN= getStat(stats,['pointDifferential','differential','GD']).num;
+    const pts = getStat(stats,['points','PTS']).val;
+    const difStr = difN >= 0 ? '+'+difN : String(difN);
+
+    const logoUrl = team.logos?.[0]?.href || '';
+    const logoHtml = logoUrl
+      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(team.abbreviation||'?').substring(0,3)}</div>`
+      : `<div class="mini-logo-fb">${(team.abbreviation||team.displayName||'?').substring(0,3)}</div>`;
+
+    // Colores posición
+    let posClass = 'pos-n';
+    if(!esAnual){
+      if(pos===1) posClass='pos-cl';       // clasifica copa
+    } else {
+      if(pos<=6)  posClass='pos-cl';       // clasifica Libertadores/Suda
+      if(pos>=sorted.length-2) posClass='pos-rel'; // descenso
+    }
+
+    html += `<tr>
+      <td><span class="${posClass}">${pos}</span></td>
+      <td><div class="team-cell">${logoHtml}<span>${team.displayName||team.shortDisplayName||'—'}</span></div></td>
+      <td>${pj}</td><td>${g}</td><td>${e}</td><td>${p}</td>
+      <td>${gf}</td><td>${gc}</td><td>${difStr}</td>
+      <td><strong class="pts-bold">${pts}</strong></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+
+  if(esAnual){
+    html += `<div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Clasifica a Libertadores / Sudamericana</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Zona de descenso (por promedios)</div>
+    </div>`;
+  } else {
+    html += `<div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>1° clasifica a fase final</div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ── TABLA ANUAL (suma de las 2 zonas) ─────────────────
+function renderAnual(allEntries){
+  // Agrupar por equipo y sumar stats
+  const mapa = {};
+  allEntries.forEach(entry=>{
+    const id = entry.team?.id || entry.team?.displayName;
+    if(!mapa[id]){
+      mapa[id] = { team: entry.team, pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 };
+    }
+    const s = entry.stats || [];
+    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
+    mapa[id].g   += getStat(s,['wins','W','gamesWon']).num;
+    mapa[id].e   += getStat(s,['ties','D','draws','gamesDrawn']).num;
+    mapa[id].p   += getStat(s,['losses','L','gamesLost']).num;
+    mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
+    mapa[id].gc  += getStat(s,['pointsAgainst','goalsAgainst','GA']).num;
+    mapa[id].pts += getStat(s,['points','PTS']).num;
+  });
+
+  const rows = Object.values(mapa).sort((a,b)=>b.pts-a.pts);
+
+  let html = `<div class="standings-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Equipo</th>
+      <th>PJ</th><th>G</th><th>E</th><th>P</th>
+      <th>GF</th><th>GC</th><th>DIF</th><th>Pts</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach((t, i)=>{
+    const pos = i+1;
+    const dif = t.gf - t.gc;
+    const difStr = dif>=0?'+'+dif:String(dif);
+    const logoUrl = t.team?.logos?.[0]?.href || '';
+    const logoHtml = logoUrl
+      ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(t.team.abbreviation||'?').substring(0,3)}</div>`
+      : `<div class="mini-logo-fb">${(t.team?.abbreviation||t.team?.displayName||'?').substring(0,3)}</div>`;
+
+    let posClass='pos-n';
+    if(pos<=6) posClass='pos-cl';
+    else if(pos===rows.length) posClass='pos-rel'; // solo el último desciende por tabla anual
+
+    html += `<tr>
+      <td><span class="${posClass}">${pos}</span></td>
+      <td><div class="team-cell">${logoHtml}<span>${t.team?.displayName||'—'}</span></div></td>
+      <td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+      <td>${t.gf}</td><td>${t.gc}</td><td>${difStr}</td>
+      <td><strong class="pts-bold">${t.pts}</strong></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Clasifica a Libertadores / Sudamericana</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Zona de descenso (por promedios)</div>
+    </div>
+  </div>`;
+  document.getElementById('anualContainer').innerHTML = html;
+}
+
+// ── PROMEDIOS — datos reales 2024/2025/2026 (fuente: TyC Sports) ──
+function renderPromedios(){
+  const PROMEDIOS = [
+    {pos:1,  nombre:'Boca Juniors',          p2024:67, p2025:62, p2026:21, total:150, pj:86, prom:1.744},
+    {pos:2,  nombre:'River Plate',           p2024:70, p2025:53, p2026:26, total:149, pj:86, prom:1.733},
+    {pos:3,  nombre:'Racing Club',           p2024:70, p2025:53, p2026:18, total:141, pj:86, prom:1.640},
+    {pos:4,  nombre:'Vélez',                 p2024:76, p2025:40, p2026:22, total:138, pj:85, prom:1.624},
+    {pos:5,  nombre:'Argentinos Juniors',    p2024:56, p2025:57, p2026:23, total:136, pj:86, prom:1.581},
+    {pos:6,  nombre:'Rosario Central',       p2024:47, p2025:66, p2026:21, total:134, pj:86, prom:1.558},
+    {pos:7,  nombre:'Lanús',                 p2024:59, p2025:50, p2026:19, total:128, pj:85, prom:1.506},
+    {pos:8,  nombre:'Estudiantes',           p2024:63, p2025:42, p2026:24, total:129, pj:86, prom:1.500},
+    {pos:9,  nombre:'Huracán',               p2024:62, p2025:47, p2026:20, total:129, pj:86, prom:1.500},
+    {pos:10, nombre:'Independiente',         p2024:63, p2025:47, p2026:18, total:128, pj:86, prom:1.488},
+    {pos:11, nombre:'Talleres',              p2024:72, p2025:34, p2026:18, total:124, pj:85, prom:1.459},
+    {pos:12, nombre:'Ind. Rivadavia (M)',    p2024:46, p2025:43, p2026:29, total:118, pj:86, prom:1.372},
+    {pos:13, nombre:'Unión',                 p2024:60, p2025:39, p2026:19, total:118, pj:86, prom:1.372},
+    {pos:14, nombre:'Barracas Central',      p2024:49, p2025:49, p2026:19, total:117, pj:86, prom:1.360},
+    {pos:15, nombre:'Defensa y Justicia',    p2024:58, p2025:38, p2026:19, total:115, pj:85, prom:1.353},
+    {pos:16, nombre:'San Lorenzo',           p2024:45, p2025:51, p2026:18, total:114, pj:86, prom:1.326},
+    {pos:17, nombre:'Belgrano',              p2024:49, p2025:37, p2026:22, total:108, pj:86, prom:1.256},
+    {pos:18, nombre:'Platense',              p2024:57, p2025:35, p2026:16, total:108, pj:86, prom:1.256},
+    {pos:19, nombre:'Dep. Riestra',          p2024:48, p2025:52, p2026:7,  total:107, pj:86, prom:1.244},
+    {pos:20, nombre:'Tigre',                 p2024:39, p2025:49, p2026:18, total:106, pj:86, prom:1.233},
+    {pos:21, nombre:'Instituto',             p2024:53, p2025:34, p2026:17, total:104, pj:86, prom:1.209},
+    {pos:22, nombre:'Gimnasia (LP)',         p2024:48, p2025:38, p2026:14, total:100, pj:85, prom:1.176},
+    {pos:23, nombre:'Central Córdoba (SE)',  p2024:42, p2025:42, p2026:12, total:96,  pj:85, prom:1.129},
+    {pos:24, nombre:'Atlético Tucumán',      p2024:50, p2025:34, p2026:10, total:94,  pj:86, prom:1.093},
+    {pos:25, nombre:'Newell\'s',             p2024:49, p2025:33, p2026:10, total:92,  pj:86, prom:1.070},
+    {pos:26, nombre:'Banfield',              p2024:41, p2025:35, p2026:13, total:89,  pj:85, prom:1.047},
+    {pos:27, nombre:'Sarmiento',             p2024:35, p2025:35, p2026:16, total:86,  pj:85, prom:1.012},
+    {pos:28, nombre:'Gimnasia (Mendoza)',    p2024:0,  p2025:0,  p2026:13, total:13,  pj:13, prom:1.000},
+    {pos:29, nombre:'Aldosivi',              p2024:0,  p2025:33, p2026:6,  total:39,  pj:45, prom:0.867},
+    {pos:30, nombre:'Estudiantes (RC)',      p2024:0,  p2025:0,  p2026:5,  total:5,   pj:13, prom:0.385},
+  ];
+
+  let html = `
+    <div style="font-size:11px;color:var(--muted2);padding:8px 12px;margin-bottom:8px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">
+      📊 Fuente: TyC Sports · Data Factory · Actualizado al inicio de la fecha 14
+    </div>
+    <div class="standings-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Equipo</th>
+      <th title="Puntos 2024">2024</th>
+      <th title="Puntos 2025">2025</th>
+      <th title="Puntos 2026">2026</th>
+      <th title="Total puntos">Total</th>
+      <th title="Partidos Jugados">PJ</th>
+      <th title="Promedio">Prom.</th>
+    </tr></thead><tbody>`;
+
+  PROMEDIOS.forEach(t=>{
+    const enPeligro = t.pos >= PROMEDIOS.length - 0; // último desciende
+    const ultimo = t.pos === PROMEDIOS.length;
+    const penultimo = t.pos === PROMEDIOS.length - 1;
+
+    let posClass = 'pos-n';
+    if(ultimo) posClass = 'pos-rel';
+    else if(penultimo) posClass = 'pos-rel';
+
+    const promColor = ultimo ? 'var(--red)' : penultimo ? 'var(--orange)' : t.pos<=3 ? 'var(--green)' : 'var(--txt)';
+
+    html += `<tr>
+      <td><span class="${posClass}">${t.pos}</span></td>
+      <td style="text-align:left;padding-left:14px;font-size:12px;font-weight:500">${t.nombre}</td>
+      <td style="color:var(--muted2)">${t.p2024||'—'}</td>
+      <td style="color:var(--muted2)">${t.p2025||'—'}</td>
+      <td style="color:var(--txt);font-weight:600">${t.p2026}</td>
+      <td style="font-weight:600">${t.total}</td>
+      <td style="color:var(--muted2)">${t.pj}</td>
+      <td><strong style="color:${promColor};font-family:'Barlow Condensed',sans-serif;font-size:16px">${t.prom.toFixed(3)}</strong></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>
+    <div class="standings-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Desciende a Primera Nacional (peor promedio)</div>
+    </div>
+  </div>`;
+  document.getElementById('promediosContainer').innerHTML = html;
+}
+
+// ── SIDEBAR STATS ─────────────────────────────────────
+function renderSidebarStats(entries){
+  if(!entries.length){ document.getElementById('statsWidget').innerHTML=''; return; }
+  const mapa = {};
+  entries.forEach(entry=>{
+    const id = entry.team?.id || entry.team?.displayName;
+    if(!mapa[id]) mapa[id]={ pj:0, gf:0, pts:0, team:entry.team };
+    const s = entry.stats||[];
+    mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
+    mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
+    mapa[id].pts += getStat(s,['points','PTS']).num;
+  });
+  const rows = Object.values(mapa);
+  const totalGf = rows.reduce((a,t)=>a+t.gf,0);
+  const prom = rows.length ? (totalGf/rows.length).toFixed(1) : '—';
+  const lider = rows.sort((a,b)=>b.pts-a.pts)[0];
+
+  document.getElementById('statsWidget').innerHTML = `
+    <div class="stat-bar-row">
+      <div class="stat-bar-label"><span>Prom. goles por equipo</span><span>${prom}</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,prom*2)}%"></div></div>
+    </div>
+    <div class="stat-bar-row">
+      <div class="stat-bar-label"><span>Líder: ${shortName(lider?.team?.shortDisplayName||'')}</span><span>${lider?.pts||0} pts</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(lider?.pts||0)/60*100)}%"></div></div>
+    </div>
+    <div class="stat-bar-row">
+      <div class="stat-bar-label"><span>Equipos totales</span><span>${rows.length}</span></div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${Math.min(100,(rows.length/28)*100)}%;background:var(--blue)"></div></div>
+    </div>`;
+}
+
+// ── SCORERS — via proxy ESPN (/api/espn) ─────────────
+async function loadScorers(){
+  if(scorersLoaded) return;
+  scorersLoaded = true;
+  try{
+    const r = await fetch('/api/espn?path=/soccer/fra.1/scorers');
+    if(!r.ok) throw new Error('ESPN scorers '+r.status);
+    const data = await r.json();
+    const leaders = data.leaders || data.categories?.[0]?.leaders || [];
+    if(!leaders.length) throw new Error('sin datos');
+    renderScorers(leaders.map(p=>({
+      player:{ name: p.athlete?.displayName||'Jugador', photo: p.athlete?.headshot?.href||'' },
+      statistics:[{ goals:{ total: p.value||0 }, team:{ name: p.team?.displayName||p.athlete?.team?.displayName||'' } }]
+    })));
+  }catch(e){
+    document.getElementById('scorersContainer').innerHTML = errorHTML('No se pudo cargar los goleadores.', ()=>{scorersLoaded=false;loadScorers()});
+  }
+}
+
+function renderScorers(players){
+  if(!players.length){
+    document.getElementById('scorersContainer').innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos de goleadores.</div>`;
+    return;
+  }
+  let html = '';
+  players.slice(0,20).forEach((p, i)=>{
+    const goals = p.statistics?.[0]?.goals?.total || 0;
+    const name  = p.player?.name || 'Jugador';
+    const club  = p.statistics?.[0]?.team?.name || '';
+    const foto  = p.player?.photo || '';
+    const color = getAvatarColor(i);
+    const rank  = i+1;
+    const avatarHtml = foto
+      ? `<img src="${foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+      : '';
+    html += `<div class="scorer-row">
+      <span class="scorer-rank ${rank<=3?'top':''}">${rank}</span>
+      ${avatarHtml}<div class="scorer-av" style="background:${color}22;color:${color};${foto?'display:none':''}">${initials(name)}</div>
+      <div class="scorer-info">
+        <div class="scorer-name">${name}</div>
+        <div class="scorer-club">${club}</div>
+      </div>
+      <div>
+        <div class="scorer-goals">${goals}</div>
+        <div class="scorer-goles-lbl">goles</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('scorersContainer').innerHTML = html;
+}
+
+// ── FIXTURE CON SELECTOR DE FECHAS ───────────────────
+let allFixtureEvents = []; // todos los partidos del torneo
+let fechaActual = 1;
+let totalFechas = 14; // se actualiza con los datos reales
+
+async function loadFixture(){
+  if(fixtureLoaded) return;
+  fixtureLoaded = true;
+  const container = document.getElementById('fixtureContainer');
+  container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
+
+  try{
+    const fechas = {};
+
+    // Cargar todos los meses del torneo Apertura 2026 en paralelo
+    const rangos = [
+      '20260119-20260126', // fecha 1
+      '20260126-20260202', // fecha 2
+      '20260202-20260209', // fecha 3
+      '20260209-20260216', // fecha 4
+      '20260216-20260223', // fecha 5
+      '20260223-20260302', // fecha 6
+      '20260302-20260309', // fecha 7
+      '20260309-20260316', // fecha 8
+      '20260316-20260323', // fecha 9
+      '20260323-20260330', // fecha 10
+      '20260330-20260406', // fecha 11
+      '20260406-20260413', // fecha 12-13
+      '20260413-20260420', // fecha 14
+      '20260420-20260504', // fechas finales
+    ];
+
+    const fetches = rangos.map(rango =>
+      fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${rango}&limit=50`)
+        .then(r => r.ok ? r.json() : { events:[] })
+        .catch(() => ({ events:[] }))
+    );
+
+    const resultados = await Promise.all(fetches);
+
+    resultados.forEach(data => {
+      (data.events || []).forEach(ev => {
+        const f = ev.week?.number || ev.season?.week || 1;
+        if(!fechas[f]) fechas[f] = [];
+        if(!fechas[f].find(e => e.id === ev.id)) fechas[f].push(ev);
+      });
+    });
+
+    // Fallback si no hay nada
+    if(Object.keys(fechas).length === 0){
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard`);
+      const data = await r.json();
+      (data.events||[]).forEach(ev => {
+        const f = ev.week?.number || 1;
+        if(!fechas[f]) fechas[f] = [];
+        fechas[f].push(ev);
+      });
+    }
+
+    const fechasOrdenadas = Object.keys(fechas).map(Number).sort((a,b)=>a-b);
+    if(!fechasOrdenadas.length) throw new Error('sin fechas');
+
+    allFixtureEvents = Object.values(fechas).flat();
+
+    // Detectar fecha actual
+    const hoy = Date.now();
+    fechaActual = fechasOrdenadas[0];
+    for(const f of fechasOrdenadas){
+      const hayFuturos = fechas[f].some(ev => new Date(ev.date).getTime() > hoy);
+      if(hayFuturos){ fechaActual = f; break; }
+      fechaActual = f;
+    }
+
+    // Widget próximo partido
+    const proximos = allFixtureEvents
+      .filter(ev => new Date(ev.date).getTime() > hoy)
+      .sort((a,b) => new Date(a.date) - new Date(b.date));
+    if(proximos.length) loadNextMatchWidget(proximos);
+
+    renderSelectorFechas(fechasOrdenadas, fechas);
+
+  }catch(e){
+    container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
+  }
+}
+
+async function cargarFechasPasadas(fechas){
+  try{
+    // Cargar scoreboard de la semana pasada
+    const hace7 = new Date(Date.now() - 7*24*60*60*1000);
+    const dateStr = hace7.toISOString().slice(0,10).replace(/-/g,'');
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?dates=${dateStr}`);
+    const data = await r.json();
+    (data.events||[]).forEach(ev=>{
+      const f = ev.week?.number || 1;
+      if(!fechas[f]) fechas[f] = [];
+      if(!fechas[f].find(e=>e.id===ev.id)) fechas[f].push(ev);
+    });
+  }catch(e){}
+}
+
+function renderSelectorFechas(fechasArr, fechasMap){
+  const cont = document.getElementById('fixtureContainer');
+
+  let selectorHtml = `<div style="margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">‹</button>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--txt)" id="fechaTitulo">Fecha ${fechaActual}</div>
+      <button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">›</button>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center" id="fechaBtns">`;
+
+  fechasArr.forEach(f=>{
+    const activo = f === fechaActual;
+    selectorHtml += `<button onclick="seleccionarFecha(${f})" id="fbtn-${f}" 
+      style="padding:4px 10px;border-radius:50px;border:1px solid ${activo?'var(--green)':'var(--border)'};
+      background:${activo?'rgba(0,230,118,0.1)':'transparent'};
+      color:${activo?'var(--green)':'var(--muted2)'};
+      font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s">
+      F${f}
+    </button>`;
+  });
+
+  selectorHtml += `</div></div><div id="fechaPartidos"></div>`;
+
+  cont.innerHTML = selectorHtml;
+
+  // Guardar fechasMap globalmente
+  window._fechasMap = fechasMap;
+  window._fechasArr = fechasArr;
+
+  renderFecha(fechasMap[fechaActual] || [], fechaActual);
+}
+
+function seleccionarFecha(f){
+  fechaActual = f;
+  document.getElementById('fechaTitulo').textContent = `Fecha ${f}`;
+  // Actualizar botones
+  document.querySelectorAll('[id^="fbtn-"]').forEach(btn=>{
+    const num = parseInt(btn.id.replace('fbtn-',''));
+    const activo = num === f;
+    btn.style.borderColor = activo ? 'var(--green)' : 'var(--border)';
+    btn.style.background  = activo ? 'rgba(0,230,118,0.1)' : 'transparent';
+    btn.style.color       = activo ? 'var(--green)' : 'var(--muted2)';
+  });
+  renderFecha(window._fechasMap?.[f] || [], f);
+}
+
+function navegarFecha(dir){
+  const arr = window._fechasArr || [];
+  const idx = arr.indexOf(fechaActual);
+  const newIdx = idx + dir;
+  if(newIdx >= 0 && newIdx < arr.length) seleccionarFecha(arr[newIdx]);
+}
+
+function renderFecha(events, fechaNum){
+  const cont = document.getElementById('fechaPartidos');
+  if(!cont) return;
+
+  if(!events.length){
+    // Intentar cargar fecha específica de ESPN
+    cargarFechaESPN(fechaNum);
+    return;
+  }
+
+  const sorted = [...events].sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  // Agrupar por día
+  const byDate = {};
+  sorted.forEach(ev=>{
+    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : 'Sin fecha';
+    if(!byDate[dateStr]) byDate[dateStr] = [];
+    byDate[dateStr].push(ev);
+  });
+
+  let html = '';
+  for(const [dateStr, evs] of Object.entries(byDate)){
+    html += `<div class="fixture-group"><div class="section-hdr">📅 ${dateStr}</div>`;
+    evs.forEach(ev=>{ html += buildFixtureCard(ev); });
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para esta fecha.</div>`;
+}
+
+async function cargarFechaESPN(fechaNum){
+  const cont = document.getElementById('fechaPartidos');
+  if(cont) cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fecha ${fechaNum}...</div>`;
+  try{
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard?week=${fechaNum}&seasontype=1`);
+    const data = await r.json();
+    const events = data.events || [];
+    if(events.length){
+      if(window._fechasMap) window._fechasMap[fechaNum] = events;
+      renderFecha(events, fechaNum);
+    } else {
+      if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ${fechaNum}.</div>`;
+    }
+  }catch(e){
+    if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la fecha ${fechaNum}.</div>`;
+  }
+}
+
+function buildFixtureCard(ev){
+  const comps  = ev.competitions?.[0];
+  const comps2 = comps?.competitors || [];
+  const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+  const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+
+  const status  = comps?.status?.type?.name || '';
+  const isLive  = status==='STATUS_IN_PROGRESS';
+  const isFt    = status==='STATUS_FINAL';
+  const hName   = home.team?.displayName || '—';
+  const aName   = away.team?.displayName || '—';
+  const hLogo   = home.team?.logo || '';
+  const aLogo   = away.team?.logo || '';
+  const hScore  = home.score ?? '';
+  const aScore  = away.score ?? '';
+  const time    = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+  const clock   = comps?.status?.displayClock || '';
+
+  const statusHtml = isLive
+    ? `<span class="fx-status" style="color:var(--red)"><span class="live-dot"></span>${clock}'</span>`
+    : isFt
+      ? `<span class="fx-status" style="color:var(--muted2)">FT</span>`
+      : `<span class="fx-time">${time} hs</span>`;
+
+  const scoreHtml = (isLive||isFt) && hScore!=='' && aScore!==''
+    ? `<div class="fx-score">${hScore} - ${aScore}</div>`
+    : `<div class="fx-vs">VS</div>`;
+
+  const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
+  const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
+
+  // Cuotas simuladas (sin NaN)
+  const _n1 = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
+  const _n2 = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
+  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (parseInt(ev.id||0) % 1000)) % 100;
+  let pH = Math.min(62, 36 + 7 + (seed % 13));
+  let pA = Math.min(45, 20 + (seed % 14));
+  let pD = Math.max(15, 100 - pH - pA);
+
+  // Ajustar cuotas en vivo según marcador
+  if(isLive && hScore !== '' && aScore !== ''){
+    const diff = parseInt(hScore) - parseInt(aScore);
+    if(diff > 0){ pH = Math.min(82, pH + diff*8); pA = Math.max(6, pA - diff*6); }
+    else if(diff < 0){ pA = Math.min(82, pA + Math.abs(diff)*8); pH = Math.max(6, pH - Math.abs(diff)*6); }
+    pD = Math.max(6, 100 - pH - pA);
+  }
+
+  const oH = (100/pH*0.9).toFixed(2);
+  const oD = (100/pD*0.9).toFixed(2);
+  const oA = (100/pA*0.9).toFixed(2);
+
+  // Cuotas solo si no terminó
+  const cuotasHtml = !isFt ? `
+    <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg3);border-top:1px solid var(--border)">
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Local</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--green)':'var(--blue)'}">${oH}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Empate</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--gold)':'var(--blue)'}">${oD}</div>
+      </div>
+      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Visita</div>
+        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--red)':'var(--blue)'}">${oA}</div>
+      </div>
+      ${isLive ? `<div style="display:flex;align-items:center;padding:0 4px;font-size:9px;color:var(--red);font-weight:700">EN<br>VIVO</div>` : ''}
+    </div>` : '';
+
+  return `<div class="fixture-card ${isLive?'is-live':''}" style="display:block;padding:0;overflow:hidden">
+    <div style="display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;padding:11px 14px">
+      <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
+      <div class="fx-center">${scoreHtml}${statusHtml}</div>
+      <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
+    </div>
+    ${cuotasHtml}
+  </div>`;
+}
+
+function renderFixture(data){
+  // Mantener compatibilidad con llamada desde preload
+  allFixtureEvents = data.events || [];
+  fixtureLoaded = false;
+  loadFixture();
+}
+
+// ── NEXT MATCH WIDGET ─────────────────────────────────
+function loadNextMatchWidget(events){
+  const next = events.find(ev=>{
+    const status = ev.competitions?.[0]?.status?.type?.name||'';
+    return status !== 'STATUS_FINAL';
+  }) || events[0];
+
+  if(!next){ document.getElementById('nextMatchWidget').innerHTML = `<div class="load-msg" style="padding:16px;font-size:12px">Sin próximos partidos</div>`; return; }
+
+  const comps = next.competitions?.[0];
+  const comps2 = comps?.competitors || [];
+  const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+  const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+
+  const hName = home.team?.displayName || '—';
+  const aName = away.team?.displayName || '—';
+  const hLogo = home.team?.logo || '';
+  const aLogo = away.team?.logo || '';
+  const dateStr = next.date ? new Date(next.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : '';
+  const timeStr = next.date ? new Date(next.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+  const venue = comps?.venue?.fullName || '';
+
+  const hLogoHtml = hLogo ? `<img class="nm-team-logo" src="${hLogo}" alt="">` : `<div class="nm-team-logo" style="background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted2)">${hName.substring(0,3)}</div>`;
+  const aLogoHtml = aLogo ? `<img class="nm-team-logo" src="${aLogo}" alt="">` : `<div class="nm-team-logo" style="background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted2)">${aName.substring(0,3)}</div>`;
+
+  document.getElementById('nextMatchWidget').innerHTML = `<div class="next-match">
+    <div class="nm-label">Próximo partido</div>
+    <div class="nm-teams">
+      <div class="nm-team">${hLogoHtml}<div class="nm-team-name">${hName}</div></div>
+      <div class="nm-vs">VS</div>
+      <div class="nm-team">${aLogoHtml}<div class="nm-team-name">${aName}</div></div>
+    </div>
+    <div class="nm-info">
+      <div class="nm-date">${dateStr}</div>
+      <div>${timeStr} hs${venue?' · '+venue:''}</div>
+    </div>
+  </div>`;
+}
+
+
+// ── HELPERS ───────────────────────────────────────────
+function shortName(name){
+  const parts = name.split(' ');
+  return parts.length>2 ? parts[0] : name;
+}
+function errorHTML(msg, retryFn){
+  const fnName = retryFn.name;
+  return `<div class="error-msg">
+    <span class="err-ico">⚠️</span>${msg}
+    <br><button class="retry-btn" onclick="(${retryFn.toString()})()">Reintentar</button>
+  </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────
+loadStandings();
+// Fixture se carga lazy al hacer clic en la tab
+// Pero también lo precargamos en background
+setTimeout(()=>{ if(!fixtureLoaded){ fixtureLoaded=true; fetch(`${SITE_ESPN}/${COMP}/scoreboard`).then(r=>r.json()).then(d=>{ fixtureLoaded=false; renderFixture(d); }); } }, 1500);
+</script>
+</body>
+</html>
