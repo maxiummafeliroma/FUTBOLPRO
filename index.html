@@ -469,17 +469,14 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .prode-team-name{font-size:12px;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prode-vs-lbl{font-size:11px;color:var(--muted);flex-shrink:0}
 .prode-buttons{display:flex;gap:4px}
-.prode-btn{
-  flex:1;padding:7px 4px;
-  border-radius:6px;border:1px solid var(--border);
-  background:var(--bg3);color:var(--muted2);
-  font-size:12px;font-weight:700;cursor:pointer;
-  text-align:center;transition:all .2s;font-family:'Barlow',sans-serif;
-}
-.prode-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--txt)}
-.prode-btn.sel-1{background:rgba(0,230,118,0.15);border-color:var(--green);color:var(--green)}
-.prode-btn.sel-x{background:rgba(255,214,0,0.15);border-color:var(--gold);color:var(--gold)}
-.prode-btn.sel-2{background:rgba(0,176,255,0.15);border-color:var(--blue);color:var(--blue)}
+.prode-btn{display:none}
+.prode-score-wrap{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:6px}
+.prode-score-input{width:42px;height:42px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--txt);font-size:22px;font-weight:700;text-align:center;font-family:'Barlow Condensed',sans-serif;-moz-appearance:textfield;outline:none;transition:border-color .2s}
+.prode-score-input::-webkit-inner-spin-button,.prode-score-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.prode-score-input:focus{border-color:var(--green)}
+.prode-score-input.filled{border-color:rgba(0,230,118,0.4);background:rgba(0,230,118,0.06)}
+.prode-score-input:disabled{opacity:.5;cursor:not-allowed}
+.prode-score-sep{font-size:18px;font-weight:700;color:var(--muted2);line-height:42px}
 
 .ranking-row{
   display:flex;align-items:center;gap:10px;
@@ -947,12 +944,19 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .hamburger-btn svg{width:16px;height:16px;stroke:var(--txt);fill:none;stroke-width:2;stroke-linecap:round}
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:998;backdrop-filter:blur(2px)}
 .drawer-overlay.open{display:block}
-.drawer{position:fixed;left:-280px;top:0;bottom:0;width:265px;background:var(--bg2);border-right:1px solid var(--border);z-index:999;overflow-y:auto;transition:left .22s ease}
-.drawer.open{left:0}
-.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1}
-.drawer-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--green);letter-spacing:.5px}
-.drawer-close{width:28px;height:28px;border:none;background:transparent;color:var(--muted2);font-size:18px;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.drawer{position:fixed;left:-320px;top:0;bottom:0;width:300px;background:var(--bg2);border-right:1px solid var(--border);z-index:999;overflow-y:auto;transition:left .25s cubic-bezier(.4,0,.2,1)}
+.drawer.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,0.4)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1}
+.drawer-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--green);letter-spacing:.5px}
+.drawer-close{width:32px;height:32px;border:none;background:transparent;color:var(--muted2);font-size:20px;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center}
 .drawer-close:hover{background:var(--card2);color:var(--txt)}
+/* Panel dentro del drawer más grande */
+#drawerInner .lp-item{padding:10px 14px;font-size:13px}
+#drawerInner .lp-item img{width:22px;height:16px}
+#drawerInner .lp-item-name{font-size:13px}
+#drawerInner .lp-section-hdr{padding:10px 14px;font-size:12px}
+#drawerInner .lp-sub{padding:4px 14px 10px}
+#drawerInner .lp-sub-btn{font-size:11px;padding:4px 10px}
 @media(max-width:750px){.hamburger-btn{display:flex}}
 @media(max-width:600px){.header-top{padding:8px 12px}.logo{font-size:20px}.main-wrap{padding:10px 12px}.match-card{grid-template-columns:1fr 80px 1fr}}
 </style>
@@ -2556,7 +2560,7 @@ async function supaAuth(action, email, password) {
 // ===================================================
 let prodeSession   = JSON.parse(localStorage.getItem('fp_prode_session') || 'null');
 let prodeUser      = JSON.parse(localStorage.getItem('fp_prode_user')    || 'null');
-let prodePronosticos = {}; // { fixtureId: '1'|'X'|'2' }
+let prodePronosticos = {}; // { fixtureId: 'H-A' } ej: '2-1'
 let prodeCurrentTab = 'pronosticar';
 let prodeMatches   = [];
 
@@ -2768,6 +2772,8 @@ async function loadPronosticosPrevios() {
     data.forEach(p => { prodePronosticos[p.fixture_id] = p.pronostico; });
     window.prodeAlreadySubmitted = true;
   }
+  // También calcular puntos automáticamente para partidos terminados
+  calcularPuntosAutomatico();
 }
 
 function renderProdeGrid() {
@@ -2811,9 +2817,19 @@ function renderProdeGrid() {
         </div>
       </div>
       <div class="prode-buttons" id="prode-${fid}">
-        <button class="prode-btn ${sel==='1'?'sel-1':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'1\',this)"')}>1</button>
-        <button class="prode-btn ${sel==='X'?'sel-x':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'X\',this)"')}>X</button>
-        <button class="prode-btn ${sel==='2'?'sel-2':''}" ${disabled?'disabled style="opacity:.5;cursor:not-allowed"':('onclick="selectProde('+fid+',\'2\',this)"')}>2</button>
+        <div class="prode-score-wrap">
+          <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
+            id="ph-${fid}" value="${sel?sel.split('-')[0]:''}"
+            ${disabled?'disabled':''}
+            oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
+            placeholder="0">
+          <span class="prode-score-sep">-</span>
+          <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
+            id="pa-${fid}" value="${sel?sel.split('-')[1]:''}"
+            ${disabled?'disabled':''}
+            oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
+            placeholder="0">
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2832,13 +2848,22 @@ function renderProdeGrid() {
   }
 }
 
-function selectProde(fixtureId, val, btn) {
-  const container = document.getElementById('prode-' + fixtureId);
-  container.querySelectorAll('.prode-btn').forEach(b => b.className = 'prode-btn');
-  const cls = val==='1'?'sel-1':val==='X'?'sel-x':'sel-2';
-  btn.classList.add(cls);
-  prodePronosticos[fixtureId] = val;
-  // Actualizar contador
+function updateProdeScore(fixtureId) {
+  const h = document.getElementById('ph-' + fixtureId);
+  const a = document.getElementById('pa-' + fixtureId);
+  if(!h || !a) return;
+  const hv = h.value !== '' ? h.value : null;
+  const av = a.value !== '' ? a.value : null;
+  if(hv !== null && av !== null) {
+    prodePronosticos[fixtureId] = hv + '-' + av;
+    // Marcar inputs y card
+    [h,a].forEach(inp => inp.classList.add('filled'));
+    const card = h.closest('.prode-match-card');
+    if(card) card.classList.add('selected');
+  } else {
+    delete prodePronosticos[fixtureId];
+    [h,a].forEach(inp => inp.classList.remove('filled'));
+  }
   const count = Object.keys(prodePronosticos).length;
   const countEl = document.getElementById('prodeCount');
   if(countEl) countEl.textContent = count;
@@ -2847,9 +2872,6 @@ function selectProde(fixtureId, val, btn) {
     submitBtn.disabled = count === 0 || !prodeSession;
     submitBtn.textContent = prodeSession ? 'Guardar pronósticos' : 'Ingresá para guardar';
   }
-  // Marcar card
-  const card = container.closest('.prode-match-card');
-  if(card) card.classList.add('selected');
 }
 
 // ===================================================
@@ -2859,7 +2881,13 @@ async function submitPronosticos() {
   if(!prodeSession || !prodeUser?.id) { showProdeToast('Ingresá para guardar tus pronósticos'); return; }
   if(window.prodeAlreadySubmitted) { showProdeToast('Ya enviaste tus pronósticos para esta fecha'); return; }
   if(window.prodeLocked) { showProdeToast('El prode está cerrado'); return; }
-  if(Object.keys(prodePronosticos).length === 0) { showProdeToast('Seleccioná al menos un pronóstico'); return; }
+  // Validar que todos los completados tengan ambos scores
+  const validCount = Object.values(prodePronosticos).filter(v => v && v.includes('-')).length;
+  if(validCount === 0) { showProdeToast('Completá al menos un marcador'); return; }
+  // Limpiar pronósticos incompletos
+  Object.keys(prodePronosticos).forEach(k => {
+    if(!prodePronosticos[k] || !prodePronosticos[k].includes('-')) delete prodePronosticos[k];
+  });
 
   const btn = document.getElementById('prodeSubmitBtn');
   btn.disabled = true;
@@ -2888,6 +2916,92 @@ async function submitPronosticos() {
     btn.textContent = 'Guardar pronósticos';
     showProdeToast('❌ Error al guardar. Intentá de nuevo.');
   }
+}
+
+// ===================================================
+// CÁLCULO AUTOMÁTICO DE PUNTOS VÍA ESPN
+// ===================================================
+async function calcularPuntosAutomatico() {
+  if(!prodeSession || !prodeUser?.id || !prodeMatches.length) return;
+
+  // Buscar partidos terminados
+  try {
+    const dateStr = today().replace(/-/g,'');
+    // Traer resultados de los últimos 7 días
+    const desde = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10).replace(/-/g,'');
+    const data = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?dates=${desde}-${dateStr}`)
+      .then(r => r.ok ? r.json() : null);
+
+    if(!data || !data.events) return;
+
+    const updates = [];
+    for(const [fid, pronostico] of Object.entries(prodePronosticos)) {
+      if(!pronostico || !pronostico.includes('-')) continue;
+
+      // Buscar el partido en ESPN por nombre de equipos
+      const match = prodeMatches.find(m => String(m.fixture.id) === String(fid));
+      if(!match) continue;
+
+      // Buscar evento ESPN correspondiente
+      const ev = data.events.find(e => {
+        const comp = e.competitions?.[0];
+        const home = comp?.competitors?.find(t => t.homeAway === 'home');
+        const away = comp?.competitors?.find(t => t.homeAway === 'away');
+        const hName = home?.team?.displayName?.toLowerCase() || '';
+        const aName = away?.team?.displayName?.toLowerCase() || '';
+        const mHome = match.teams.home.name.toLowerCase();
+        const mAway = match.teams.away.name.toLowerCase();
+        return (hName.includes(mHome.split(' ')[0]) || mHome.includes(hName.split(' ')[0])) &&
+               (aName.includes(mAway.split(' ')[0]) || mAway.includes(aName.split(' ')[0]));
+      });
+
+      if(!ev) continue;
+      const status = ev.status?.type?.state;
+      if(status !== 'post') continue; // Solo terminados
+
+      const comp = ev.competitions?.[0];
+      const homeTeam = comp?.competitors?.find(t => t.homeAway === 'home');
+      const awayTeam = comp?.competitors?.find(t => t.homeAway === 'away');
+      const realH = parseInt(homeTeam?.score || 0);
+      const realA = parseInt(awayTeam?.score || 0);
+      const [predH, predA] = pronostico.split('-').map(Number);
+
+      let puntos = 0;
+      if(predH === realH && predA === realA) {
+        puntos = 3; // Exacto
+      } else {
+        // Mismo ganador
+        const predGanador = predH > predA ? 'H' : predH < predA ? 'A' : 'X';
+        const realGanador = realH > realA ? 'H' : realH < realA ? 'A' : 'X';
+        if(predGanador === realGanador) puntos = 1;
+      }
+
+      const resultado = realH + '-' + realA;
+      updates.push({ fixture_id: parseInt(fid), resultado, puntos });
+    }
+
+    if(!updates.length) return;
+
+    // Actualizar en Supabase
+    for(const u of updates) {
+      await supaFetch('/rest/v1/pronosticos?user_id=eq.' + prodeUser.id + '&fixture_id=eq.' + u.fixture_id, {
+        method: 'PATCH',
+        body: JSON.stringify({ resultado: u.resultado, puntos: u.puntos, updated_at: new Date().toISOString() })
+      });
+    }
+
+    // Actualizar puntos totales en profiles
+    const totalNuevo = updates.reduce((s,u) => s+u.puntos, 0);
+    if(totalNuevo > 0) {
+      await supaFetch('/rest/v1/profiles?id=eq.' + prodeUser.id, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          puntos_total: (prodeUser.puntos_total || 0) + totalNuevo,
+          aciertos_total: (prodeUser.aciertos_total || 0) + updates.filter(u=>u.puntos>0).length
+        })
+      });
+    }
+  } catch(e) { console.warn('[calc puntos]', e.message); }
 }
 
 // ===================================================
@@ -2927,7 +3041,7 @@ async function loadMisPronosticos() {
     </div>
     ${data.map(p => {
       const match = prodeMatches.find(m => m.fixture.id == p.fixture_id);
-      const label = p.pronostico==='1'?'Local':p.pronostico==='X'?'Empate':'Visitante';
+      const label = p.pronostico || '—';
       const resultClass = p.resultado ? (p.puntos>0?'prode-result-ok':'prode-result-fail') : '';
       const resultTxt   = p.resultado ? (p.puntos>0?'✅ Acertaste':'❌ Fallaste') : '⏳ Pendiente';
       return `<div class="ranking-row">
@@ -4484,11 +4598,25 @@ async function loadESPNExtraLeagues() {
 // DRAWER MOBILE
 // ===================================================
 function openDrawer() {
-  // Copiar contenido del panel lateral al drawer
   const inner = document.getElementById('drawerInner');
   const leftPanel = document.getElementById('leftPanel');
   if(inner && leftPanel) {
+    // Copiar panel completo con estado actualizado
     inner.innerHTML = leftPanel.innerHTML;
+    // Marcar liga activa
+    const activeId = 'lp-' + currentLeague;
+    const activeEl = inner.querySelector('#' + CSS.escape(activeId));
+    if(activeEl) activeEl.classList.add('active');
+    // Agregar contador de EN VIVO si hay
+    const liveCnt = document.getElementById('cnt-live');
+    const liveBtn = document.getElementById('btn-live');
+    if(liveCnt && liveBtn && liveBtn.style.display !== 'none') {
+      const liveDiv = document.createElement('div');
+      liveDiv.style.cssText = 'padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--red);border-bottom:1px solid var(--border);cursor:pointer';
+      liveDiv.innerHTML = '<span class="live-dot"></span> EN VIVO <span style="background:rgba(244,67,54,0.15);color:var(--red);padding:1px 6px;border-radius:50px;font-size:11px">' + liveCnt.textContent + '</span>';
+      liveDiv.onclick = () => { filterLeague('live', null); closeDrawer(); };
+      inner.prepend(liveDiv);
+    }
   }
   document.getElementById('mobileDrawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
