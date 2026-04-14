@@ -3684,13 +3684,41 @@ function setStar(n) {
   selectedStar = n;
   document.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('lit', i<n));
 }
-function sendContact() {
-  const email = document.getElementById('contactEmail').value;
-  const msg = document.getElementById('contactMsg').value;
-  if(!msg.trim()) { alert('Por favor describí tu mensaje antes de enviar.'); return; }
-  document.getElementById('contactFormWrap').style.display='none';
-  document.getElementById('contactSuccess').classList.add('show');
-  // Aquí va la integración con Resend / EmailJS
+async function sendContact() {
+  // Verificar sesión
+  if(!prodeSession) {
+    document.getElementById('contactFormWrap').style.display = 'none';
+    const noSesion = document.getElementById('contactNoSesion');
+    if(noSesion) noSesion.style.display = 'block';
+    return;
+  }
+
+  const email = document.getElementById('contactEmail').value.trim();
+  const msg   = document.getElementById('contactMsg').value.trim();
+  const tipo  = document.querySelector('.type-btn.active')?.textContent?.trim() || 'Otro';
+  if(!msg) { alert('Por favor describí tu mensaje antes de enviar.'); return; }
+
+  const btn = document.querySelector('.send-btn');
+  if(btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  try {
+    const res = await fetch(SUPA_URL + '/rest/v1/contacto', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + (prodeSession?.access_token || SUPA_KEY),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ tipo, email: email || prodeUser?.email || null, mensaje: msg })
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    document.getElementById('contactFormWrap').style.display = 'none';
+    document.getElementById('contactSuccess').classList.add('show');
+  } catch(e) {
+    alert('Error al enviar. Intentá de nuevo.');
+    if(btn) { btn.disabled = false; btn.textContent = 'Enviar mensaje →'; }
+  }
 }
 
 function showLogin() { setProdeTab('pronosticar', null); }
