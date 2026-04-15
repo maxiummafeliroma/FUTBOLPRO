@@ -2069,11 +2069,17 @@ async function loadMatches() {
     loadNBASidebarOnly();
     loadESPNExtraLeagues();
 
+    // Cargar Copa Libertadores y Copa Sudamericana vía ESPN (sin proxy)
+    loadESPNConmebol('conmebol.libertadores', '13', 'Copa Libertadores');
+    loadESPNConmebol('conmebol.sudamericana', '11', 'Copa Sudamericana');
+
     // Auto-refresh cada 60s si hay partidos en vivo
     if(liveMatches.length > 0) {
       if(window.liveRefreshTimer) clearTimeout(window.liveRefreshTimer);
       window.liveRefreshTimer = setTimeout(() => {
         cacheSet('fp_fd_matches_' + today(), null); // invalidar cache
+        cacheSet('fp_espn_13_' + today(), null);    // invalidar Libertadores
+        cacheSet('fp_espn_11_' + today(), null);    // invalidar Sudamericana
         loadMatches();
       }, 60000);
     }
@@ -4589,6 +4595,74 @@ const ESPN_EXTRA_LEAGUES = {
   'usa.1': { name:'MLS',           country:'EE.UU.',     flag:'🇺🇸' },
   'bra.1': { name:'Brasileirao',   country:'Brasil',     flag:'🇧🇷' },
 };
+
+// ===================================================
+// ESPN CONMEBOL — Libertadores y Sudamericana
+// ===================================================
+async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
+  try {
+    const dateStr = today().replace(/-/g,'');
+    const ck = 'fp_espn_' + leagueId + '_' + today();
+    const cached = cacheGet(ck, CACHE_TTL.fixtures);
+    let matches = cached;
+    if(!matches) {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${dateStr}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(data && data.events && data.events.length) {
+        matches = data.events.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
+        cacheSet(ck, matches);
+      }
+    }
+    if(matches && matches.length) {
+      const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
+      matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+      document.getElementById('cnt-all').textContent = allMatches.length;
+      const cntEl = document.getElementById('lpc-' + leagueId);
+      if(cntEl) cntEl.textContent = matches.length;
+      const liveNow = allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short));
+      if(liveNow.length > 0) {
+        const btnLive = document.getElementById('btn-live');
+        const cntLive = document.getElementById('cnt-live');
+        if(btnLive) btnLive.style.display = 'flex';
+        if(cntLive) cntLive.textContent = liveNow.length;
+        updateLeftPanel(liveNow);
+      }
+      if(['all', leagueId].includes(currentLeague)) renderMatches();
+    }
+  } catch(e) { console.warn('[ESPN CONMEBOL]', leagueId, e.message); }
+}
+
+function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
+  const comp = e.competitions?.[0];
+  const home = comp?.competitors?.find(c => c.homeAway === 'home');
+  const away = comp?.competitors?.find(c => c.homeAway === 'away');
+  const status = e.status?.type;
+  const isLive = status?.state === 'in';
+  const isFin  = status?.state === 'post';
+  const statusShort = isLive
+    ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
+    : isFin ? 'FT' : 'NS';
+  const elapsed = isLive ? (e.status?.displayClock || null) : null;
+  return {
+    fixture: {
+      id: 'espn_' + leagueId + '_' + e.id,
+      date: e.date,
+      status: { short: statusShort, elapsed: elapsed, long: status?.description || '' }
+    },
+    league: { id: leagueId, name: leagueName, country: 'CONMEBOL', logo: '' },
+    teams: {
+      home: { id: home?.id || 0, name: home?.team?.displayName || home?.team?.name || '?', logo: home?.team?.logo || '' },
+      away: { id: away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
+    },
+    goals: {
+      home: (isLive||isFin) ? parseInt(home?.score||0) : null,
+      away: (isLive||isFin) ? parseInt(away?.score||0) : null
+    },
+    odds: null
+  };
+}
 
 async function loadESPNExtraLeagues() {
   const dateStr = today().replace(/-/g,'');
