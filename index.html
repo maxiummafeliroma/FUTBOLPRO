@@ -1919,10 +1919,15 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const status = e.status?.type;
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
-  const isPre  = status?.state === 'pre';
 
-  const statusShort = isLive ? '1H' : isFin ? 'FT' : 'NS';
-  const elapsed = isLive ? (e.status?.displayClock || null) : null;
+  // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
+  const matchDate = e.date ? e.date.split('T')[0] : '';
+  const isStale = matchDate && matchDate < today();
+  const effectiveIsLive = isLive && !isStale;
+  const effectiveIsFin  = isFin || isStale;
+
+  const statusShort = effectiveIsLive ? '1H' : effectiveIsFin ? 'FT' : 'NS';
+  const elapsed = effectiveIsLive ? (e.status?.displayClock || null) : null;
 
   return {
     fixture: {
@@ -1944,8 +1949,8 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
       }
     },
     goals: {
-      home: (isLive||isFin) ? parseInt(home?.score||0) : null,
-      away: (isLive||isFin) ? parseInt(away?.score||0) : null
+      home: (effectiveIsLive||effectiveIsFin) ? parseInt(home?.score||0) : null,
+      away: (effectiveIsLive||effectiveIsFin) ? parseInt(away?.score||0) : null
     },
     odds: null
   };
@@ -4657,10 +4662,17 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const status = e.status?.type;
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
-  const statusShort = isLive
+
+  // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
+  const matchDate = e.date ? e.date.split('T')[0] : '';
+  const isStale = matchDate && matchDate < today();
+  const effectiveIsLive = isLive && !isStale;
+  const effectiveIsFin  = isFin || isStale;
+
+  const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
-    : isFin ? 'FT' : 'NS';
-  const elapsed = isLive ? (e.status?.displayClock || null) : null;
+    : effectiveIsFin ? 'FT' : 'NS';
+  const elapsed = effectiveIsLive ? (e.status?.displayClock || null) : null;
   return {
     fixture: {
       id: 'espn_' + leagueId + '_' + e.id,
@@ -4673,8 +4685,8 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
       away: { id: away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
     },
     goals: {
-      home: (isLive||isFin) ? parseInt(home?.score||0) : null,
-      away: (isLive||isFin) ? parseInt(away?.score||0) : null
+      home: (effectiveIsLive||effectiveIsFin) ? parseInt(home?.score||0) : null,
+      away: (effectiveIsLive||effectiveIsFin) ? parseInt(away?.score||0) : null
     },
     odds: null
   };
