@@ -2079,8 +2079,8 @@ async function loadMatches() {
   const container = document.getElementById('matchesContainer');
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando partidos del día...</div>';
 
-  // Competencias a consultar en football-data.org
-  const FD_COMPS = ['PL','PD','SA','BL1','FL1','CL','EL','WC','CSL','EC','UNL'];
+  // Competencias a consultar en football-data.org (CL y EL migrados a ESPN)
+  const FD_COMPS = ['PL','PD','SA','BL1','FL1','WC','CSL','EC','UNL'];
   
   try {
     const cacheKey = 'fp_fd_matches_' + today();
@@ -4691,6 +4691,8 @@ async function compartirImagen() {
 // ESPN LIGAS EXTRA
 // ===================================================
 const ESPN_EXTRA_LEAGUES = {
+  'uefa.champions': { name:'UEFA Champions League', country:'Europa', flag:'⭐', internalId:'2' },
+  'uefa.europa':    { name:'UEFA Europa League',    country:'Europa', flag:'🟠', internalId:'3' },
   'eng.2': { name:'Championship',  country:'Inglaterra', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
   'mex.1': { name:'Liga MX',       country:'Mexico',     flag:'🇲🇽' },
   'usa.1': { name:'MLS',           country:'EE.UU.',     flag:'🇺🇸' },
@@ -4785,15 +4787,22 @@ async function loadESPNExtraLeagues() {
   const dateStr = today().replace(/-/g,'');
   await Promise.all(Object.entries(ESPN_EXTRA_LEAGUES).map(async ([espnId, meta]) => {
     try {
-      const ck = 'fp_espn_' + espnId + '_' + today();
+      const leagueId = meta.internalId || espnId;
+      const ck = 'fp_espn_' + leagueId + '_' + today();
       const cached = cacheGet(ck, CACHE_TTL.fixtures);
       let matches = cached;
       if(!matches) {
         const data = await espnFetch('/soccer/' + espnId + '/scoreboard?dates=' + dateStr);
         if(data && data.events && data.events.length) {
-          matches = data.events.map(e => normalizeESPNMatch(e, espnId, meta.name));
-          // No cachear si hay partidos en vivo o terminados
-          const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+          const todayAR = today();
+          const todayEvts = data.events.filter(e => {
+            if(!e.date) return false;
+            const d = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+            return d === todayAR;
+          });
+          if(!todayEvts.length) return;
+          matches = todayEvts.map(e => normalizeESPNMatch(e, leagueId, meta.name));
+          const hasActive = todayEvts.some(e => ['in','post'].includes(e.status?.type?.state));
           if(!hasActive) cacheSet(ck, matches);
         }
       }
@@ -4801,10 +4810,10 @@ async function loadESPNExtraLeagues() {
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
         matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
         document.getElementById('cnt-all').textContent = allMatches.length;
-        const cnt = allMatches.filter(m => String(m.league.id) === espnId).length;
-        const cntEl = document.getElementById('lpc-' + espnId);
+        const cnt = allMatches.filter(m => String(m.league.id) === leagueId).length;
+        const cntEl = document.getElementById('lpc-' + leagueId);
         if(cntEl) cntEl.textContent = cnt || '—';
-        if(['all', espnId].includes(currentLeague)) renderMatches();
+        if(['all', leagueId].includes(currentLeague)) renderMatches();
       }
     } catch(e) { console.warn('[ESPN extra]', espnId, e.message); }
   }));
