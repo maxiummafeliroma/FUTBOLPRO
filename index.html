@@ -1926,9 +1926,12 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   const isStale = matchDateAR && matchDateAR < today();
-  const effectiveIsLive = isLive && !isStale;
-  const effectiveIsFin  = isFin || isStale;
-
+  // También forzar FT si el partido terminó (post) o lleva más de 2hs desde que arrancó
+  const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
+  const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
+  const isOverdue = minsElapsed > 120; // más de 2hs desde el kickoff → no puede seguir en vivo
+  const effectiveIsLive = isLive && !isStale && !isOverdue;
+  const effectiveIsFin  = isFin || isStale || (isLive && isOverdue);
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.toLowerCase().includes('half') ? 'HT' : '1H')
     : effectiveIsFin ? 'FT' : 'NS';
@@ -4674,8 +4677,11 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   const isStale = matchDateAR && matchDateAR < today();
-  const effectiveIsLive = isLive && !isStale;
-  const effectiveIsFin  = isFin || isStale;
+  const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
+  const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
+  const isOverdue = minsElapsed > 120;
+  const effectiveIsLive = isLive && !isStale && !isOverdue;
+  const effectiveIsFin  = isFin || isStale || (isLive && isOverdue);
 
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
