@@ -1700,13 +1700,24 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
+  const CACHE_VERSION = '20260415-v3'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
-  Object.keys(localStorage).forEach(k => {
-    if (!k.startsWith('fp_')) return;
-    // Claves que terminan en fecha (YYYY-MM-DD) y no son de hoy → eliminar
-    const match = k.match(/(\d{4}-\d{2}-\d{2})$/);
-    if (match && match[1] !== todayStr) localStorage.removeItem(k);
-  });
+  const savedVersion = localStorage.getItem('fp_cache_version');
+  if(savedVersion !== CACHE_VERSION) {
+    // Versión nueva → borrar toda la caché fp_* excepto preferencias de usuario
+    const keep = ['fp_odds','fp_theme'];
+    Object.keys(localStorage).forEach(k => {
+      if(k.startsWith('fp_') && !keep.includes(k)) localStorage.removeItem(k);
+    });
+    localStorage.setItem('fp_cache_version', CACHE_VERSION);
+  } else {
+    // Misma versión → solo borrar caché de días anteriores
+    Object.keys(localStorage).forEach(k => {
+      if (!k.startsWith('fp_')) return;
+      const match = k.match(/(\d{4}-\d{2}-\d{2})$/);
+      if (match && match[1] !== todayStr) localStorage.removeItem(k);
+    });
+  }
 })();
 
 function fmtDate(d) {
@@ -4807,6 +4818,14 @@ async function loadESPNExtraLeagues() {
         }
       }
       if(matches && matches.length) {
+        // Para ligas con internalId (CL, EL): reemplazar partidos de FD con los de ESPN
+        // ya que FD y ESPN usan IDs distintos y el dedup por ID no funciona
+        if(meta.internalId) {
+          // Eliminar partidos de FD de esta liga (tienen IDs numéricos, no espn_*)
+          allMatches = allMatches.filter(m =>
+            String(m.league.id) !== leagueId || String(m.fixture.id).startsWith('espn_')
+          );
+        }
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
         matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
         document.getElementById('cnt-all').textContent = allMatches.length;
