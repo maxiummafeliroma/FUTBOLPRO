@@ -1625,6 +1625,11 @@ function cacheGet(key, ttl) {
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
     if (Date.now() - ts > ttl) { localStorage.removeItem(key); return null; }
+    // Validación extra para caché de partidos del día: verificar que los datos son de hoy
+    if (key.includes('_fixtures_') || key.includes('_matches_') || key.includes('_espn_')) {
+      const todayStr = today();
+      if (!key.endsWith(todayStr)) { localStorage.removeItem(key); return null; }
+    }
     return data;
   } catch(e) { return null; }
 }
@@ -1666,6 +1671,17 @@ let predictions = {};
 function today() {
   return new Date().toISOString().split('T')[0];
 }
+
+// Limpiar caché de días anteriores al arrancar
+(function cleanStaleCache() {
+  const todayStr = today();
+  Object.keys(localStorage).forEach(k => {
+    if (!k.startsWith('fp_')) return;
+    // Claves que terminan en fecha (YYYY-MM-DD) y no son de hoy → eliminar
+    const match = k.match(/(\d{4}-\d{2}-\d{2})$/);
+    if (match && match[1] !== todayStr) localStorage.removeItem(k);
+  });
+})();
 
 function fmtDate(d) {
   const opts = { weekday:'short', day:'numeric', month:'short', year:'numeric' };
