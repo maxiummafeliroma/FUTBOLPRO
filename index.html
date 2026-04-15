@@ -1669,7 +1669,7 @@ let predictions = {};
 // UTILS
 // ===================================================
 function today() {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
 }
 
 // Limpiar caché de días anteriores al arrancar
@@ -1906,7 +1906,9 @@ async function loadArgentinaESPN() {
     const data = await espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr);
     if(!data || !data.events || !data.events.length) return [];
     const matches = data.events.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
-    cacheSet(ck, matches);
+    // No cachear si hay partidos en vivo o terminados (score puede estar desactualizado en ESPN)
+    const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+    if(!hasActive) cacheSet(ck, matches);
     return matches;
   } catch(e) { console.warn('[ESPN ARG]', e.message); return []; }
 }
@@ -1921,13 +1923,16 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const isFin  = status?.state === 'post';
 
   // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
-  const matchDate = e.date ? e.date.split('T')[0] : '';
-  const isStale = matchDate && matchDate < today();
+  // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
+  const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
+  const isStale = matchDateAR && matchDateAR < today();
   const effectiveIsLive = isLive && !isStale;
   const effectiveIsFin  = isFin || isStale;
 
-  const statusShort = effectiveIsLive ? '1H' : effectiveIsFin ? 'FT' : 'NS';
-  const elapsed = effectiveIsLive ? (e.status?.displayClock || null) : null;
+  const statusShort = effectiveIsLive
+    ? (e.status?.type?.description?.toLowerCase().includes('half') ? 'HT' : '1H')
+    : effectiveIsFin ? 'FT' : 'NS';
+  const elapsed = effectiveIsLive ? (e.status?.displayClock?.replace(/"/g,"'") || null) : null;
 
   return {
     fixture: {
@@ -4633,7 +4638,9 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       const data = await res.json();
       if(data && data.events && data.events.length) {
         matches = data.events.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
-        cacheSet(ck, matches);
+        // No cachear si hay partidos en vivo o terminados (score puede estar desactualizado)
+        const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+        if(!hasActive) cacheSet(ck, matches);
       }
     }
     if(matches && matches.length) {
@@ -4664,15 +4671,16 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isFin  = status?.state === 'post';
 
   // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
-  const matchDate = e.date ? e.date.split('T')[0] : '';
-  const isStale = matchDate && matchDate < today();
+  // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
+  const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
+  const isStale = matchDateAR && matchDateAR < today();
   const effectiveIsLive = isLive && !isStale;
   const effectiveIsFin  = isFin || isStale;
 
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
     : effectiveIsFin ? 'FT' : 'NS';
-  const elapsed = effectiveIsLive ? (e.status?.displayClock || null) : null;
+  const elapsed = effectiveIsLive ? (e.status?.displayClock?.replace(/"/g,"'") || null) : null;
   return {
     fixture: {
       id: 'espn_' + leagueId + '_' + e.id,
@@ -4703,7 +4711,9 @@ async function loadESPNExtraLeagues() {
         const data = await espnFetch('/soccer/' + espnId + '/scoreboard?dates=' + dateStr);
         if(data && data.events && data.events.length) {
           matches = data.events.map(e => normalizeESPNMatch(e, espnId, meta.name));
-          cacheSet(ck, matches);
+          // No cachear si hay partidos en vivo o terminados
+          const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+          if(!hasActive) cacheSet(ck, matches);
         }
       }
       if(matches && matches.length) {
