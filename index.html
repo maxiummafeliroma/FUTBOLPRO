@@ -336,6 +336,32 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .match-card.is-live{border-left:2px solid var(--red)}
 .match-card.is-finished{opacity:.6}
 
+/* Goleadores debajo de la card */
+.match-scorers{
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 5px 14px 6px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted2);
+  line-height: 1.4;
+}
+.scorers-home{ text-align: left; }
+.scorers-away{ text-align: right; }
+
+/* Resultado global (aggregate) */
+.match-aggregate{
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 3px 14px 6px;
+  letter-spacing: .3px;
+}
+
 .team-side{display:flex;align-items:center;gap:8px}
 .team-side.right{flex-direction:row-reverse}
 .team-logo{width:28px;height:28px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.04);padding:2px;flex-shrink:0}
@@ -1914,6 +1940,26 @@ async function loadArgentinaESPN() {
 }
 
 // Normalizar evento ESPN al formato interno
+// ── Extraer goles de ESPN details ─────────────────────────────────
+function extractESPNGoals(comp) {
+  if(!comp?.details) return [];
+  return comp.details
+    .filter(d => d.scoringPlay)
+    .map(d => ({
+      min: d.clock?.displayValue || '?',
+      player: d.athletesInvolved?.[0]?.shortName || d.athletesInvolved?.[0]?.displayName || '?',
+      teamId: String(d.team?.id || ''),
+      og: d.ownGoal || false,
+      pen: d.penaltyKick || false,
+    }));
+}
+
+// ── Extraer resultado global (aggregate) de ESPN notes ────────────
+function extractESPNAggregate(comp) {
+  const note = comp?.notes?.find(n => n.text?.toLowerCase().includes('aggregate') || n.text?.toLowerCase().includes('leg'));
+  return note?.text || null;
+}
+
 function normalizeESPNMatch(e, leagueId, leagueName) {
   const comp = e.competitions?.[0];
   const home = comp?.competitors?.find(t => t.homeAway === 'home');
@@ -1960,6 +2006,9 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
       home: (effectiveIsLive||effectiveIsFin) ? parseInt(home?.score||0) : null,
       away: (effectiveIsLive||effectiveIsFin) ? parseInt(away?.score||0) : null
     },
+    events: (effectiveIsLive||effectiveIsFin) ? extractESPNGoals(comp) : [],
+    aggregate: extractESPNAggregate(comp),
+    homeTeamId: String(home?.team?.id || ''),
     odds: null
   };
 }
@@ -2189,6 +2238,27 @@ function renderMatchCard(m) {
   const oddsDraw = odds ? odds.find(v=>v.value==='Draw')?.odd : (100/pDraw*0.9).toFixed(2);
   const oddsAway = odds ? odds.find(v=>v.value==='Away')?.odd : (100/pAway*0.9).toFixed(2);
 
+  // Goleadores para partidos FT o en vivo
+  let goalScorersHtml = '';
+  if((isLive || isFT) && m.events && m.events.length) {
+    const homeId = String(m.homeTeamId || m.teams.home.id || '');
+    const homeGoals = m.events.filter(g => g.teamId === homeId);
+    const awayGoals = m.events.filter(g => g.teamId !== homeId);
+    const fmtGoals = goals => goals.map(g => {
+      const suffix = g.og ? ' (OG)' : g.pen ? ' (P)' : '';
+      return `${g.player}${suffix} ${g.min}'`;
+    }).join(' · ');
+    goalScorersHtml = `<div class="match-scorers">
+      <span class="scorers-home">${homeGoals.length ? fmtGoals(homeGoals) : ''}</span>
+      <span class="scorers-away">${awayGoals.length ? fmtGoals(awayGoals) : ''}</span>
+    </div>`;
+  }
+
+  // Resultado global (aggregate) para copas con partido de vuelta
+  const aggregateHtml = m.aggregate
+    ? `<div class="match-aggregate">${m.aggregate}</div>`
+    : '';
+
   return `<div class="match-card ${statusClass}" onclick="openPredModal('${m.fixture.id}')">
     <div class="team-side">
       ${teamLogo(m.teams.home.logo, m.teams.home.name)}
@@ -2208,6 +2278,8 @@ function renderMatchCard(m) {
       <div class="odd-pill"><div class="odd-lbl">Empate</div><div class="odd-val">${oddsDraw||'—'}</div></div>
       <div class="odd-pill"><div class="odd-lbl">Visita</div><div class="odd-val">${oddsAway||'—'}</div></div>
     </div>
+    ${goalScorersHtml}
+    ${aggregateHtml}
   </div>`;
 }
 
@@ -4695,13 +4767,16 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
     },
     league: { id: leagueId, name: leagueName, country: 'CONMEBOL', logo: '' },
     teams: {
-      home: { id: home?.id || 0, name: home?.team?.displayName || home?.team?.name || '?', logo: home?.team?.logo || '' },
-      away: { id: away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
+      home: { id: home?.team?.id || home?.id || 0, name: home?.team?.displayName || home?.team?.name || '?', logo: home?.team?.logo || '' },
+      away: { id: away?.team?.id || away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
     },
     goals: {
       home: (effectiveIsLive||effectiveIsFin) ? parseInt(home?.score||0) : null,
       away: (effectiveIsLive||effectiveIsFin) ? parseInt(away?.score||0) : null
     },
+    events: (effectiveIsLive||effectiveIsFin) ? extractESPNGoals(comp) : [],
+    aggregate: extractESPNAggregate(comp),
+    homeTeamId: String(home?.team?.id || home?.id || ''),
     odds: null
   };
 }
