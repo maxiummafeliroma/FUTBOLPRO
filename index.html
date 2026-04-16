@@ -2013,16 +2013,19 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
 
-  // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
-  // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   const isStale = matchDateAR && matchDateAR < today();
-  // También forzar FT si el partido terminó (post) o lleva más de 2hs desde que arrancó
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 120; // más de 2hs desde el kickoff → no puede seguir en vivo
-  const effectiveIsLive = isLive && !isStale && !isOverdue;
-  const effectiveIsFin  = isFin || isStale || (isLive && isOverdue);
+  const isOverdue = minsElapsed > 180;
+
+  // Si ESPN dice "in vivo" pero hace más de 3hs que arrancó → partido de anoche, marcar SKIP
+  if(isLive && isOverdue) {
+    return { fixture: { id: 'espn_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
+  }
+
+  const effectiveIsLive = isLive && !isStale;
+  const effectiveIsFin  = isFin || isStale;
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.toLowerCase().includes('half') ? 'HT' : '1H')
     : effectiveIsFin ? 'FT' : 'NS';
@@ -2173,7 +2176,7 @@ async function loadMatches() {
     loadArgentinaESPN().then(argMatches => {
       if(argMatches && argMatches.length) {
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
-        argMatches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+        argMatches.filter(m => m.fixture.status.short !== 'SKIP').forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
         const counts = {};
         allMatches.forEach(m => { const id=String(m.league.id); counts[id]=(counts[id]||0)+1; });
         document.getElementById('cnt-all').textContent = allMatches.length;
@@ -4784,8 +4787,10 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       }
     }
     if(matches && matches.length) {
+      // Excluir partidos que son FT por overdue (jugados anoche, ESPN los marca en vivo)
+      const validMatches = matches.filter(m => m.fixture.status.short !== 'SKIP');
       const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
-      matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+      validMatches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
       document.getElementById('cnt-all').textContent = allMatches.length;
       const cntEl = document.getElementById('lpc-' + leagueId);
       if(cntEl) cntEl.textContent = matches.length;
@@ -4810,15 +4815,19 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
 
-  // Si el partido es de ayer o anterior, forzar FT aunque ESPN lo marque en vivo
-  // Comparar en timezone Argentina para evitar bugs con partidos nocturnos (UTC+1 día)
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   const isStale = matchDateAR && matchDateAR < today();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 120;
-  const effectiveIsLive = isLive && !isStale && !isOverdue;
-  const effectiveIsFin  = isFin || isStale || (isLive && isOverdue);
+  const isOverdue = minsElapsed > 180; // más de 3hs desde el kickoff → terminó seguro
+
+  // Si ESPN dice "in vivo" pero hace más de 3hs que arrancó → partido de anoche, marcar SKIP
+  if(isLive && isOverdue) {
+    return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
+  }
+
+  const effectiveIsLive = isLive && !isStale;
+  const effectiveIsFin  = isFin || isStale;
 
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
@@ -4879,7 +4888,7 @@ async function loadESPNExtraLeagues() {
           );
         }
         const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
-        matches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+        matches.filter(m => m.fixture.status.short !== 'SKIP').forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
         document.getElementById('cnt-all').textContent = allMatches.length;
         const cnt = allMatches.filter(m => String(m.league.id) === leagueId).length;
         const cntEl = document.getElementById('lpc-' + leagueId);
