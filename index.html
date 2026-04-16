@@ -4799,8 +4799,21 @@ const ESPN_EXTRA_LEAGUES = {
 async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
   try {
     const dateStr = today().replace(/-/g,'');
-    const ck = 'fp_espn_' + leagueId + '_' + today();
-    const cached = cacheGet(ck, CACHE_TTL.fixtures);
+
+    // Limpiar cualquier caché de días anteriores para esta liga
+    const todayStr = today();
+    for(let i = 1; i <= 3; i++){
+      const pastDate = new Date(Date.now() - i*24*60*60*1000).toISOString().slice(0,10);
+      for(let h = 0; h < 24; h++){
+        localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate + '_h' + h);
+      }
+      localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate);
+    }
+
+    // Caché por hora — expira en 55 minutos
+    const hora = new Date().getHours();
+    const ck = 'fp_espn_' + leagueId + '_' + todayStr + '_h' + hora;
+    const cached = cacheGet(ck, 55 * 60 * 1000);
     let matches = cached;
     if(!matches) {
       const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${dateStr}`;
@@ -4808,20 +4821,29 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if(data && data.events && data.events.length) {
-        // Filtrar solo partidos de hoy en timezone Argentina
         const todayAR = today();
         const todayEvents = data.events.filter(e => {
           if(!e.date) return false;
           const matchDateAR = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
           return matchDateAR === todayAR;
         });
-        if(!todayEvents.length) return;
+        if(!todayEvents.length) {
+          // ESPN no tiene partidos hoy para esta liga — limpiar caché y salir
+          localStorage.removeItem(ck);
+          return;
+        }
         matches = todayEvents.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
-        // Solo cachear si TODOS los partidos terminaron (resultados definitivos)
-        const allFinished = todayEvents.every(e => e.status?.type?.state === 'post');
-        const anyLive = todayEvents.some(e => e.status?.type?.state === 'in');
-        if(allFinished && !anyLive) cacheSet(ck, matches);
-        // Si hay partidos en vivo o pre, no cachear para siempre actualizar
+        // Solo cachear si no hay ningún partido activo o próximo en las próximas 2hs
+        const anyActiveOrSoon = todayEvents.some(e => {
+          const state = e.status?.type?.state;
+          if(state === 'in') return true;
+          if(state === 'pre') {
+            const minsToStart = (new Date(e.date).getTime() - Date.now()) / 60000;
+            return minsToStart < 120;
+          }
+          return false;
+        });
+        if(!anyActiveOrSoon) cacheSet(ck, matches);
       }
     }
     if(matches && matches.length) {
