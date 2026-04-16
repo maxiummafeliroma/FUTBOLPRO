@@ -417,7 +417,13 @@ function showTab(id, btn){
 
 // ── ESPN API ──────────────────────────────────────────
 const COMP = 'CONMEBOL.LIBERTADORES';
-const SITE_ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
+const SITE_ESPN = '/api/espn?path=/soccer';
+// Helper para armar URLs contra el proxy de Vercel (evita CORS con ESPN)
+function espnUrl(path, qs){
+  // path: '/conmebol.libertadores/scoreboard', qs: 'dates=20260416&limit=100' opcional
+  const full = '/soccer' + path + (qs ? '?' + qs : '');
+  return '/api/espn?path=' + encodeURIComponent(full);
+}
 
 let scorersLoaded = false;
 let fixtureLoaded = false;
@@ -440,7 +446,7 @@ async function loadStandings(){
   const container = document.getElementById('zonaAContainer');
   if(!container) return;
   try{
-    const r = await fetch('https://site.api.espn.com/apis/v2/sports/soccer/conmebol.libertadores/standings');
+    const r = await fetch('/api/espn?v2=1&path=' + encodeURIComponent('/soccer/conmebol.libertadores/standings'));
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
 
@@ -540,10 +546,13 @@ function renderZona(entries, containerId, esAnual){
     // Colores posición
     let posClass = 'pos-n';
     if(!esAnual){
-      if(pos===1) posClass='pos-cl';       // clasifica copa
+      // Copa Libertadores fase de grupos: 1° y 2° → Octavos, 3° → Sudamericana, 4° → Eliminado
+      if(pos===1 || pos===2) posClass='pos-cl';    // clasifica a Octavos
+      else if(pos===3)       posClass='pos-eur';   // baja a Sudamericana
+      else if(pos===4)       posClass='pos-rel';   // eliminado
     } else {
-      if(pos<=6)  posClass='pos-cl';       // clasifica Libertadores/Suda
-      if(pos>=sorted.length-2) posClass='pos-rel'; // descenso
+      if(pos<=6)  posClass='pos-cl';
+      if(pos>=sorted.length-2) posClass='pos-rel';
     }
 
     html += `<tr>
@@ -564,7 +573,9 @@ function renderZona(entries, containerId, esAnual){
     </div>`;
   } else {
     html += `<div class="standings-legend">
-      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>1° clasifica a fase final</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>1° y 2° — Octavos de Libertadores</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div>3° — Copa Sudamericana</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>4° — Eliminado</div>
     </div>`;
   }
 
@@ -808,7 +819,7 @@ async function loadFixture(){
 
   try{
     // Paso 1: obtener el calendario de la liga para saber las jornadas
-    const calUrl = `${SITE_ESPN}/${COMP.toLowerCase()}/calendar/ondays?seasontype=2`;
+    const calUrl = espnUrl('/' + COMP.toLowerCase() + '/calendar/ondays', 'seasontype=2');
     const calR = await fetch(calUrl);
     let eventDates = [];
     if(calR.ok){
@@ -851,7 +862,7 @@ async function loadFixture(){
       const batch = uniqueRanges.slice(i, i + BATCH);
       const results = await Promise.all(
         batch.map(r =>
-          fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?dates=${r}&limit=100`)
+          fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard', 'dates=' + r + '&limit=100'))
             .then(res => res.ok ? res.json() : {events:[]})
             .catch(() => ({events:[]}))
         )
@@ -899,7 +910,7 @@ async function loadFixture(){
 
     // Si aún no hay fechas, usar scoreboard actual (fallback final)
     if(Object.keys(fechas).length === 0){
-      const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard`);
+      const r = await fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard'));
       if(r.ok){
         const data = await r.json();
         (data.events||[]).forEach(ev => {
@@ -942,7 +953,7 @@ async function cargarFechasPasadas(fechas){
     // Cargar scoreboard de la semana pasada
     const hace7 = new Date(Date.now() - 7*24*60*60*1000);
     const dateStr = hace7.toISOString().slice(0,10).replace(/-/g,'');
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard?dates=${dateStr}`);
+    const r = await fetch(espnUrl('/conmebol.libertadores/scoreboard','dates='+dateStr));
     const data = await r.json();
     (data.events||[]).forEach(ev=>{
       const f = ev.week?.number || 1;
@@ -1040,7 +1051,7 @@ async function cargarFechaESPN(fechaNum){
   const cont = document.getElementById('fechaPartidos');
   if(cont) cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fecha ${fechaNum}...</div>`;
   try{
-    const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?week=${fechaNum}&seasontype=1`);
+    const r = await fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard', 'week=' + fechaNum + '&seasontype=1'));
     const data = await r.json();
     const events = data.events || [];
     if(events.length){
@@ -1060,15 +1071,33 @@ function buildFixtureCard(ev){
   const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
   const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
 
-  const status  = comps?.status?.type?.name || '';
-  const isLive  = status==='STATUS_IN_PROGRESS';
-  const isFt    = status==='STATUS_FINAL';
+  // Parser de score a prueba de balas: soporta string, number y objeto {value}
+  const parseScore = (c)=>{
+    if(!c) return '';
+    const s = c.score;
+    if(s===undefined||s===null) return '';
+    if(typeof s==='number') return String(s);
+    if(typeof s==='string'){ const n=parseInt(s,10); return isNaN(n)?'':String(n); }
+    if(typeof s==='object' && s.value!==undefined) return String(parseInt(s.value,10));
+    return '';
+  };
+
+  const rawStatus = comps?.status?.type?.name || '';
+  const rawState  = comps?.status?.type?.state || ''; // 'in' | 'post' | 'pre'
+  let   isLive    = rawStatus==='STATUS_IN_PROGRESS' || rawState==='in';
+  let   isFt      = rawStatus==='STATUS_FINAL'       || rawState==='post';
+
+  // Anti partido-viejo: si dice "en vivo" pero arrancó hace más de 150 min → lo tratamos como FT
+  const matchStartMs = ev.date ? new Date(ev.date).getTime() : 0;
+  const minsElapsed  = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
+  if(isLive && minsElapsed > 150){ isLive = false; isFt = true; }
+
   const hName   = home.team?.displayName || '—';
   const aName   = away.team?.displayName || '—';
   const hLogo   = home.team?.logo || '';
   const aLogo   = away.team?.logo || '';
-  const hScore  = home.score ?? '';
-  const aScore  = away.score ?? '';
+  const hScore  = parseScore(home);
+  const aScore  = parseScore(away);
   const time    = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
   const clock   = comps?.status?.displayClock || '';
 
@@ -1197,7 +1226,7 @@ function errorHTML(msg, retryFn){
 loadStandings();
 // Fixture se carga lazy al hacer clic en la tab
 // Pero también lo precargamos en background
-setTimeout(()=>{ if(!fixtureLoaded){ fixtureLoaded=true; fetch(`${SITE_ESPN}/${COMP}/scoreboard`).then(r=>r.json()).then(d=>{ fixtureLoaded=false; renderFixture(d); }); } }, 1500);
+setTimeout(()=>{ if(!fixtureLoaded){ fixtureLoaded=true; fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard')).then(r=>r.ok?r.json():{events:[]}).then(d=>{ fixtureLoaded=false; renderFixture(d); }).catch(()=>{ fixtureLoaded=false; }); } }, 1500);
 </script>
 </body>
 </html>
