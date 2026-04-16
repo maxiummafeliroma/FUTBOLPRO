@@ -1150,6 +1150,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <img src="https://flagcdn.com/20x15/ar.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Primera Nacional</span><span class="lp-item-cnt" id="lpc-arg.2">—</span>
       </div>
       <div class="lp-sub">
+        <a class="lp-sub-btn" href="primera-nacional.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
+        <button class="lp-sub-btn" onclick="lpOpenView('arg.2','tabla','Primera Nacional')">Tabla</button>
+        <button class="lp-sub-btn" onclick="lpOpenView('arg.2','fixture','Primera Nacional')">Fixture</button>
+      </div>
+      <div class="lp-sub">
         <a class="lp-sub-btn" href="liga-argentina.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
       </div>
 
@@ -1599,9 +1604,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       <div id="pollResults" style="display:none">
         <canvas id="pollChart" width="220" height="220" style="display:block;margin:8px auto"></canvas>
         <div id="pollLegend" style="margin-top:8px;font-size:11px;display:flex;flex-direction:column;gap:4px"></div>
-        <div style="margin-top:10px;text-align:center">
-          <button onclick="resetPoll()" style="font-size:10px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:'Barlow',sans-serif">Cambiar voto</button>
-        </div>
       </div>
     </div>
   </div>
@@ -1734,7 +1736,7 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
-  const CACHE_VERSION = '20260415-v3'; // ← cambiar al deployar para forzar limpieza
+  const CACHE_VERSION = '20260416-v1'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
   const savedVersion = localStorage.getItem('fp_cache_version');
   if(savedVersion !== CACHE_VERSION) {
@@ -4064,7 +4066,7 @@ function lpOpenView(leagueId, tab, leagueName) {
     '61':'Ligue 1','2':'Champions League','3':'Europa League','848':'Conference League',
     '128':'Liga Profesional Argentina','13':'Copa Libertadores','11':'Copa Sudamericana',
     '35':'Eliminatorias CONMEBOL','34':'Eliminatorias UEFA','9':'Nations League',
-    '10':'Amistosos Internacionales','1':'Copa del Mundo 2026'
+    '10':'Amistosos Internacionales','1':'Copa del Mundo 2026','arg.2':'Primera Nacional'
   };
   const name = leagueName || nameMap[leagueId] || 'Liga';
   document.getElementById('leagueModalTitle').textContent = name;
@@ -4087,6 +4089,11 @@ async function loadLeagueModalContent(leagueId, tab) {
   body.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando...</div>';
 
   if(tab === 'tabla') {
+    // Primera Nacional: ESPN standings
+    if(leagueId === 'arg.2') {
+      await loadPrimeraNacionalTabla(body);
+      return;
+    }
     // Argentina: usar api-sports
     if(leagueId === '128') {
       const rows = await loadArgentinaStandings();
@@ -4191,6 +4198,11 @@ async function loadLeagueModalContent(leagueId, tab) {
     }).join('');
   }
   else if(tab === 'fixture') {
+    // Primera Nacional: ESPN scoreboard próximos
+    if(leagueId === 'arg.2') {
+      await loadPrimeraNacionalFixture(body);
+      return;
+    }
     // Argentina: usar api-sports
     if(leagueId === '128') {
       const fixtures = await loadArgentinaFixtures();
@@ -4919,6 +4931,113 @@ document.addEventListener('click', function(e) {
 });
 
 // ===================================================
+// PRIMERA NACIONAL
+// ===================================================
+async function loadPrimeraNacionalTabla(body) {
+  try {
+    const ck = 'fp_pn_standings_' + today().substring(0,7); // caché mensual
+    let html = cacheGet(ck, 30*24*60*60*1000);
+    if(!html) {
+      const res = await fetch('https://site.api.espn.com/apis/v2/sports/soccer/arg.2/standings?season=2025');
+      const data = await res.json();
+      const groups = data?.children || data?.standings?.entries ? [data] : [];
+      const allGroups = data?.children?.length ? data.children : [data];
+
+      if(!allGroups.length || !allGroups[0]?.standings?.entries?.length) {
+        // Fallback: TheSportsDB
+        const tsdb = await fetch('https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l=4882&s=2024-2025');
+        const td = await tsdb.json();
+        if(td?.table?.length) {
+          html = `<div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Primera Nacional 2025</div>` +
+            renderStandingsTable(td.table.map(t=>({
+              rank: parseInt(t.intRank),
+              team: { name:t.strTeam, logo:t.strTeamBadge },
+              all: { played:parseInt(t.intPlayed||0), win:parseInt(t.intWin||0), draw:parseInt(t.intDraw||0), lose:parseInt(t.intLoss||0), goals:{for:parseInt(t.intGoalsFor||0),against:parseInt(t.intGoalsAgainst||0)} },
+              points: parseInt(t.intPoints||0)
+            })));
+        } else {
+          body.innerHTML = '<div class="empty-state">No hay datos de tabla disponibles.</div>';
+          return;
+        }
+      } else {
+        html = allGroups.map(group => {
+          const groupName = group.name || group.abbreviation || 'Zona';
+          const entries = group.standings?.entries || [];
+          const rows = entries.map(e => ({
+            rank: e.stats?.find(s=>s.name==='rank')?.value || 0,
+            team: { name: e.team?.displayName||e.team?.name||'?', logo: e.team?.logos?.[0]?.href||'' },
+            all: {
+              played: e.stats?.find(s=>s.name==='gamesPlayed')?.value||0,
+              win:    e.stats?.find(s=>s.name==='wins')?.value||0,
+              draw:   e.stats?.find(s=>s.name==='ties')?.value||0,
+              lose:   e.stats?.find(s=>s.name==='losses')?.value||0,
+              goals:  { for: e.stats?.find(s=>s.name==='pointsFor')?.value||0, against: e.stats?.find(s=>s.name==='pointsAgainst')?.value||0 }
+            },
+            points: e.stats?.find(s=>s.name==='points')?.value||0
+          })).sort((a,b)=>a.rank-b.rank);
+          return `<div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px">📋 ${groupName}</div>` +
+            renderStandingsTable(rows);
+        }).join('');
+      }
+      cacheSet(ck, html);
+    }
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = '<div class="empty-state">Error cargando la tabla.</div>';
+    console.warn('[PN tabla]', e.message);
+  }
+}
+
+async function loadPrimeraNacionalFixture(body) {
+  try {
+    const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/arg.2/scoreboard');
+    const data = await res.json();
+    const events = data?.events || [];
+    if(!events.length) {
+      body.innerHTML = '<div class="empty-state">No hay fixture disponible.</div>';
+      return;
+    }
+    const groups = {};
+    events.forEach(e => {
+      const comp = e.competitions?.[0];
+      const home = comp?.competitors?.find(c=>c.homeAway==='home');
+      const away = comp?.competitors?.find(c=>c.homeAway==='away');
+      const state = e.status?.type?.state;
+      const isFin = state === 'post';
+      const isLive = state === 'in';
+      const dateAR = new Date(e.date).toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'});
+      if(!groups[dateAR]) groups[dateAR] = [];
+      groups[dateAR].push({
+        time: new Date(e.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}),
+        home: home?.team?.displayName||'?',
+        away: away?.team?.displayName||'?',
+        scoreHome: isFin||isLive ? home?.score : null,
+        scoreAway: isFin||isLive ? away?.score : null,
+        status: isFin ? 'FT' : isLive ? 'EN VIVO' : null,
+      });
+    });
+    body.innerHTML = Object.entries(groups).sort().map(([date, matches]) => `
+      <div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">
+        ${new Date(date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+      </div>
+      ${matches.map(m => `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <div style="font-size:11px;color:${m.status==='EN VIVO'?'var(--red)':m.status==='FT'?'var(--muted)':'var(--muted2)'};width:44px;text-align:center;flex-shrink:0;font-weight:600">
+            ${m.status||m.time}
+          </div>
+          <div style="flex:1;font-size:12px;font-weight:500">${m.home}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--txt);min-width:36px;text-align:center">
+            ${m.scoreHome!==null ? m.scoreHome+' – '+m.scoreAway : 'vs'}
+          </div>
+          <div style="flex:1;font-size:12px;font-weight:500;text-align:right">${m.away}</div>
+        </div>`).join('')}`).join('');
+  } catch(e) {
+    body.innerHTML = '<div class="empty-state">Error cargando el fixture.</div>';
+    console.warn('[PN fixture]', e.message);
+  }
+}
+
+// ===================================================
 // ENCUESTA SEMANAL
 // ===================================================
 const POLL_KEY = 'fp_poll_superclasico_2026w16';
@@ -4932,7 +5051,7 @@ const POLL_COLORS = {
 function votePoll(option) {
   localStorage.setItem(POLL_KEY, option);
   const raw = localStorage.getItem(POLL_VOTES_KEY);
-  const votes = raw ? JSON.parse(raw) : { river:34, boca:48, empate:18 };
+  const votes = raw ? JSON.parse(raw) : { river:1, boca:1, empate:1 };
   votes[option] = (votes[option]||0) + 1;
   localStorage.setItem(POLL_VOTES_KEY, JSON.stringify(votes));
   showPollResults(votes, option);
@@ -4991,7 +5110,7 @@ function showPollResults(votes, voted) {
   const voted = localStorage.getItem(POLL_KEY);
   if(voted){
     const raw = localStorage.getItem(POLL_VOTES_KEY);
-    const votes = raw ? JSON.parse(raw) : {river:34,boca:48,empate:18};
+    const votes = raw ? JSON.parse(raw) : {river:1,boca:1,empate:1};
     showPollResults(votes, voted);
   }
 })();
