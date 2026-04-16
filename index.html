@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#00e676">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FutbolPro">
 <title>FutbolPro - Resultados, Prode y más</title>
 <meta name="description" content="Resultados de fútbol en vivo, prode gratuito, NBA y F1 en un solo lugar.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -979,7 +986,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 @media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}}
 .mobile-nav{display:none}
 @media(max-width:750px){
-  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:990;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 0px));min-height:60px}
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:9999;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 8px));min-height:60px;box-shadow:0 -2px 12px rgba(0,0,0,0.4)}
   .mobile-nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 8px;border:none;background:transparent;color:var(--muted2);font-family:'Barlow',sans-serif;flex:1}
   .mobile-nav-btn span{font-size:9px;font-weight:600;letter-spacing:.3px}
   .mobile-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -4810,8 +4817,11 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
         });
         if(!todayEvents.length) return;
         matches = todayEvents.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
-        const hasActive = todayEvents.some(e => ['in','post'].includes(e.status?.type?.state));
-        if(!hasActive) cacheSet(ck, matches);
+        // Solo cachear si TODOS los partidos terminaron (resultados definitivos)
+        const allFinished = todayEvents.every(e => e.status?.type?.state === 'post');
+        const anyLive = todayEvents.some(e => e.status?.type?.state === 'in');
+        if(allFinished && !anyLive) cacheSet(ck, matches);
+        // Si hay partidos en vivo o pre, no cachear para siempre actualizar
       }
     }
     if(matches && matches.length) {
@@ -4847,15 +4857,15 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isStale = matchDateAR && matchDateAR < today();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 180; // más de 3hs desde el kickoff → terminó seguro
+  const isOverdue = minsElapsed > 130; // más de 130 min desde el kickoff → terminó seguro
 
   // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
   if((isLive || isFin) && isOverdue) {
     return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
-  const effectiveIsLive = isLive && !isStale;
-  const effectiveIsFin  = isFin || isStale;
+  const effectiveIsLive = isLive && !isStale && !isOverdue;
+  const effectiveIsFin  = isFin || isStale || isOverdue;
 
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
