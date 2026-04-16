@@ -1753,7 +1753,7 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
-  const CACHE_VERSION = '20260416-espn'; // ← cambiar al deployar para forzar limpieza
+  const CACHE_VERSION = '20260416-espn2'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
   const savedVersion = localStorage.getItem('fp_cache_version');
   if(savedVersion !== CACHE_VERSION) {
@@ -2040,17 +2040,21 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const isStale = matchDateAR && matchDateAR < today();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  // Partido terminado si: ESPN dice post/completed, O si pasaron más de 130 min (90 + tiempo extra + descuento)
-  const isOverdue = minsElapsed > 130;
-  const isReallyOver = isFin || (isLive && isOverdue);
 
-  // Si hace más de 130 min que arrancó → marcar como terminado, no en vivo
-  if(isReallyOver && isOverdue) {
+  // Solo descartar (SKIP) si ESPN dice "en vivo" pero pasaron más de 200 min desde el kickoff
+  // (caso raro: ESPN a veces se traba en "in" cuando ya terminó)
+  if(isLive && minsElapsed > 200) {
     return { fixture: { id: 'espn_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
-  const effectiveIsLive = isLive && !isStale && !isReallyOver;
-  const effectiveIsFin  = isReallyOver || isFin || isStale;
+  // Si el partido es de un día anterior al de hoy AR → descartar
+  if(isStale) {
+    return { fixture: { id: 'espn_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
+  }
+
+  // Mostrar tal cual lo que dice ESPN: en vivo, terminado (post) o programado (pre)
+  const effectiveIsLive = isLive;
+  const effectiveIsFin  = isFin;
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.toLowerCase().includes('half') ? 'HT' : '1H')
     : effectiveIsFin ? 'FT' : 'NS';
@@ -2173,7 +2177,7 @@ async function loadMatches() {
     { slug:'fifa.world',           leagueId:'1',   name:'Mundial 2026' },
     { slug:'fifa.worldq.conmebol', leagueId:'35',  name:'Eliminatorias CONMEBOL' },
     { slug:'fifa.worldq.uefa',     leagueId:'34',  name:'Eliminatorias UEFA' },
-    { slug:'uefa.nations_league',  leagueId:'9',   name:'Nations League' },
+    { slug:'uefa.nations',         leagueId:'9',   name:'Nations League' },
   ];
 
   try {
@@ -4909,15 +4913,20 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isStale = matchDateAR && matchDateAR < today();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 130; // más de 130 min desde el kickoff → terminó seguro
 
-  // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
-  if((isLive || isFin) && isOverdue) {
+  // Solo descartar si ESPN dice "en vivo" pero pasaron más de 200 min (error ESPN)
+  if(isLive && minsElapsed > 200) {
     return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
-  const effectiveIsLive = isLive && !isStale && !isOverdue;
-  const effectiveIsFin  = isFin || isStale || isOverdue;
+  // Si el partido es de un día anterior al de hoy AR → descartar
+  if(isStale) {
+    return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
+  }
+
+  // Mostrar tal cual lo que dice ESPN
+  const effectiveIsLive = isLive;
+  const effectiveIsFin  = isFin;
 
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
