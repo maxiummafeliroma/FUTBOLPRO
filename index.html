@@ -976,7 +976,19 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-share{background:var(--gold);color:#1a1400}
 .sim-btn-img{background:#1877f2;color:#fff}
 
-@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:70px}}
+.mobile-nav{display:none}
+@media(max-width:750px){
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:990;align-items:center;justify-content:space-around;padding:0 4px 6px}
+  .mobile-nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 8px;border:none;background:transparent;color:var(--muted2);font-family:'Barlow',sans-serif;flex:1}
+  .mobile-nav-btn span{font-size:9px;font-weight:600;letter-spacing:.3px}
+  .mobile-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .mobile-nav-btn.active{color:var(--green)}
+  .mobile-nav-center{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;flex:1;border:none;background:transparent;font-family:'Barlow',sans-serif;margin-top:-18px}
+  .mobile-nav-center-btn{width:48px;height:48px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid var(--bg)}
+  .mobile-nav-center-btn svg{width:22px;height:22px;stroke:#050a05;fill:none;stroke-width:2;stroke-linecap:round}
+  .mobile-nav-center span{font-size:9px;font-weight:700;color:var(--green);letter-spacing:.3px}
+}
 .hamburger-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);cursor:pointer;flex-shrink:0;margin-right:6px}
 .hamburger-btn svg{width:16px;height:16px;stroke:var(--txt);fill:none;stroke-width:2;stroke-linecap:round}
 .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:998;backdrop-filter:blur(2px)}
@@ -2011,21 +2023,23 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const away = comp?.competitors?.find(t => t.homeAway === 'away');
   const status = e.status?.type;
   const isLive = status?.state === 'in';
-  const isFin  = status?.state === 'post';
+  const isFin  = status?.state === 'post' || status?.completed === true || e.status?.type?.completed === true;
 
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
   const isStale = matchDateAR && matchDateAR < today();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 180;
+  // Partido terminado si: ESPN dice post/completed, O si pasaron más de 130 min (90 + tiempo extra + descuento)
+  const isOverdue = minsElapsed > 130;
+  const isReallyOver = isFin || (isLive && isOverdue);
 
-  // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
-  if((isLive || isFin) && isOverdue) {
+  // Si hace más de 130 min que arrancó → marcar como terminado, no en vivo
+  if(isReallyOver && isOverdue) {
     return { fixture: { id: 'espn_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
-  const effectiveIsLive = isLive && !isStale;
-  const effectiveIsFin  = isFin || isStale;
+  const effectiveIsLive = isLive && !isStale && !isReallyOver;
+  const effectiveIsFin  = isReallyOver || isFin || isStale;
   const statusShort = effectiveIsLive
     ? (e.status?.type?.description?.toLowerCase().includes('half') ? 'HT' : '1H')
     : effectiveIsFin ? 'FT' : 'NS';
@@ -5130,6 +5144,15 @@ function showPollResults(votes, voted) {
 })();
 
 // ===================================================
+// MOBILE NAV
+// ===================================================
+function setMobileNav(activeId) {
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(activeId);
+  if(el) el.classList.add('active');
+}
+
+// ===================================================
 // INIT
 // ===================================================
 loadMatches();
@@ -5140,5 +5163,31 @@ if(oddsOn){
   if(toggle) toggle.classList.add('on');
 }
 </script>
+<!-- BARRA NAVEGACION MOBILE -->
+<nav class="mobile-nav">
+  <button class="mobile-nav-btn active" id="mnav-fut" onclick="setSport('futbol',document.getElementById('tab-fut'));setMobileNav('mnav-fut')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 6.9 17.1M5.1 19.1A10 10 0 0 1 12 2"/><path d="m9 9 1.5 4.5L15 15l-4.5-1.5z"/></svg>
+    <span>Fútbol</span>
+  </button>
+  <button class="mobile-nav-btn" id="mnav-nba" onclick="setSport('nba',document.getElementById('tab-nba'));setMobileNav('mnav-nba')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/><path d="M12 2C8 6 8 18 12 22M12 2c4 4 4 16 0 20"/></svg>
+    <span>NBA</span>
+  </button>
+  <button class="mobile-nav-center" id="mnav-ligas" onclick="openDrawer()">
+    <div class="mobile-nav-center-btn">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </div>
+    <span>Ligas</span>
+  </button>
+  <button class="mobile-nav-btn" id="mnav-prode" onclick="setInnerTab('fut-prode',document.querySelector('[onclick*=fut-prode]'));setSport('futbol',document.getElementById('tab-fut'));setMobileNav('mnav-prode')">
+    <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M17 3H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="m9 9 2 2 4-4"/></svg>
+    <span>Prode</span>
+  </button>
+  <button class="mobile-nav-btn" id="mnav-mundial" onclick="setSport('mundial',document.getElementById('tab-mundial'));setMobileNav('mnav-mundial')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+    <span>Mundial</span>
+  </button>
+</nav>
+
 </body>
 </html>
