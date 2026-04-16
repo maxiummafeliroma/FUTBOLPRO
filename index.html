@@ -816,6 +816,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sponsor-btn{width:100%;padding:8px;background:transparent;color:var(--gold);border:1px solid var(--gold);border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
 .sponsor-btn:hover{background:rgba(255,214,0,0.08)}
 
+/* Encuesta */
+.poll-btn{
+  display:block;width:100%;padding:9px 12px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:8px;color:var(--txt);font-size:13px;font-weight:600;
+  text-align:left;cursor:pointer;font-family:'Barlow',sans-serif;
+  margin-bottom:6px;transition:all .2s;
+}
+.poll-btn:hover{border-color:var(--green);color:var(--green)}
+.poll-btn:last-child{margin-bottom:0}
+
 /* ===================================================
    PREDICCION MODAL
 =================================================== */
@@ -1134,6 +1145,9 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
       <div class="lp-item" onclick="lpSelectLeague('128','Argentina')" id="lp-128">
         <img src="https://flagcdn.com/20x15/ar.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Liga Profesional</span><span class="lp-item-cnt" id="lpc-128">—</span>
+      </div>
+      <div class="lp-item" onclick="lpSelectLeague('arg.2','Primera Nacional')" id="lp-arg.2">
+        <img src="https://flagcdn.com/20x15/ar.png" style="width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0"><span class="lp-item-name">Primera Nacional</span><span class="lp-item-cnt" id="lpc-arg.2">—</span>
       </div>
       <div class="lp-sub">
         <a class="lp-sub-btn" href="liga-argentina.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
@@ -1572,6 +1586,26 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
+  <!-- Encuesta semanal -->
+  <div class="widget" id="pollWidget" style="padding:0">
+    <div class="wh"><div class="wh-title">🗳️ Encuesta de la semana</div></div>
+    <div class="wb" style="padding:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:12px;line-height:1.4">¿Quién ganará el Superclásico?</div>
+      <div id="pollOptions">
+        <button class="poll-btn" onclick="votePoll('river')">🔴⚪ River Plate</button>
+        <button class="poll-btn" onclick="votePoll('boca')">🔵🟡 Boca Juniors</button>
+        <button class="poll-btn" onclick="votePoll('empate')">🤝 Empate</button>
+      </div>
+      <div id="pollResults" style="display:none">
+        <canvas id="pollChart" width="220" height="220" style="display:block;margin:8px auto"></canvas>
+        <div id="pollLegend" style="margin-top:8px;font-size:11px;display:flex;flex-direction:column;gap:4px"></div>
+        <div style="margin-top:10px;text-align:center">
+          <button onclick="resetPoll()" style="font-size:10px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:'Barlow',sans-serif">Cambiar voto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Banner Instagram FutbolPro -->
   <div class="ad-card" style="background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border-color:rgba(170,0,255,0.3);cursor:pointer" onclick="window.open('https://www.instagram.com/futbolpro.com.ar','_blank')">
     <div class="ad-tag">Seguinos en Instagram</div>
@@ -4704,10 +4738,11 @@ async function compartirImagen() {
 const ESPN_EXTRA_LEAGUES = {
   'uefa.champions': { name:'UEFA Champions League', country:'Europa', flag:'⭐', internalId:'2' },
   'uefa.europa':    { name:'UEFA Europa League',    country:'Europa', flag:'🟠', internalId:'3' },
-  'eng.2': { name:'Championship',  country:'Inglaterra', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-  'mex.1': { name:'Liga MX',       country:'Mexico',     flag:'🇲🇽' },
-  'usa.1': { name:'MLS',           country:'EE.UU.',     flag:'🇺🇸' },
-  'bra.1': { name:'Brasileirao',   country:'Brasil',     flag:'🇧🇷' },
+  'arg.2':  { name:'Primera Nacional', country:'Argentina', flag:'🇦🇷', internalId:'arg.2' },
+  'eng.2':  { name:'Championship',  country:'Inglaterra', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  'mex.1':  { name:'Liga MX',       country:'Mexico',     flag:'🇲🇽' },
+  'usa.1':  { name:'MLS',           country:'EE.UU.',     flag:'🇺🇸' },
+  'bra.1':  { name:'Brasileirao',   country:'Brasil',     flag:'🇧🇷' },
 };
 
 // ===================================================
@@ -4882,6 +4917,84 @@ document.addEventListener('click', function(e) {
     setTimeout(closeDrawer, 150);
   }
 });
+
+// ===================================================
+// ENCUESTA SEMANAL
+// ===================================================
+const POLL_KEY = 'fp_poll_superclasico_2026w16';
+const POLL_VOTES_KEY = 'fp_poll_votes_superclasico_2026w16';
+const POLL_COLORS = {
+  river:  { color:'#e53935', label:'🔴⚪ River Plate' },
+  boca:   { color:'#fdd835', label:'🔵🟡 Boca Juniors' },
+  empate: { color:'#78909c', label:'🤝 Empate' },
+};
+
+function votePoll(option) {
+  localStorage.setItem(POLL_KEY, option);
+  const raw = localStorage.getItem(POLL_VOTES_KEY);
+  const votes = raw ? JSON.parse(raw) : { river:34, boca:48, empate:18 };
+  votes[option] = (votes[option]||0) + 1;
+  localStorage.setItem(POLL_VOTES_KEY, JSON.stringify(votes));
+  showPollResults(votes, option);
+}
+
+function resetPoll() {
+  localStorage.removeItem(POLL_KEY);
+  document.getElementById('pollOptions').style.display = 'block';
+  document.getElementById('pollResults').style.display = 'none';
+}
+
+function showPollResults(votes, voted) {
+  document.getElementById('pollOptions').style.display = 'none';
+  document.getElementById('pollResults').style.display = 'block';
+  const total = Object.values(votes).reduce((a,b)=>a+b,0);
+  const canvas = document.getElementById('pollChart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx=110, cy=110, r=90;
+  ctx.clearRect(0,0,220,220);
+  let startAngle = -Math.PI/2;
+  const keys = ['river','boca','empate'];
+  keys.forEach(k => {
+    const slice = ((votes[k]||0)/total)*2*Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startAngle,startAngle+slice);
+    ctx.closePath();
+    ctx.fillStyle = POLL_COLORS[k].color; ctx.fill();
+    if(k===voted){ ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke(); }
+    startAngle += slice;
+  });
+  // Donut hole
+  ctx.beginPath(); ctx.arc(cx,cy,52,0,2*Math.PI);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim()||'#0f1520';
+  ctx.fill();
+  // Texto central
+  const myPct = Math.round((votes[voted]||0)/total*100);
+  ctx.fillStyle = POLL_COLORS[voted].color;
+  ctx.font = 'bold 22px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(myPct+'%', cx, cy+4);
+  ctx.font='10px sans-serif'; ctx.fillStyle='#78909c';
+  ctx.fillText('tu voto', cx, cy+18);
+  // Leyenda
+  document.getElementById('pollLegend').innerHTML = keys.map(k => {
+    const pct = Math.round((votes[k]||0)/total*100);
+    return `<div style="display:flex;align-items:center;gap:6px;${k===voted?'font-weight:700':''}">
+      <span style="width:10px;height:10px;border-radius:50%;background:${POLL_COLORS[k].color};flex-shrink:0;display:inline-block"></span>
+      <span style="flex:1;color:var(--txt)">${POLL_COLORS[k].label}</span>
+      <span style="color:${POLL_COLORS[k].color}">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// Inicializar encuesta al cargar
+(function initPoll(){
+  const voted = localStorage.getItem(POLL_KEY);
+  if(voted){
+    const raw = localStorage.getItem(POLL_VOTES_KEY);
+    const votes = raw ? JSON.parse(raw) : {river:34,boca:48,empate:18};
+    showPollResults(votes, voted);
+  }
+})();
 
 // ===================================================
 // INIT
