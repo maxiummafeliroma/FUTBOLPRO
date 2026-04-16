@@ -1753,7 +1753,7 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
-  const CACHE_VERSION = '20260416-v2'; // ← cambiar al deployar para forzar limpieza
+  const CACHE_VERSION = '20260416-v3'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
   const savedVersion = localStorage.getItem('fp_cache_version');
   if(savedVersion !== CACHE_VERSION) {
@@ -2178,6 +2178,12 @@ async function loadMatches() {
       const res = await fdFetch('/matches?date=' + today());
       if (res && res.matches && res.matches.length > 0) {
         matches = res.matches.map(m => normalizeFDMatch(m, m.competition?.code || ''));
+        // ⚡ Descartar CONMEBOL desde FD — ESPN es la fuente autoritativa para estas ligas
+        const blockedNames = ['copa libertadores','copa sudamericana','libertadores','sudamericana','conmebol libertadores','conmebol sudamericana'];
+        matches = matches.filter(m => {
+          const ln = (m.league?.name || '').toLowerCase();
+          return !blockedNames.some(bn => ln.includes(bn));
+        });
         cacheSet(cacheKey, matches);
       }
     }
@@ -4810,7 +4816,11 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
     const res = await fetch(url);
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if(!data || !data.events || !data.events.length) return;
+    if(!data || !data.events || !data.events.length) {
+      // Sin eventos en ESPN → igual removemos cualquier duplicado previo
+      allMatches = allMatches.filter(m => String(m.league.id) !== leagueId && (m.league.name||'') !== leagueName);
+      return;
+    }
 
     // Filtrar ESTRICTO: solo eventos cuya fecha Argentina sea HOY
     const todayEvents = data.events.filter(e => {
@@ -4824,14 +4834,16 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       return true;
     });
 
-    if(!todayEvents.length) return;
-
     const matches = todayEvents
       .map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName))
       .filter(m => m.fixture.status.short !== 'SKIP');
 
-    // Siempre remover los viejos de esta liga antes de agregar (evita mezclas)
-    allMatches = allMatches.filter(m => String(m.league.id) !== leagueId);
+    // ⚡ FIX DUPLICADOS: remover cualquier partido con el mismo leagueId O mismo leagueName
+    // (football-data.org mete CONMEBOL con otro ID pero mismo nombre → aparecían 2 bloques)
+    allMatches = allMatches.filter(m =>
+      String(m.league.id) !== leagueId &&
+      (m.league.name || '').toLowerCase() !== (leagueName || '').toLowerCase()
+    );
     matches.forEach(m => allMatches.push(m));
 
     document.getElementById('cnt-all').textContent = allMatches.length;
