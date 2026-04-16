@@ -1753,7 +1753,7 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
-  const CACHE_VERSION = '20260416-v3'; // ← cambiar al deployar para forzar limpieza
+  const CACHE_VERSION = '20260416-fix'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
   const savedVersion = localStorage.getItem('fp_cache_version');
   if(savedVersion !== CACHE_VERSION) {
@@ -2178,12 +2178,6 @@ async function loadMatches() {
       const res = await fdFetch('/matches?date=' + today());
       if (res && res.matches && res.matches.length > 0) {
         matches = res.matches.map(m => normalizeFDMatch(m, m.competition?.code || ''));
-        // ⚡ Descartar CONMEBOL desde FD — ESPN es la fuente autoritativa para estas ligas
-        const blockedNames = ['copa libertadores','copa sudamericana','libertadores','sudamericana','conmebol libertadores','conmebol sudamericana'];
-        matches = matches.filter(m => {
-          const ln = (m.league?.name || '').toLowerCase();
-          return !blockedNames.some(bn => ln.includes(bn));
-        });
         cacheSet(cacheKey, matches);
       }
     }
@@ -4804,61 +4798,72 @@ const ESPN_EXTRA_LEAGUES = {
 // ===================================================
 async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
   try {
+    const dateStr = today().replace(/-/g,'');
+
+    // Limpiar cualquier caché de días anteriores para esta liga
     const todayStr = today();
-    const dateStr = todayStr.replace(/-/g,'');
-
-    // BORRAR TODA la caché vieja de esta liga (cualquier hora, cualquier día)
-    Object.keys(localStorage).forEach(k => {
-      if (k.startsWith('fp_espn_' + leagueId + '_')) localStorage.removeItem(k);
-    });
-
-    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${dateStr}`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    if(!data || !data.events || !data.events.length) {
-      // Sin eventos en ESPN → igual removemos cualquier duplicado previo
-      allMatches = allMatches.filter(m => String(m.league.id) !== leagueId && (m.league.name||'') !== leagueName);
-      return;
+    for(let i = 1; i <= 3; i++){
+      const pastDate = new Date(Date.now() - i*24*60*60*1000).toISOString().slice(0,10);
+      for(let h = 0; h < 24; h++){
+        localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate + '_h' + h);
+      }
+      localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate);
     }
 
-    // Filtrar ESTRICTO: solo eventos cuya fecha Argentina sea HOY
-    const todayEvents = data.events.filter(e => {
-      if(!e.date) return false;
-      const matchDateAR = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-      if(matchDateAR !== todayStr) return false;
-      // Extra: si arrancó hace más de 150 min Y ya terminó → descartar (es de anoche)
-      const minsSinceStart = (Date.now() - new Date(e.date).getTime()) / 60000;
-      const isPost = e.status?.type?.state === 'post';
-      if(isPost && minsSinceStart > 150) return false;
-      return true;
-    });
-
-    const matches = todayEvents
-      .map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName))
-      .filter(m => m.fixture.status.short !== 'SKIP');
-
-    // ⚡ FIX DUPLICADOS: remover cualquier partido con el mismo leagueId O mismo leagueName
-    // (football-data.org mete CONMEBOL con otro ID pero mismo nombre → aparecían 2 bloques)
-    allMatches = allMatches.filter(m =>
-      String(m.league.id) !== leagueId &&
-      (m.league.name || '').toLowerCase() !== (leagueName || '').toLowerCase()
-    );
-    matches.forEach(m => allMatches.push(m));
-
-    document.getElementById('cnt-all').textContent = allMatches.length;
-    const cntEl = document.getElementById('lpc-' + leagueId);
-    if(cntEl) cntEl.textContent = matches.length;
-
-    const liveNow = allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short));
-    if(liveNow.length > 0) {
-      const btnLive = document.getElementById('btn-live');
-      const cntLive = document.getElementById('cnt-live');
-      if(btnLive) btnLive.style.display = 'flex';
-      if(cntLive) cntLive.textContent = liveNow.length;
-      updateLeftPanel(liveNow);
+    // Caché por hora — expira en 55 minutos
+    const hora = new Date().getHours();
+    const ck = 'fp_espn_' + leagueId + '_' + todayStr + '_h' + hora;
+    const cached = cacheGet(ck, 55 * 60 * 1000);
+    let matches = cached;
+    if(!matches) {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug}/scoreboard?dates=${dateStr}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(data && data.events && data.events.length) {
+        const todayAR = today();
+        const todayEvents = data.events.filter(e => {
+          if(!e.date) return false;
+          const matchDateAR = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+          return matchDateAR === todayAR;
+        });
+        if(!todayEvents.length) {
+          // ESPN no tiene partidos hoy para esta liga — limpiar caché y salir
+          localStorage.removeItem(ck);
+          return;
+        }
+        matches = todayEvents.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
+        // Solo cachear si no hay ningún partido activo o próximo en las próximas 2hs
+        const anyActiveOrSoon = todayEvents.some(e => {
+          const state = e.status?.type?.state;
+          if(state === 'in') return true;
+          if(state === 'pre') {
+            const minsToStart = (new Date(e.date).getTime() - Date.now()) / 60000;
+            return minsToStart < 120;
+          }
+          return false;
+        });
+        if(!anyActiveOrSoon) cacheSet(ck, matches);
+      }
     }
-    if(['all', leagueId].includes(currentLeague)) renderMatches();
+    if(matches && matches.length) {
+      // Excluir partidos que son FT por overdue (jugados anoche, ESPN los marca en vivo)
+      const validMatches = matches.filter(m => m.fixture.status.short !== 'SKIP');
+      const existingIds = new Set(allMatches.map(m => String(m.fixture.id)));
+      validMatches.forEach(m => { if(!existingIds.has(String(m.fixture.id))) allMatches.push(m); });
+      document.getElementById('cnt-all').textContent = allMatches.length;
+      const cntEl = document.getElementById('lpc-' + leagueId);
+      if(cntEl) cntEl.textContent = matches.length;
+      const liveNow = allMatches.filter(m => ['1H','HT','2H','ET','BT','P','INT'].includes(m.fixture.status.short));
+      if(liveNow.length > 0) {
+        const btnLive = document.getElementById('btn-live');
+        const cntLive = document.getElementById('cnt-live');
+        if(btnLive) btnLive.style.display = 'flex';
+        if(cntLive) cntLive.textContent = liveNow.length;
+        updateLeftPanel(liveNow);
+      }
+      if(['all', leagueId].includes(currentLeague)) renderMatches();
+    }
   } catch(e) { console.warn('[ESPN CONMEBOL]', leagueId, e.message); }
 }
 
@@ -4870,12 +4875,12 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
 
-  const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
-  const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
-  const isOverdue = minsElapsed > 150;
+  // Fecha del partido en hora Argentina
+  const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
+  const todayAR = today();
 
-  // Si el partido dice "in" pero hace más de 150 min que arrancó → SKIP (ESPN mal)
-  if(isLive && isOverdue) {
+  // Si el partido NO es de hoy AR → SKIP (no mezclar con partidos de ayer)
+  if(matchDateAR && matchDateAR !== todayAR) {
     return { fixture:{id:'skip_'+e.id,date:e.date,status:{short:'SKIP',elapsed:null,long:''}}, league:{id:leagueId}, teams:{home:{},away:{}}, goals:{home:null,away:null}, events:[], aggregate:null, homeTeamId:'', odds:null };
   }
 
@@ -4884,7 +4889,7 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
     : isFin ? 'FT' : 'NS';
   const elapsed = isLive ? (e.status?.displayClock?.replace(/"/g,"'") || null) : null;
 
-  // Parser de score a prueba de balas: soporta string, number y objeto {value}
+  // Parser de score robusto: soporta string, number y objeto {value}
   const parseScore = (c) => {
     if(!c) return null;
     const s = c.score;
@@ -4903,8 +4908,8 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
     },
     league: { id: leagueId, name: leagueName, country: 'CONMEBOL', logo: '' },
     teams: {
-      home: { id: home?.team?.id || 0, name: home?.team?.displayName || home?.team?.name || '?', logo: home?.team?.logo || '' },
-      away: { id: away?.team?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
+      home: { id: home?.team?.id || home?.id || 0, name: home?.team?.displayName || home?.team?.name || '?', logo: home?.team?.logo || '' },
+      away: { id: away?.team?.id || away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
     },
     goals: {
       home: (isLive||isFin) ? parseScore(home) : null,
@@ -4912,7 +4917,7 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
     },
     events: (isLive||isFin) ? extractESPNGoals(comp) : [],
     aggregate: extractESPNAggregate(comp),
-    homeTeamId: String(home?.team?.id || ''),
+    homeTeamId: String(home?.team?.id || home?.id || ''),
     odds: null
   };
 }
