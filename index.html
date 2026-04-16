@@ -976,10 +976,10 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-share{background:var(--gold);color:#1a1400}
 .sim-btn-img{background:#1877f2;color:#fff}
 
-@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:70px}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}}
 .mobile-nav{display:none}
 @media(max-width:750px){
-  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:990;align-items:center;justify-content:space-around;padding:0 4px 6px}
+  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:990;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 0px));min-height:60px}
   .mobile-nav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 8px;border:none;background:transparent;color:var(--muted2);font-family:'Barlow',sans-serif;flex:1}
   .mobile-nav-btn span{font-size:9px;font-weight:600;letter-spacing:.3px}
   .mobile-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -1882,11 +1882,15 @@ function normalizeFDMatch(m, compCode) {
   const elapsed = m.minute || null;
   const short = statusMap[m.status] || 'NS';
   const isLive = ['IN_PLAY','PAUSED','LIVE'].includes(m.status);
+  // Verificar si el partido ya pasó hace más de 130 min aunque figure como en vivo
+  const fdStartMs = m.utcDate ? new Date(m.utcDate).getTime() : 0;
+  const fdMinsElapsed = fdStartMs ? (Date.now() - fdStartMs) / 60000 : 0;
+  const fdForceFinished = isLive && fdMinsElapsed > 130;
   return {
     fixture: {
       id: m.id,
       date: m.utcDate,
-      status: { short: isLive ? (m.status==='PAUSED'?'HT':'1H') : short, elapsed: elapsed, long: m.status }
+      status: { short: fdForceFinished ? 'FT' : (isLive ? (m.status==='PAUSED'?'HT':'1H') : short), elapsed: fdForceFinished ? null : elapsed, long: m.status }
     },
     league: { id: leagueId, name: m.competition?.name || '', country: m.area?.name || 'World', logo: '' },
     teams: {
@@ -2094,11 +2098,21 @@ async function loadApiSportsLeague(leagueId) {
 function normalizeApiSportsMatch(m, leagueId) {
   const lid = leagueId || String(m.league?.id || '128');
   const leagueNames = {'128':'Liga Profesional','13':'Copa Libertadores','11':'Copa Sudamericana'};
+
+  // Verificar si el partido ya pasó hace más de 130 min aunque figure como en vivo
+  const LIVE_SHORTS = ['1H','HT','2H','ET','BT','P','INT'];
+  let statusShort = m.fixture.status.short;
+  const matchStartMs = m.fixture.date ? new Date(m.fixture.date).getTime() : 0;
+  const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
+  if(LIVE_SHORTS.includes(statusShort) && minsElapsed > 130) {
+    statusShort = 'FT'; // Forzar terminado
+  }
+
   return {
     fixture: {
       id: m.fixture.id,
       date: m.fixture.date,
-      status: { short: m.fixture.status.short, elapsed: m.fixture.status.elapsed, long: m.fixture.status.long }
+      status: { short: statusShort, elapsed: m.fixture.status.elapsed, long: m.fixture.status.long }
     },
     league: { id: lid, name: m.league?.name || leagueNames[lid] || 'Argentina', country: m.league?.country || 'Argentina', logo: m.league?.logo || '' },
     teams: {
