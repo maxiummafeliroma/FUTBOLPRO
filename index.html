@@ -1753,7 +1753,7 @@ function today() {
 
 // Limpiar caché de días anteriores al arrancar
 (function cleanStaleCache() {
-  const CACHE_VERSION = '20260416-fix'; // ← cambiar al deployar para forzar limpieza
+  const CACHE_VERSION = '20260416-espn'; // ← cambiar al deployar para forzar limpieza
   const todayStr = today();
   const savedVersion = localStorage.getItem('fp_cache_version');
   if(savedVersion !== CACHE_VERSION) {
@@ -2162,29 +2162,59 @@ async function loadMatches() {
   const container = document.getElementById('matchesContainer');
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando partidos del día...</div>';
 
-  // Competencias a consultar en football-data.org (CL y EL migrados a ESPN)
-  const FD_COMPS = ['PL','PD','SA','BL1','FL1','WC','CSL','EC','UNL'];
-  
+  // === MIGRADO: antes FD /matches?date=, ahora ESPN por liga en paralelo ===
+  // Cada entrada: { slug ESPN, leagueId interno, nombre }
+  const ESPN_MAIN_LEAGUES = [
+    { slug:'eng.1',                leagueId:'39',  name:'Premier League' },
+    { slug:'esp.1',                leagueId:'140', name:'La Liga' },
+    { slug:'ita.1',                leagueId:'135', name:'Serie A' },
+    { slug:'ger.1',                leagueId:'78',  name:'Bundesliga' },
+    { slug:'fra.1',                leagueId:'61',  name:'Ligue 1' },
+    { slug:'fifa.world',           leagueId:'1',   name:'Mundial 2026' },
+    { slug:'fifa.worldq.conmebol', leagueId:'35',  name:'Eliminatorias CONMEBOL' },
+    { slug:'fifa.worldq.uefa',     leagueId:'34',  name:'Eliminatorias UEFA' },
+    { slug:'uefa.nations_league',  leagueId:'9',   name:'Nations League' },
+  ];
+
   try {
-    const cacheKey = 'fp_fd_matches_' + today();
+    const todayStr = today();
+    const dateStr = todayStr.replace(/-/g,'');
+    const cacheKey = 'fp_espn_main_' + todayStr;
     const cached = cacheGet(cacheKey, CACHE_TTL.fixtures);
     let matches = [];
 
     if (cached) {
       matches = cached;
-      console.log('[CACHE HIT] FD matches');
+      console.log('[CACHE HIT] ESPN main matches');
     } else {
-      // football-data.org: traer todos los partidos de hoy
-      const res = await fdFetch('/matches?date=' + today());
-      if (res && res.matches && res.matches.length > 0) {
-        matches = res.matches.map(m => normalizeFDMatch(m, m.competition?.code || ''));
-        cacheSet(cacheKey, matches);
-      }
-    }
-
-    if (matches.length === 0) {
-      container.innerHTML = '<div class="empty-state">No hay partidos programados para hoy.<br><span style="font-size:11px;color:var(--muted)">Intentá de nuevo más tarde o revisá mañana.</span></div>';
-      return;
+      // Lanzar todos los requests a ESPN en paralelo
+      const results = await Promise.all(
+        ESPN_MAIN_LEAGUES.map(async lg => {
+          try {
+            const data = await espnFetch('/soccer/' + lg.slug + '/scoreboard?dates=' + dateStr);
+            if (!data || !data.events || !data.events.length) return [];
+            // Filtrar solo partidos cuya fecha AR sea hoy
+            const todayEvts = data.events.filter(e => {
+              if (!e.date) return false;
+              const d = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+              return d === todayStr;
+            });
+            return todayEvts.map(e => normalizeESPNMatch(e, lg.leagueId, lg.name));
+          } catch(e) { console.warn('[ESPN main]', lg.slug, e.message); return []; }
+        })
+      );
+      matches = results.flat().filter(m => m.fixture.status.short !== 'SKIP');
+      // Solo cachear si no hay partidos activos ni próximos (como hacía antes)
+      const hasActiveOrSoon = matches.some(m => {
+        const st = m.fixture.status.short;
+        if (['1H','HT','2H','ET','BT','P','INT'].includes(st)) return true;
+        if (st === 'NS') {
+          const mins = (new Date(m.fixture.date).getTime() - Date.now()) / 60000;
+          return mins < 120;
+        }
+        return false;
+      });
+      if (!hasActiveOrSoon) cacheSet(cacheKey, matches);
     }
 
     allMatches = matches;
@@ -4875,31 +4905,24 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isLive = status?.state === 'in';
   const isFin  = status?.state === 'post';
 
-  // Fecha del partido en hora Argentina
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
-  const todayAR = today();
+  const isStale = matchDateAR && matchDateAR < today();
+  const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
+  const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
+  const isOverdue = minsElapsed > 130; // más de 130 min desde el kickoff → terminó seguro
 
-  // Si el partido NO es de hoy AR → SKIP (no mezclar con partidos de ayer)
-  if(matchDateAR && matchDateAR !== todayAR) {
-    return { fixture:{id:'skip_'+e.id,date:e.date,status:{short:'SKIP',elapsed:null,long:''}}, league:{id:leagueId}, teams:{home:{},away:{}}, goals:{home:null,away:null}, events:[], aggregate:null, homeTeamId:'', odds:null };
+  // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
+  if((isLive || isFin) && isOverdue) {
+    return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
-  const statusShort = isLive
-    ? (status?.description?.includes('Half') ? 'HT' : '1H')
-    : isFin ? 'FT' : 'NS';
-  const elapsed = isLive ? (e.status?.displayClock?.replace(/"/g,"'") || null) : null;
+  const effectiveIsLive = isLive && !isStale && !isOverdue;
+  const effectiveIsFin  = isFin || isStale || isOverdue;
 
-  // Parser de score robusto: soporta string, number y objeto {value}
-  const parseScore = (c) => {
-    if(!c) return null;
-    const s = c.score;
-    if(s === undefined || s === null) return null;
-    if(typeof s === 'number') return s;
-    if(typeof s === 'string') { const n = parseInt(s,10); return isNaN(n) ? null : n; }
-    if(typeof s === 'object' && s.value !== undefined) return parseInt(s.value,10);
-    return null;
-  };
-
+  const statusShort = effectiveIsLive
+    ? (e.status?.type?.description?.includes('Half') ? 'HT' : '1H')
+    : effectiveIsFin ? 'FT' : 'NS';
+  const elapsed = effectiveIsLive ? (e.status?.displayClock?.replace(/"/g,"'") || null) : null;
   return {
     fixture: {
       id: 'espn_' + leagueId + '_' + e.id,
@@ -4912,10 +4935,10 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
       away: { id: away?.team?.id || away?.id || 0, name: away?.team?.displayName || away?.team?.name || '?', logo: away?.team?.logo || '' }
     },
     goals: {
-      home: (isLive||isFin) ? parseScore(home) : null,
-      away: (isLive||isFin) ? parseScore(away) : null
+      home: (effectiveIsLive||effectiveIsFin) ? parseInt(home?.score||0) : null,
+      away: (effectiveIsLive||effectiveIsFin) ? parseInt(away?.score||0) : null
     },
-    events: (isLive||isFin) ? extractESPNGoals(comp) : [],
+    events: (effectiveIsLive||effectiveIsFin) ? extractESPNGoals(comp) : [],
     aggregate: extractESPNAggregate(comp),
     homeTeamId: String(home?.team?.id || home?.id || ''),
     odds: null
