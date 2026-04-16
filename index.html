@@ -1151,11 +1151,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       </div>
       <div class="lp-sub">
         <a class="lp-sub-btn" href="primera-nacional.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
-        <button class="lp-sub-btn" onclick="lpOpenView('arg.2','tabla','Primera Nacional')">Tabla</button>
-        <button class="lp-sub-btn" onclick="lpOpenView('arg.2','fixture','Primera Nacional')">Fixture</button>
-      </div>
-      <div class="lp-sub">
-        <a class="lp-sub-btn" href="liga-argentina.html" style="text-decoration:none;color:var(--green);border-color:rgba(0,230,118,0.3)">↗ Página</a>
       </div>
 
       <div class="lp-item" onclick="lpSelectLeague('39','Premier League')" id="lp-39">
@@ -4772,9 +4767,16 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if(data && data.events && data.events.length) {
-        matches = data.events.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
-        // No cachear si hay partidos en vivo o terminados (score puede estar desactualizado)
-        const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+        // Filtrar solo partidos de hoy en timezone Argentina
+        const todayAR = today();
+        const todayEvents = data.events.filter(e => {
+          if(!e.date) return false;
+          const matchDateAR = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+          return matchDateAR === todayAR;
+        });
+        if(!todayEvents.length) return;
+        matches = todayEvents.map(e => normalizeESPNConmebolMatch(e, leagueId, leagueName));
+        const hasActive = todayEvents.some(e => ['in','post'].includes(e.status?.type?.state));
         if(!hasActive) cacheSet(ck, matches);
       }
     }
