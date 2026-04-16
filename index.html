@@ -2019,8 +2019,8 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
   const isOverdue = minsElapsed > 180;
 
-  // Si ESPN dice "in vivo" pero hace más de 3hs que arrancó → partido de anoche, marcar SKIP
-  if(isLive && isOverdue) {
+  // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
+  if((isLive || isFin) && isOverdue) {
     return { fixture: { id: 'espn_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
@@ -4821,8 +4821,8 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
   const isOverdue = minsElapsed > 180; // más de 3hs desde el kickoff → terminó seguro
 
-  // Si ESPN dice "in vivo" pero hace más de 3hs que arrancó → partido de anoche, marcar SKIP
-  if(isLive && isOverdue) {
+  // Si hace más de 3hs que arrancó (in o post) → partido de anoche, marcar SKIP
+  if((isLive || isFin) && isOverdue) {
     return { fixture: { id: 'espn_' + leagueId + '_' + e.id, date: e.date, status: { short: 'SKIP', elapsed: null, long: '' } }, league: { id: leagueId }, teams: { home: {}, away: {} }, goals: { home: null, away: null }, events: [], aggregate: null, homeTeamId: '', odds: null };
   }
 
