@@ -2062,7 +2062,7 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
 
   return {
     fixture: {
-      id: 'espn_' + e.id,
+      id: parseInt(e.id),
       date: e.date,
       status: { short: statusShort, elapsed: elapsed, long: status?.description || '' }
     },
