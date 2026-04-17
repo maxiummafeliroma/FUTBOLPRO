@@ -2751,7 +2751,7 @@ const SUPA_URL  = 'https://pglmteswkjqiruliyfhx.supabase.co';
 const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbG10ZXN3a2pxaXJ1bGl5Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjcyNzEsImV4cCI6MjA5MDY0MzI3MX0.o1jD0tI9N9y1uOZKzHsfxckHRpYnn_LzS_MuW3vfgpw';
 
 // Helper HTTP para Supabase
-async function supaFetch(path, opts={}) {
+async function supaFetch(path, opts={}, _retry=false) {
   const headers = {
     'apikey': SUPA_KEY,
     'Authorization': 'Bearer ' + (prodeSession?.access_token || SUPA_KEY),
@@ -2762,6 +2762,24 @@ async function supaFetch(path, opts={}) {
   try {
     const res = await fetch(SUPA_URL + path, { method: opts.method||'GET', headers, body: opts.body });
     if(res.status === 204) return {};
+    if(res.status === 401 && !_retry && prodeSession?.refresh_token) {
+      // Token vencido — intentar refresh
+      const ref = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: prodeSession.refresh_token })
+      });
+      if(ref.ok) {
+        const data = await ref.json();
+        if(data.access_token) {
+          prodeSession.access_token  = data.access_token;
+          prodeSession.refresh_token = data.refresh_token;
+          localStorage.setItem('fp_prode_session', JSON.stringify(prodeSession));
+          console.log('[Supabase] Token renovado automáticamente');
+          return supaFetch(path, opts, true); // reintentar una vez
+        }
+      }
+    }
     return await res.json();
   } catch(e) { console.warn('[supabase]', path, e.message); return null; }
 }
@@ -3180,19 +3198,25 @@ async function calcularPuntosAutomatico() {
     );
     if(!Array.isArray(fixtures) || !fixtures.length) return;
 
-    // Solo los que tienen resultado cargado
     const conResultado = fixtures.filter(f => f.Home_score !== null && f.away_score !== null);
     if(!conResultado.length) return;
+
+    // Traer pronósticos del usuario para esta fecha — solo los NO sumados aún
+    const pronosticosDB = await supaFetch(
+      '/rest/v1/pronosticos?user_id=eq.' + prodeUser.id +
+      '&fixture_id=in.(' + fixtureIds + ')&sumado=eq.false&select=fixture_id,pronostico'
+    );
+    if(!Array.isArray(pronosticosDB) || !pronosticosDB.length) return;
 
     const updates = [];
     for(const f of conResultado) {
       const fid = String(f.fixture_id);
-      const pronostico = prodePronosticos[fid];
-      if(!pronostico || !pronostico.includes('-')) continue;
+      const row = pronosticosDB.find(p => String(p.fixture_id) === fid);
+      if(!row || !row.pronostico || !row.pronostico.includes('-')) continue;
 
       const realH = parseInt(f.Home_score);
       const realA = parseInt(f.away_score);
-      const [predH, predA] = pronostico.split('-').map(Number);
+      const [predH, predA] = row.pronostico.split('-').map(Number);
 
       let puntos = 0;
       if(predH === realH && predA === realA) {
@@ -3203,31 +3227,37 @@ async function calcularPuntosAutomatico() {
         if(predGanador === realGanador) puntos = 1;
       }
 
-      const resultado = realH + '-' + realA;
-      updates.push({ fixture_id: parseInt(fid), resultado, puntos });
+      updates.push({ fixture_id: parseInt(fid), resultado: realH + '-' + realA, puntos });
     }
 
     if(!updates.length) return;
 
-    // Actualizar pronosticos en Supabase
+    // Actualizar cada pronóstico con resultado, puntos y sumado=true
     for(const u of updates) {
       await supaFetch('/rest/v1/pronosticos?user_id=eq.' + prodeUser.id + '&fixture_id=eq.' + u.fixture_id, {
         method: 'PATCH',
-        body: JSON.stringify({ resultado: u.resultado, puntos: u.puntos, updated_at: new Date().toISOString() })
+        body: JSON.stringify({ resultado: u.resultado, puntos: u.puntos, sumado: true, updated_at: new Date().toISOString() })
       });
     }
 
-    // Actualizar puntos totales en profiles
+    // Sumar al perfil solo los puntos nuevos (no sumados antes)
     const totalNuevo = updates.reduce((s,u) => s+u.puntos, 0);
+    const aciertosNuevos = updates.filter(u=>u.puntos>0).length;
+
+    // Leer puntos actuales del perfil para sumar correctamente
+    const perfil = await supaFetch('/rest/v1/profiles?id=eq.' + prodeUser.id + '&select=puntos_total,aciertos_total');
+    const ptsActual = perfil?.[0]?.puntos_total || 0;
+    const aciertosActual = perfil?.[0]?.aciertos_total || 0;
+
     await supaFetch('/rest/v1/profiles?id=eq.' + prodeUser.id, {
       method: 'PATCH',
       body: JSON.stringify({
-        puntos_total: (prodeUser.puntos_total || 0) + totalNuevo,
-        aciertos_total: (prodeUser.aciertos_total || 0) + updates.filter(u=>u.puntos>0).length
+        puntos_total: ptsActual + totalNuevo,
+        aciertos_total: aciertosActual + aciertosNuevos
       })
     });
 
-    console.log('[Prode] Puntos calculados:', updates);
+    console.log('[Prode] Puntos nuevos sumados:', updates);
   } catch(e) { console.warn('[calc puntos]', e.message); }
 }
 
@@ -3241,6 +3271,16 @@ async function loadMisPronosticos() {
     return;
   }
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div></div>';
+
+  // Calcular puntos antes de mostrar
+  await calcularPuntosAutomatico();
+
+  // Renovar cada 30 minutos
+  if(!window._misPronosticosInterval) {
+    window._misPronosticosInterval = setInterval(() => {
+      calcularPuntosAutomatico().then(() => loadMisPronosticos());
+    }, 30 * 60 * 1000);
+  }
 
   const data = await supaFetch(`/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=30&select=fixture_id,pronostico,resultado,puntos,created_at`);
   if(!data || !data.length) {
@@ -3317,26 +3357,7 @@ async function loadRanking() {
 }
 
 function renderFallbackRanking() {
-  const sample = [
-    {username:'Martín G.',puntos_total:127,aciertos_total:14},
-    {username:'Sofía R.', puntos_total:118,aciertos_total:13},
-    {username:'Lucas P.', puntos_total:109,aciertos_total:12},
-    {username:'Juliana M.',puntos_total:98, aciertos_total:11},
-    {username:'Agustín V.',puntos_total:87, aciertos_total:10},
-  ];
-  return `<div style="font-size:11px;color:var(--muted2);text-align:center;margin-bottom:10px">El ranking se actualizará cuando haya participantes registrados</div>` +
-  sample.map((u,i) => {
-    const posClass = i===0?'p1':i===1?'p2':i===2?'p3':'';
-    const bgColor = i===0?'rgba(255,214,0,0.15)':i===1?'rgba(144,164,174,0.15)':i===2?'rgba(184,115,51,0.15)':'var(--card3)';
-    const txtColor = i===0?'var(--gold)':i===1?'#90a4ae':i===2?'#b87333':'var(--muted2)';
-    const initials = u.username.substring(0,2).toUpperCase();
-    return `<div class="ranking-row">
-      <div class="rank-pos ${posClass}">${i+1}</div>
-      <div style="width:36px;height:36px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${txtColor};flex-shrink:0">${initials}</div>
-      <div class="rank-user"><div class="rank-name">${u.username}</div><div class="rank-detail">${u.aciertos_total} aciertos</div></div>
-      <div class="rank-pts">${u.puntos_total}</div>
-    </div>`;
-  }).join('');
+  return '<div class="empty-state" style="text-align:center;padding:30px 0">🏆 El ranking se actualizará cuando haya participantes con pronósticos.</div>';
 }
 
 async function loadUserPoints() {
