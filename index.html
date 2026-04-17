@@ -1374,10 +1374,10 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       <div id="prode-tab-pronosticar">
         <div id="prodeMatchesGrid" class="prode-grid">
           <div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div><br>Cargando partidos...</div>
-        </div>
-        <div class="prode-submit-bar" id="prodeSubmitBar" style="display:none">
-          <div class="prode-submit-count">Completaste <strong id="prodeCount">0</strong> pronósticos</div>
-          <button class="prode-submit-btn" id="prodeSubmitBtn" onclick="submitPronosticos()" disabled>Guardar pronósticos</button>
+          <div class="prode-submit-bar" id="prodeSubmitBar" style="display:none;grid-column:1/-1">
+            <div class="prode-submit-count">Completaste <strong id="prodeCount">0</strong> pronósticos</div>
+            <button class="prode-submit-btn" id="prodeSubmitBtn" onclick="submitPronosticos()" disabled>Guardar pronósticos</button>
+          </div>
         </div>
       </div>
 
@@ -3081,10 +3081,12 @@ function renderProdeGrid() {
     </div>`;
   }).join('');
 
-  // Submit bar
+  // Submit bar — reinsertarlo al final de la grilla (innerHTML lo sobreescribe)
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
+    grid.appendChild(submitBar);
     submitBar.style.display = disabled ? 'none' : 'flex';
+    submitBar.style.gridColumn = '1/-1';
     if(!disabled) {
       document.getElementById('prodeCount').textContent = count;
       if(submitBtn) {
