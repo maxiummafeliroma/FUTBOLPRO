@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - FutbolPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#07090f;--bg2:#0c1018;--card:#0f1520;--card2:#141e2d;--green:#00e676;--red:#f44336;--border:rgba(255,255,255,0.06);--txt:#e8f0fe;--muted:#546e7a;--muted2:#78909c;--gold:#ffd600}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-height:100vh}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green)}
+.logo span{color:var(--txt)}
+.admin-badge{background:rgba(255,214,0,0.15);color:var(--gold);border:1px solid rgba(255,214,0,0.3);border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.wrap{max-width:800px;margin:0 auto;padding:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;margin-bottom:14px;color:var(--txt)}
+.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:12px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+input[type=number],input[type=text],input[type=password]{background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--txt);padding:10px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;width:120px}
+input[type=text],input[type=password]{width:220px}
+input:focus{border-color:var(--green)}
+.btn{padding:10px 20px;border-radius:8px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.btn-green{background:var(--green);color:#050a05}
+.btn-green:hover{opacity:.9}
+.btn-green:disabled{opacity:.5;cursor:not-allowed}
+.btn-red{background:rgba(244,67,54,0.15);color:var(--red);border:1px solid rgba(244,67,54,0.3)}
+.status{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px}
+.status.ok{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);color:var(--green)}
+.status.err{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.2);color:var(--red)}
+.status.info{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted2)}
+.fixture-list{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.fixture-row{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+.fixture-teams{display:flex;align-items:center;gap:8px}
+.fixture-teams img{width:24px;height:24px;object-fit:contain}
+.fixture-date{font-size:11px;color:var(--muted2)}
+.badge-fecha{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+.login-wrap{max-width:400px;margin:60px auto;text-align:center}
+.login-wrap h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;margin-bottom:20px;color:var(--green)}
+.login-form{display:flex;flex-direction:column;gap:10px;align-items:center}
+.login-form input{width:100%}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FUTBOL<span>PRO</span></div>
+  <div class="admin-badge">⚙️ ADMIN</div>
+  <div style="margin-left:auto;font-size:13px;color:var(--muted2)" id="userInfo"></div>
+  <button class="btn btn-red" id="logoutBtn" style="display:none;padding:6px 14px;font-size:12px" onclick="logout()">Salir</button>
+</header>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginSection">
+  <h2>🔐 Acceso Admin</h2>
+  <div class="login-form">
+    <div class="form-group" style="width:100%">
+      <label>Email</label>
+      <input type="text" id="loginEmail" placeholder="tu@email.com" style="width:100%">
+    </div>
+    <div class="form-group" style="width:100%">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" style="width:100%">
+    </div>
+    <button class="btn btn-green" style="width:100%" onclick="doLogin()">Ingresar</button>
+    <div id="loginStatus" style="width:100%"></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="wrap" id="adminSection" style="display:none">
+
+  <!-- Cargar fixtures -->
+  <div class="card">
+    <div class="card-title">📥 Cargar partidos del Prode</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Número de fecha</label>
+        <input type="number" id="fechaNum" value="15" min="1" max="30">
+      </div>
+      <div class="form-group">
+        <label>Temporada</label>
+        <input type="number" id="seasonNum" value="2026" min="2024" max="2030" style="width:100px">
+      </div>
+      <button class="btn btn-green" id="loadBtn" onclick="cargarFecha()">Cargar fecha</button>
+    </div>
+    <div id="loadStatus"></div>
+    <div id="fixturePreview"></div>
+  </div>
+
+  <!-- Fixtures cargados -->
+  <div class="card">
+    <div class="card-title">📋 Fechas cargadas en Supabase</div>
+    <button class="btn btn-green" style="font-size:12px;padding:6px 14px;margin-bottom:12px" onclick="verFechasCargadas()">Actualizar lista</button>
+    <div id="fechasCargadas"><div class="status info">Tocá "Actualizar lista" para ver los fixtures guardados.</div></div>
+  </div>
+
+  <!-- Borrar fecha -->
+  <div class="card">
+    <div class="card-title">🗑️ Borrar fecha</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Número de fecha</label>
+        <input type="number" id="borrarFechaNum" value="15" min="1" max="30">
+      </div>
+      <button class="btn btn-red" onclick="borrarFecha()">Borrar fecha</button>
+    </div>
+    <div id="borrarStatus"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPA_URL = 'https://pglmteswkjqiruliyfhx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbG10ZXN3a2pxaXJ1bGl5Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjcyNzEsImV4cCI6MjA5MDY0MzI3MX0.o1jD0tI9N9y1uOZKzHsfxckHRpYnn_LzS_MuW3vfgpw';
+const API_KEY  = '3ee7870931dc083abe0da60576870de5';
+
+let session = null;
+
+// ── AUTH ───────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const st    = document.getElementById('loginStatus');
+  st.innerHTML = '<div class="status info"><span class="spinner"></span>Ingresando...</div>';
+
+  const res = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: {'apikey': SUPA_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password: pass})
+  });
+  const data = await res.json();
+  if(data.access_token) {
+    session = data;
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('adminSection').style.display = 'block';
+    document.getElementById('userInfo').textContent = email;
+    document.getElementById('logoutBtn').style.display = 'block';
+    verFechasCargadas();
+  } else {
+    st.innerHTML = '<div class="status err">❌ Email o contraseña incorrectos.</div>';
+  }
+}
+
+function logout() {
+  session = null;
+  document.getElementById('loginSection').style.display = 'block';
+  document.getElementById('adminSection').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+}
+
+// ── CARGAR FECHA DESDE API-SPORTS ─────────────────────────────────
+async function cargarFecha() {
+  const fecha  = parseInt(document.getElementById('fechaNum').value);
+  const season = parseInt(document.getElementById('seasonNum').value);
+  const st     = document.getElementById('loadStatus');
+  const prev   = document.getElementById('fixturePreview');
+  const btn    = document.getElementById('loadBtn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Cargando...';
+  st.innerHTML  = '<div class="status info">Consultando api-sports...</div>';
+  prev.innerHTML = '';
+
+  try {
+    const round = `Regular Season - ${fecha}`;
+    const url   = `https://v3.football.api-sports.io/fixtures?league=128&season=${season}&round=${encodeURIComponent(round)}`;
+    const res   = await fetch(url, {
+      headers: {'x-apisports-key': API_KEY}
+    });
+    const data  = await res.json();
+    const fixtures = data.response || [];
+
+    if(!fixtures.length) {
+      st.innerHTML = `<div class="status err">❌ No se encontraron partidos para la Fecha ${fecha}. Verificá el número.</div>`;
+      btn.disabled = false; btn.textContent = 'Cargar fecha';
+      return;
+    }
+
+    st.innerHTML = `<div class="status ok">✅ ${fixtures.length} partidos encontrados. Guardando en Supabase...</div>`;
+
+    // Guardar en Supabase
+    const rows = fixtures.map(f => ({
+      fecha,
+      fixture_id: f.fixture.id,
+      home_name:  f.teams.home.name,
+      away_name:  f.teams.away.name,
+      home_logo:  f.teams.home.logo,
+      away_logo:  f.teams.away.logo,
+      match_date: f.fixture.date,
+      season
+    }));
+
+    const saveRes = await fetch(SUPA_URL + '/rest/v1/prode_fixtures', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(rows)
+    });
+
+    if(saveRes.ok || saveRes.status === 201) {
+      st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} guardada — ${fixtures.length} partidos.</div>`;
+    } else {
+      const err = await saveRes.text();
+      st.innerHTML = `<div class="status err">❌ Error guardando: ${err}</div>`;
+    }
+
+    // Preview
+    prev.innerHTML = '<div class="fixture-list">' +
+      fixtures.map(f => `
+        <div class="fixture-row">
+          <div class="fixture-teams">
+            <img src="${f.teams.home.logo}" onerror="this.style.display='none'">
+            <span>${f.teams.home.name}</span>
+            <span style="color:var(--muted2);padding:0 6px">vs</span>
+            <img src="${f.teams.away.logo}" onerror="this.style.display='none'">
+            <span>${f.teams.away.name}</span>
+          </div>
+          <div class="fixture-date">${new Date(f.fixture.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</div>
+        </div>`
+      ).join('') + '</div>';
+
+  } catch(e) {
+    st.innerHTML = `<div class="status err">❌ Error: ${e.message}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Cargar fecha';
+  verFechasCargadas();
+}
+
+// ── VER FECHAS CARGADAS ────────────────────────────────────────────
+async function verFechasCargadas() {
+  const cont = document.getElementById('fechasCargadas');
+  cont.innerHTML = '<div class="status info"><span class="spinner"></span>Cargando...</div>';
+
+  const res  = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?select=fecha,fixture_id,home_name,away_name,match_date&order=fecha.asc,match_date.asc', {
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (session?.access_token || SUPA_KEY)}
+  });
+  const data = await res.json();
+
+  if(!data || !data.length) {
+    cont.innerHTML = '<div class="status info">No hay fixtures cargados todavía.</div>';
+    return;
+  }
+
+  // Agrupar por fecha
+  const byFecha = {};
+  data.forEach(f => {
+    if(!byFecha[f.fecha]) byFecha[f.fecha] = [];
+    byFecha[f.fecha].push(f);
+  });
+
+  cont.innerHTML = Object.entries(byFecha).map(([fecha, items]) => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span class="badge-fecha">Fecha ${fecha}</span>
+        <span style="font-size:11px;color:var(--muted2)">${items.length} partidos</span>
+      </div>
+      <div class="fixture-list">
+        ${items.map(f => `
+          <div class="fixture-row">
+            <span>${f.home_name} vs ${f.away_name}</span>
+            <span class="fixture-date">${new Date(f.match_date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ── BORRAR FECHA ───────────────────────────────────────────────────
+async function borrarFecha() {
+  const fecha = parseInt(document.getElementById('borrarFechaNum').value);
+  if(!confirm(`¿Seguro que querés borrar todos los partidos de la Fecha ${fecha}?`)) return;
+
+  const st = document.getElementById('borrarStatus');
+  st.innerHTML = '<div class="status info"><span class="spinner"></span>Borrando...</div>';
+
+  const res = await fetch(SUPA_URL + `/rest/v1/prode_fixtures?fecha=eq.${fecha}`, {
+    method: 'DELETE',
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + session.access_token}
+  });
+
+  if(res.ok) {
+    st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} borrada.</div>`;
+    verFechasCargadas();
+  } else {
+    st.innerHTML = `<div class="status err">❌ Error al borrar.</div>`;
+  }
+}
+
+// Enter en login
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !session) doLogin();
+});
+</script>
+</body>
+</html>
