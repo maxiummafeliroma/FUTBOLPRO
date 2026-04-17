@@ -2939,11 +2939,8 @@ async function loadProdeFixtures() {
 
   // 1) Leer de Supabase — toma la fecha activa más próxima con partidos futuros
   try {
-    const now = new Date().toISOString();
-    // Traer todos los partidos con match_date >= ahora, ordenados por match_date
     const rows = await supaFetch(
-      '/rest/v1/prode_fixtures?match_date=gte.' + now +
-      '&order=match_date.asc&limit=100'
+      '/rest/v1/prode_fixtures?order=match_date.asc&limit=100'
     );
     if(Array.isArray(rows) && rows.length) {
       // Agrupar por fecha (número de fecha del torneo) y tomar la más próxima
