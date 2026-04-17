@@ -2936,39 +2936,43 @@ async function loadProdeFixtures() {
   grid.innerHTML = '<div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div><br>Cargando partidos...</div>';
 
   let fixtures = [];
-  try {
-    const data = await espnFetch('/soccer/arg.1/scoreboard');
-    if(data && data.events && data.events.length) {
-      fixtures = data.events
-        .filter(e => e.status?.type?.state !== 'post')
-        .map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
-    }
-  } catch(e) { console.warn('[ESPN prode]', e.message); }
 
+  // 1) Leer de Supabase — toma la fecha activa más próxima con partidos futuros
+  try {
+    const now = new Date().toISOString();
+    // Traer todos los partidos con match_date >= ahora, ordenados por match_date
+    const rows = await supaFetch(
+      '/rest/v1/prode_fixtures?match_date=gte.' + now +
+      '&order=match_date.asc&limit=100'
+    );
+    if(Array.isArray(rows) && rows.length) {
+      // Agrupar por fecha (número de fecha del torneo) y tomar la más próxima
+      const fechaActiva = rows[0].fecha;
+      const deEstaFecha = rows.filter(r => r.fecha === fechaActiva);
+      fixtures = deEstaFecha.map(r => ({
+        fixture: { id: r.fixture_id, date: r.match_date, status: { short: 'NS', elapsed: null } },
+        league:  { id: '128', name: 'Liga Profesional Argentina' },
+        teams:   {
+          home: { id: 0, name: r.home_name, logo: r.home_logo || '' },
+          away: { id: 0, name: r.away_name, logo: r.away_logo || '' }
+        },
+        goals: { home: null, away: null }
+      }));
+      console.log('[Prode] Cargados ' + fixtures.length + ' partidos de Supabase (Fecha ' + fechaActiva + ')');
+    }
+  } catch(e) { console.warn('[Supabase prode]', e.message); }
+
+  // 2) Fallback ESPN si Supabase no devolvió nada
   if(!fixtures.length) {
-    const FECHA_14 = [
-      {id:14001, date:'2026-04-10T21:00:00-03:00', home:'Belgrano',        away:'Aldosivi'},
-      {id:14002, date:'2026-04-11T15:00:00-03:00', home:'Riestra',         away:'Instituto'},
-      {id:14003, date:'2026-04-11T15:30:00-03:00', home:'Ind. Rivadavia',  away:'Argentinos Jrs.'},
-      {id:14004, date:'2026-04-11T17:15:00-03:00', home:'Estudiantes',     away:'Union'},
-      {id:14005, date:'2026-04-11T19:30:00-03:00', home:'Boca Juniors',    away:'Independiente'},
-      {id:14006, date:'2026-04-11T21:45:00-03:00', home:'Estudiantes RC',  away:'Barracas Central'},
-      {id:14007, date:'2026-04-12T15:00:00-03:00', home:'Newells',         away:'San Lorenzo'},
-      {id:14008, date:'2026-04-12T15:00:00-03:00', home:'Platense',        away:'Gimnasia (M)'},
-      {id:14009, date:'2026-04-12T17:30:00-03:00', home:'Huracan',         away:'Rosario Central'},
-      {id:14010, date:'2026-04-12T17:30:00-03:00', home:'Atl. Tucuman',    away:'Tigre'},
-      {id:14011, date:'2026-04-12T20:00:00-03:00', home:'Racing Club',     away:'River Plate'},
-      {id:14012, date:'2026-04-13T16:30:00-03:00', home:'Def. y Justicia', away:'Talleres'},
-      {id:14013, date:'2026-04-13T16:30:00-03:00', home:'Sarmiento',       away:'Gimnasia LP'},
-      {id:14014, date:'2026-04-13T19:00:00-03:00', home:'Lanus',           away:'Banfield'},
-      {id:14015, date:'2026-04-13T21:30:00-03:00', home:'Velez',           away:'Central Cordoba'},
-    ];
-    fixtures = FECHA_14.map(p => ({
-      fixture: { id: p.id, date: p.date, status: { short: 'NS', elapsed: null } },
-      league:  { id: '128', name: 'Liga Profesional Argentina' },
-      teams:   { home: { id: 0, name: p.home, logo: '' }, away: { id: 0, name: p.away, logo: '' } },
-      goals:   { home: null, away: null }
-    }));
+    try {
+      const data = await espnFetch('/soccer/arg.1/scoreboard');
+      if(data && data.events && data.events.length) {
+        fixtures = data.events
+          .filter(e => e.status?.type?.state !== 'post')
+          .map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
+        console.log('[Prode] Cargados ' + fixtures.length + ' partidos de ESPN');
+      }
+    } catch(e) { console.warn('[ESPN prode]', e.message); }
   }
 
   prodeMatches = fixtures
