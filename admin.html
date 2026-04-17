@@ -92,6 +92,20 @@ input:focus{border-color:var(--green)}
     <div id="fechasCargadas"><div class="status info">Tocá "Actualizar lista" para ver los fixtures guardados.</div></div>
   </div>
 
+  <!-- Cargar resultados -->
+  <div class="card">
+    <div class="card-title">⚽ Cargar resultados</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Número de fecha</label>
+        <input type="number" id="resultadoFechaNum" value="15" min="1" max="30">
+      </div>
+      <button class="btn btn-green" onclick="cargarPartidosParaResultado()">Ver partidos</button>
+    </div>
+    <div id="resultadosLista"></div>
+    <div id="resultadosStatus"></div>
+  </div>
+
   <!-- Borrar fecha -->
   <div class="card">
     <div class="card-title">🗑️ Borrar fecha</div>
@@ -338,6 +352,61 @@ async function verFechasCargadas() {
 }
 
 // ── BORRAR FECHA ───────────────────────────────────────────────────
+async function cargarPartidosParaResultado() {
+  const fecha = parseInt(document.getElementById('resultadoFechaNum').value);
+  const lista = document.getElementById('resultadosLista');
+  const st    = document.getElementById('resultadosStatus');
+  lista.innerHTML = '<div class="status info">Cargando...</div>';
+  st.innerHTML = '';
+
+  const res = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?fecha=eq.' + fecha +
+    '&order=match_date.asc&select=id,fixture_id,home_name,away_name,match_date,Home_score,away_score', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  });
+  const rows = await res.json();
+  if(!rows.length) { lista.innerHTML = '<div class="status err">No hay partidos para esa fecha.</div>'; return; }
+
+  lista.innerHTML = '<div class="fixture-list" style="margin-top:10px">' +
+    rows.map(r => `
+      <div class="fixture-row" style="gap:10px;flex-wrap:wrap">
+        <span style="flex:1;font-weight:600">${r.home_name} vs ${r.away_name}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" min="0" max="20" value="${r.Home_score ?? ''}" placeholder="L"
+            id="hs_${r.id}" style="width:48px;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--txt);text-align:center;font-size:16px;font-weight:700">
+          <span style="font-weight:700">-</span>
+          <input type="number" min="0" max="20" value="${r.away_score ?? ''}" placeholder="V"
+            id="as_${r.id}" style="width:48px;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--txt);text-align:center;font-size:16px;font-weight:700">
+        </div>
+      </div>`).join('') +
+  '</div>' +
+  '<button class="btn btn-green" style="margin-top:14px;width:100%" onclick="guardarResultados(' + fecha + ', ' + JSON.stringify(rows.map(r=>r.id)) + ')">Guardar resultados</button>';
+}
+
+async function guardarResultados(fecha, ids) {
+  const st = document.getElementById('resultadosStatus');
+  st.innerHTML = '<div class="status info">Guardando...</div>';
+  let ok = 0, err = 0;
+  for(const id of ids) {
+    const hs = document.getElementById('hs_' + id)?.value;
+    const as = document.getElementById('as_' + id)?.value;
+    if(hs === '' || as === '') continue; // saltar si no cargó resultado
+    const res = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?id=eq.' + id, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ Home_score: parseInt(hs), away_score: parseInt(as) })
+    });
+    res.ok ? ok++ : err++;
+  }
+  st.innerHTML = ok > 0
+    ? '<div class="status ok">✅ ' + ok + ' resultado(s) guardado(s).</div>'
+    : '<div class="status err">❌ Error al guardar.</div>';
+}
+
 async function borrarFecha() {
   const fecha = parseInt(document.getElementById('borrarFechaNum').value);
   if(!confirm(`¿Seguro que querés borrar todos los partidos de la Fecha ${fecha}?`)) return;
