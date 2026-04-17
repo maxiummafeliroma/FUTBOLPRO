@@ -3172,53 +3172,32 @@ async function submitPronosticos() {
 async function calcularPuntosAutomatico() {
   if(!prodeSession || !prodeUser?.id || !prodeMatches.length) return;
 
-  // Buscar partidos terminados
   try {
-    const dateStr = today().replace(/-/g,'');
-    // Traer resultados de los últimos 7 días
-    const desde = new Date(Date.now() - 7*24*60*60*1000).toISOString().slice(0,10).replace(/-/g,'');
-    const data = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?dates=${desde}-${dateStr}`)
-      .then(r => r.ok ? r.json() : null);
+    // Traer fixtures con resultado cargado desde Supabase
+    const fixtureIds = prodeMatches.map(m => m.fixture.id).join(',');
+    const fixtures = await supaFetch(
+      '/rest/v1/prode_fixtures?fixture_id=in.(' + fixtureIds + ')&select=fixture_id,Home_score,away_score'
+    );
+    if(!Array.isArray(fixtures) || !fixtures.length) return;
 
-    if(!data || !data.events) return;
+    // Solo los que tienen resultado cargado
+    const conResultado = fixtures.filter(f => f.Home_score !== null && f.away_score !== null);
+    if(!conResultado.length) return;
 
     const updates = [];
-    for(const [fid, pronostico] of Object.entries(prodePronosticos)) {
+    for(const f of conResultado) {
+      const fid = String(f.fixture_id);
+      const pronostico = prodePronosticos[fid];
       if(!pronostico || !pronostico.includes('-')) continue;
 
-      // Buscar el partido en ESPN por nombre de equipos
-      const match = prodeMatches.find(m => String(m.fixture.id) === String(fid));
-      if(!match) continue;
-
-      // Buscar evento ESPN correspondiente
-      const ev = data.events.find(e => {
-        const comp = e.competitions?.[0];
-        const home = comp?.competitors?.find(t => t.homeAway === 'home');
-        const away = comp?.competitors?.find(t => t.homeAway === 'away');
-        const hName = home?.team?.displayName?.toLowerCase() || '';
-        const aName = away?.team?.displayName?.toLowerCase() || '';
-        const mHome = match.teams.home.name.toLowerCase();
-        const mAway = match.teams.away.name.toLowerCase();
-        return (hName.includes(mHome.split(' ')[0]) || mHome.includes(hName.split(' ')[0])) &&
-               (aName.includes(mAway.split(' ')[0]) || mAway.includes(aName.split(' ')[0]));
-      });
-
-      if(!ev) continue;
-      const status = ev.status?.type?.state;
-      if(status !== 'post') continue; // Solo terminados
-
-      const comp = ev.competitions?.[0];
-      const homeTeam = comp?.competitors?.find(t => t.homeAway === 'home');
-      const awayTeam = comp?.competitors?.find(t => t.homeAway === 'away');
-      const realH = parseInt(homeTeam?.score || 0);
-      const realA = parseInt(awayTeam?.score || 0);
+      const realH = parseInt(f.Home_score);
+      const realA = parseInt(f.away_score);
       const [predH, predA] = pronostico.split('-').map(Number);
 
       let puntos = 0;
       if(predH === realH && predA === realA) {
-        puntos = 3; // Exacto
+        puntos = 3;
       } else {
-        // Mismo ganador
         const predGanador = predH > predA ? 'H' : predH < predA ? 'A' : 'X';
         const realGanador = realH > realA ? 'H' : realH < realA ? 'A' : 'X';
         if(predGanador === realGanador) puntos = 1;
@@ -3230,7 +3209,7 @@ async function calcularPuntosAutomatico() {
 
     if(!updates.length) return;
 
-    // Actualizar en Supabase
+    // Actualizar pronosticos en Supabase
     for(const u of updates) {
       await supaFetch('/rest/v1/pronosticos?user_id=eq.' + prodeUser.id + '&fixture_id=eq.' + u.fixture_id, {
         method: 'PATCH',
@@ -3240,15 +3219,15 @@ async function calcularPuntosAutomatico() {
 
     // Actualizar puntos totales en profiles
     const totalNuevo = updates.reduce((s,u) => s+u.puntos, 0);
-    if(totalNuevo > 0) {
-      await supaFetch('/rest/v1/profiles?id=eq.' + prodeUser.id, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          puntos_total: (prodeUser.puntos_total || 0) + totalNuevo,
-          aciertos_total: (prodeUser.aciertos_total || 0) + updates.filter(u=>u.puntos>0).length
-        })
-      });
-    }
+    await supaFetch('/rest/v1/profiles?id=eq.' + prodeUser.id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        puntos_total: (prodeUser.puntos_total || 0) + totalNuevo,
+        aciertos_total: (prodeUser.aciertos_total || 0) + updates.filter(u=>u.puntos>0).length
+      })
+    });
+
+    console.log('[Prode] Puntos calculados:', updates);
   } catch(e) { console.warn('[calc puntos]', e.message); }
 }
 
