@@ -79,17 +79,7 @@ input:focus{border-color:var(--green)}
   <div class="card">
     <div class="card-title">📥 Cargar partidos del Prode</div>
     <div class="form-row">
-      <div class="form-group">
-        <label>Fecha / Round</label>
-        <select id="roundSelect" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--txt);padding:10px 14px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;min-width:220px">
-          <option value="">Cargando rounds...</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Número de fecha</label>
-        <input type="number" id="fechaNum" value="15" min="1" max="30">
-      </div>
-      <button class="btn btn-green" id="loadBtn" onclick="cargarFecha()">Cargar fecha</button>
+      <button class="btn btn-green" id="loadBtn" onclick="buscarPartidosESPN()">Buscar partidos ESPN</button>
     </div>
     <div id="loadStatus"></div>
     <div id="fixturePreview"></div>
@@ -162,113 +152,151 @@ function logout() {
   document.getElementById('logoutBtn').style.display = 'none';
 }
 
-// ── CARGAR ROUNDS DISPONIBLES ─────────────────────────────────────
+// ── BUSCAR PARTIDOS ESPN (próximos 10 días) ───────────────────────
+let partidosESPN = []; // guardamos para selección
+
 async function cargarRounds() {
-  try {
-    const res  = await fetch('https://v3.football.api-sports.io/fixtures/rounds?league=128&season=2026&current=true', {
-      headers: {'x-apisports-key': API_KEY}
-    });
-    const data = await res.json();
-    // También traer todos los rounds
-    const res2  = await fetch('https://v3.football.api-sports.io/fixtures/rounds?league=128&season=2026', {
-      headers: {'x-apisports-key': API_KEY}
-    });
-    const data2 = await res2.json();
-    const rounds = data2.response || [];
-    const current = data.response?.[0] || '';
-    const sel = document.getElementById('roundSelect');
-    sel.innerHTML = rounds.map(r => `<option value="${r}" ${r===current?'selected':''}>${r}</option>`).join('');
-    // Extraer número de fecha del round actual
-    const match = current.match(/\d+/);
-    if(match) document.getElementById('fechaNum').value = match[0];
-  } catch(e) {
-    document.getElementById('roundSelect').innerHTML = '<option>Error cargando rounds</option>';
-  }
+  // No usamos api-sports, buscamos vía ESPN
+  buscarPartidosESPN();
 }
 
-// ── CARGAR FECHA DESDE API-SPORTS ─────────────────────────────────
-async function cargarFecha() {
-  const roundSel = document.getElementById('roundSelect').value;
-  const fecha    = parseInt(document.getElementById('fechaNum').value);
-  const season   = 2026;
-  const st     = document.getElementById('loadStatus');
-  const prev   = document.getElementById('fixturePreview');
-  const btn    = document.getElementById('loadBtn');
+async function buscarPartidosESPN() {
+  const st   = document.getElementById('loadStatus');
+  const prev = document.getElementById('fixturePreview');
+  const btn  = document.getElementById('loadBtn');
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Cargando...';
-  st.innerHTML  = '<div class="status info">Consultando api-sports...</div>';
+  btn.innerHTML = '<span class="spinner"></span>Buscando partidos...';
+  st.innerHTML  = '<div class="status info">Consultando ESPN — próximos 10 días...</div>';
   prev.innerHTML = '';
 
   try {
-    const round = roundSel || `Regular Season - ${fecha}`;
-    const url   = `https://v3.football.api-sports.io/fixtures?league=128&season=${season}&round=${encodeURIComponent(round)}`;
-    const res   = await fetch(url, {
-      headers: {'x-apisports-key': API_KEY}
-    });
-    const data  = await res.json();
-    const fixtures = data.response || [];
+    const desde = new Date();
+    const hasta = new Date(Date.now() + 10*24*60*60*1000);
+    const f1 = desde.toISOString().slice(0,10).replace(/-/g,'');
+    const f2 = hasta.toISOString().slice(0,10).replace(/-/g,'');
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?dates=${f1}-${f2}&limit=50`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const events = data.events || [];
 
-    if(!fixtures.length) {
-      st.innerHTML = `<div class="status err">❌ No se encontraron partidos para la Fecha ${fecha}. Verificá el número.</div>`;
-      btn.disabled = false; btn.textContent = 'Cargar fecha';
+    if(!events.length) {
+      st.innerHTML = '<div class="status err">❌ No se encontraron partidos próximos en ESPN.</div>';
+      btn.disabled = false; btn.textContent = 'Buscar partidos';
       return;
     }
 
-    st.innerHTML = `<div class="status ok">✅ ${fixtures.length} partidos encontrados. Guardando en Supabase...</div>`;
+    partidosESPN = events;
+    st.innerHTML = `<div class="status ok">✅ ${events.length} partidos encontrados. Seleccioná los que querés incluir en la fecha del Prode.</div>`;
 
-    // Guardar en Supabase
-    const rows = fixtures.map(f => ({
-      fecha,
-      fixture_id: f.fixture.id,
-      home_name:  f.teams.home.name,
-      away_name:  f.teams.away.name,
-      home_logo:  f.teams.home.logo,
-      away_logo:  f.teams.away.logo,
-      match_date: f.fixture.date,
-      season
-    }));
-
-    const saveRes = await fetch(SUPA_URL + '/rest/v1/prode_fixtures', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + session.access_token,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(rows)
-    });
-
-    if(saveRes.ok || saveRes.status === 201) {
-      st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} guardada — ${fixtures.length} partidos.</div>`;
-    } else {
-      const err = await saveRes.text();
-      st.innerHTML = `<div class="status err">❌ Error guardando: ${err}</div>`;
-    }
-
-    // Preview
-    prev.innerHTML = '<div class="fixture-list">' +
-      fixtures.map(f => `
-        <div class="fixture-row">
-          <div class="fixture-teams">
-            <img src="${f.teams.home.logo}" onerror="this.style.display='none'">
-            <span>${f.teams.home.name}</span>
-            <span style="color:var(--muted2);padding:0 6px">vs</span>
-            <img src="${f.teams.away.logo}" onerror="this.style.display='none'">
-            <span>${f.teams.away.name}</span>
+    // Mostrar con checkboxes
+    prev.innerHTML = `
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-green" style="font-size:12px;padding:5px 12px" onclick="selAll(true)">Seleccionar todos</button>
+          <button class="btn" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);color:var(--muted2)" onclick="selAll(false)">Deseleccionar todos</button>
+        </div>
+        <div class="fixture-list" id="checkList">
+          ${events.map((e,i) => {
+            const comp = e.competitions?.[0];
+            const home = comp?.competitors?.find(t => t.homeAway === 'home');
+            const away = comp?.competitors?.find(t => t.homeAway === 'away');
+            const dateStr = new Date(e.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+            return `<div class="fixture-row" style="cursor:pointer" onclick="toggleCheck(${i})">
+              <input type="checkbox" id="chk-${i}" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+              <div class="fixture-teams" style="flex:1">
+                <img src="${home?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+                <span>${home?.team?.displayName||'?'}</span>
+                <span style="color:var(--muted2);padding:0 6px">vs</span>
+                <img src="${away?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+                <span>${away?.team?.displayName||'?'}</span>
+              </div>
+              <div class="fixture-date">${dateStr}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="form-group">
+            <label>Número de fecha</label>
+            <input type="number" id="fechaNum" value="15" min="1" max="30">
           </div>
-          <div class="fixture-date">${new Date(f.fixture.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</div>
-        </div>`
-      ).join('') + '</div>';
+          <button class="btn btn-green" style="margin-top:18px" onclick="guardarSeleccion()">Guardar selección →</button>
+        </div>
+      </div>`;
 
   } catch(e) {
     st.innerHTML = `<div class="status err">❌ Error: ${e.message}</div>`;
   }
-
   btn.disabled = false;
-  btn.textContent = 'Cargar fecha';
-  verFechasCargadas();
+  btn.textContent = 'Buscar partidos';
+}
+
+function toggleCheck(i) {
+  const chk = document.getElementById('chk-' + i);
+  if(chk) chk.checked = !chk.checked;
+}
+
+function selAll(val) {
+  partidosESPN.forEach((_,i) => {
+    const chk = document.getElementById('chk-' + i);
+    if(chk) chk.checked = val;
+  });
+}
+
+async function guardarSeleccion() {
+  const fecha = parseInt(document.getElementById('fechaNum').value);
+  const st    = document.getElementById('loadStatus');
+
+  const seleccionados = partidosESPN.filter((_,i) => {
+    const chk = document.getElementById('chk-' + i);
+    return chk && chk.checked;
+  });
+
+  if(!seleccionados.length) {
+    st.innerHTML = '<div class="status err">❌ Seleccioná al menos un partido.</div>';
+    return;
+  }
+
+  st.innerHTML = `<div class="status info"><span class="spinner"></span>Guardando ${seleccionados.length} partidos...</div>`;
+
+  const rows = seleccionados.map(e => {
+    const comp = e.competitions?.[0];
+    const home = comp?.competitors?.find(t => t.homeAway === 'home');
+    const away = comp?.competitors?.find(t => t.homeAway === 'away');
+    return {
+      fecha,
+      fixture_id: parseInt(e.id),
+      home_name:  home?.team?.displayName || '?',
+      away_name:  away?.team?.displayName || '?',
+      home_logo:  home?.team?.logo || '',
+      away_logo:  away?.team?.logo || '',
+      match_date: e.date,
+      season: 2026
+    };
+  });
+
+  const saveRes = await fetch(SUPA_URL + '/rest/v1/prode_fixtures', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + session.access_token,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify(rows)
+  });
+
+  if(saveRes.ok || saveRes.status === 201) {
+    st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} guardada — ${seleccionados.length} partidos.</div>`;
+    verFechasCargadas();
+  } else {
+    const err = await saveRes.text();
+    st.innerHTML = `<div class="status err">❌ Error guardando: ${err}</div>`;
+  }
+}
+
+async function cargarFecha() {
+  buscarPartidosESPN();
 }
 
 // ── VER FECHAS CARGADAS ────────────────────────────────────────────
