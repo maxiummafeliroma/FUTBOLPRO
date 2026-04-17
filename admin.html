@@ -80,12 +80,14 @@ input:focus{border-color:var(--green)}
     <div class="card-title">📥 Cargar partidos del Prode</div>
     <div class="form-row">
       <div class="form-group">
-        <label>Número de fecha</label>
-        <input type="number" id="fechaNum" value="15" min="1" max="30">
+        <label>Fecha / Round</label>
+        <select id="roundSelect" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--txt);padding:10px 14px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;min-width:220px">
+          <option value="">Cargando rounds...</option>
+        </select>
       </div>
       <div class="form-group">
-        <label>Temporada</label>
-        <input type="number" id="seasonNum" value="2026" min="2024" max="2030" style="width:100px">
+        <label>Número de fecha</label>
+        <input type="number" id="fechaNum" value="15" min="1" max="30">
       </div>
       <button class="btn btn-green" id="loadBtn" onclick="cargarFecha()">Cargar fecha</button>
     </div>
@@ -136,12 +138,18 @@ async function doLogin() {
   });
   const data = await res.json();
   if(data.access_token) {
+    // Verificar que sea el admin
+    if(email.toLowerCase() !== 'maxiumma@gmail.com') {
+      st.innerHTML = '<div class="status err">❌ Acceso no autorizado.</div>';
+      return;
+    }
     session = data;
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('adminSection').style.display = 'block';
     document.getElementById('userInfo').textContent = email;
     document.getElementById('logoutBtn').style.display = 'block';
     verFechasCargadas();
+    cargarRounds();
   } else {
     st.innerHTML = '<div class="status err">❌ Email o contraseña incorrectos.</div>';
   }
@@ -154,10 +162,35 @@ function logout() {
   document.getElementById('logoutBtn').style.display = 'none';
 }
 
+// ── CARGAR ROUNDS DISPONIBLES ─────────────────────────────────────
+async function cargarRounds() {
+  try {
+    const res  = await fetch('https://v3.football.api-sports.io/fixtures/rounds?league=128&season=2026&current=true', {
+      headers: {'x-apisports-key': API_KEY}
+    });
+    const data = await res.json();
+    // También traer todos los rounds
+    const res2  = await fetch('https://v3.football.api-sports.io/fixtures/rounds?league=128&season=2026', {
+      headers: {'x-apisports-key': API_KEY}
+    });
+    const data2 = await res2.json();
+    const rounds = data2.response || [];
+    const current = data.response?.[0] || '';
+    const sel = document.getElementById('roundSelect');
+    sel.innerHTML = rounds.map(r => `<option value="${r}" ${r===current?'selected':''}>${r}</option>`).join('');
+    // Extraer número de fecha del round actual
+    const match = current.match(/\d+/);
+    if(match) document.getElementById('fechaNum').value = match[0];
+  } catch(e) {
+    document.getElementById('roundSelect').innerHTML = '<option>Error cargando rounds</option>';
+  }
+}
+
 // ── CARGAR FECHA DESDE API-SPORTS ─────────────────────────────────
 async function cargarFecha() {
-  const fecha  = parseInt(document.getElementById('fechaNum').value);
-  const season = parseInt(document.getElementById('seasonNum').value);
+  const roundSel = document.getElementById('roundSelect').value;
+  const fecha    = parseInt(document.getElementById('fechaNum').value);
+  const season   = 2026;
   const st     = document.getElementById('loadStatus');
   const prev   = document.getElementById('fixturePreview');
   const btn    = document.getElementById('loadBtn');
@@ -168,7 +201,7 @@ async function cargarFecha() {
   prev.innerHTML = '';
 
   try {
-    const round = `Regular Season - ${fecha}`;
+    const round = roundSel || `Regular Season - ${fecha}`;
     const url   = `https://v3.football.api-sports.io/fixtures?league=128&season=${season}&round=${encodeURIComponent(round)}`;
     const res   = await fetch(url, {
       headers: {'x-apisports-key': API_KEY}
