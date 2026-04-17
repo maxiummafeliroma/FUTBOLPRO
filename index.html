@@ -3146,15 +3146,15 @@ async function submitPronosticos() {
     updated_at: new Date().toISOString()
   }));
 
-  // 🔥 INSERT CORRECTO SUPABASE
-  const { data, error } = await supabase
-    .from('pronosticos')
-    .upsert(rows, {
-      onConflict: 'user_id,fixture_id'
-    });
+  // 🔥 INSERT SUPABASE via supaFetch
+  const result = await supaFetch('/rest/v1/pronosticos', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates',
+    body: JSON.stringify(rows)
+  });
 
-  if (error) {
-    console.log('Supabase error:', error);
+  if(!result || result.error) {
+    console.log('Supabase error:', result);
     btn.disabled = false;
     btn.textContent = 'Guardar pronósticos';
     showProdeToast('❌ Error al guardar. Intentá de nuevo.');
