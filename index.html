@@ -604,9 +604,18 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
   padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
   gap:12px;margin:16px -20px -14px;
 }
-@media(max-width:600px){
-  .prode-submit-bar{margin:10px 0 0;width:100%;box-sizing:border-box;}
-  #prode-tab-pronosticar{padding-bottom:80px;}
+@media(max-width:750px){
+  .prode-submit-bar{
+    position:fixed!important;
+    bottom:calc(60px + env(safe-area-inset-bottom, 0px));
+    left:0;right:0;
+    margin:0!important;
+    width:100%;
+    box-sizing:border-box;
+    z-index:999;
+    border-top:1px solid rgba(0,230,118,0.25);
+  }
+  #prode-tab-pronosticar{padding-bottom:120px;}
 }
 .prode-submit-count{font-size:13px;color:var(--muted2)}
 .prode-submit-count strong{color:var(--txt)}
@@ -987,7 +996,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-share{background:var(--gold);color:#1a1400}
 .sim-btn-img{background:#1877f2;color:#fff}
 
-@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{position:static;margin:10px 0 0;width:100%;box-sizing:border-box;}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}}
 .mobile-nav{display:none}
 @media(max-width:750px){
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:9999;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 8px));min-height:60px;box-shadow:0 -2px 12px rgba(0,0,0,0.4)}
