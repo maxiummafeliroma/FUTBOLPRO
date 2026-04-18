@@ -1383,11 +1383,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       <div id="prode-tab-pronosticar">
         <div id="prodeMatchesGrid" class="prode-grid">
           <div class="loading-state" style="grid-column:1/-1"><div class="loading-spinner"></div><br>Cargando partidos...</div>
-          <div class="prode-submit-bar" id="prodeSubmitBar" style="display:none;grid-column:1/-1">
-            <div class="prode-submit-count">Completaste <strong id="prodeCount">0</strong> pronósticos</div>
-            <button class="prode-submit-btn" id="prodeSubmitBtn" onclick="submitPronosticos()" disabled>Guardar pronósticos</button>
-          </div>
         </div>
+      </div>
+      <div class="prode-submit-bar" id="prodeSubmitBar" style="display:none">
+        <div class="prode-submit-count">Completaste <strong id="prodeCount">0</strong> pronósticos</div>
+        <button class="prode-submit-btn" id="prodeSubmitBtn" onclick="submitPronosticos()" disabled>Guardar pronósticos</button>
       </div>
 
       <!-- TAB: MIS PRONÓSTICOS -->
@@ -3012,15 +3012,12 @@ async function loadProdeFixtures() {
     return;
   }
 
-  // Lock por partido: cada match se bloquea 20 min antes de su kickoff
   const LOCK_MINUTES = 20;
   window.isMatchLocked = function(match) {
     const kickoff = new Date(match.fixture.date).getTime();
     return Date.now() >= kickoff - LOCK_MINUTES * 60 * 1000;
   };
-  // prodeLocked = true solo si TODOS los partidos ya están bloqueados (para el submit bar)
   window.prodeLocked = prodeMatches.every(m => window.isMatchLocked(m));
-  // prodeLockTime apunta al próximo partido que va a bloquearse (para el countdown)
   const nextToLock = [...prodeMatches]
     .filter(m => !window.isMatchLocked(m))
     .sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
@@ -3075,7 +3072,7 @@ function renderProdeGrid() {
     const lockBadge = (window.isMatchLocked(m) && !alreadySubmitted)
       ? `<div style="font-size:10px;color:var(--red);text-align:center;margin-top:4px;font-weight:700">🔒 Cerrado</div>`
       : '';
-    return `<div class="prode-match-card ${sel?'selected':''} ${matchLocked&&!alreadySubmitted?'opacity:0.7':''}">
+    return `<div class="prode-match-card ${sel?'selected':''}">
       <div class="prode-match-date">${dateStr}</div>
       <div class="prode-teams">
         <div class="prode-team">
@@ -3107,13 +3104,12 @@ function renderProdeGrid() {
     </div>`;
   }).join('');
 
-  // Submit bar: mostrar si hay partidos aún no bloqueados y no enviaron todavía
-  const hayPartidosAbiertos = !alreadySubmitted && prodeMatches.some(m => !window.isMatchLocked(m));
+  // Submit bar: fixed fuera del grid, visible si hay partidos abiertos
+  const hayAbiertos = !alreadySubmitted && prodeMatches.some(m => !window.isMatchLocked(m));
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
-    submitBar.style.display = hayPartidosAbiertos ? 'flex' : 'none';
-    submitBar.style.gridColumn = '1/-1';
-    if(hayPartidosAbiertos) {
+    submitBar.style.display = hayAbiertos ? 'flex' : 'none';
+    if(hayAbiertos) {
       document.getElementById('prodeCount').textContent = count;
       if(submitBtn) {
         submitBtn.disabled = count === 0 || !prodeSession;
