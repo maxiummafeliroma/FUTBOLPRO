@@ -3091,12 +3091,14 @@ function renderProdeGrid() {
             id="ph-${fid}" value="${sel?sel.split('-')[0]:''}"
             ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
+            onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             placeholder="0">
           <span class="prode-score-sep">-</span>
           <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
             id="pa-${fid}" value="${sel?sel.split('-')[1]:''}"
             ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
+            onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             placeholder="0">
         </div>
         ${lockBadge}
@@ -3123,10 +3125,14 @@ function updateProdeScore(fixtureId) {
   const h = document.getElementById('ph-' + fixtureId);
   const a = document.getElementById('pa-' + fixtureId);
   if(!h || !a) return;
-  const hv = h.value !== '' ? h.value : null;
-  const av = a.value !== '' ? a.value : null;
-  if(hv !== null && av !== null) {
-    prodePronosticos[fixtureId] = hv + '-' + av;
+  const hv = h.value !== '' && h.value !== null ? h.value : null;
+  const av = a.value !== '' && a.value !== null ? a.value : null;
+  // En mobile a veces el oninput no dispara si el valor es 0 de placeholder
+  // Forzar que value='0' cuente como válido
+  const hvOk = h.value !== '';
+  const avOk = a.value !== '';
+  if(hvOk && avOk) {
+    prodePronosticos[fixtureId] = h.value + '-' + a.value;
     // Marcar inputs y card
     [h,a].forEach(inp => inp.classList.add('filled'));
     const card = h.closest('.prode-match-card');
