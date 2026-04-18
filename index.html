@@ -3012,9 +3012,21 @@ async function loadProdeFixtures() {
     return;
   }
 
-  const sorted = [...prodeMatches].sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-  window.prodeLockTime = new Date(new Date(sorted[0].fixture.date).getTime() - 60*60*1000);
-  window.prodeLocked = Date.now() >= window.prodeLockTime.getTime();
+  // Lock por partido: cada match se bloquea 20 min antes de su kickoff
+  const LOCK_MINUTES = 20;
+  window.isMatchLocked = function(match) {
+    const kickoff = new Date(match.fixture.date).getTime();
+    return Date.now() >= kickoff - LOCK_MINUTES * 60 * 1000;
+  };
+  // prodeLocked = true solo si TODOS los partidos ya están bloqueados (para el submit bar)
+  window.prodeLocked = prodeMatches.every(m => window.isMatchLocked(m));
+  // prodeLockTime apunta al próximo partido que va a bloquearse (para el countdown)
+  const nextToLock = [...prodeMatches]
+    .filter(m => !window.isMatchLocked(m))
+    .sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date))[0];
+  window.prodeLockTime = nextToLock
+    ? new Date(new Date(nextToLock.fixture.date).getTime() - LOCK_MINUTES * 60 * 1000)
+    : null;
 
   if(prodeSession) await loadPronosticosPrevios();
   renderProdeGrid();
@@ -3047,7 +3059,7 @@ function renderProdeGrid() {
   if(alreadySubmitted) {
     notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos enviados</div><div style="font-size:12px;color:var(--muted2)">Ya enviaste tus pronósticos para esta fecha.</div></div>';
   } else if(isLocked) {
-    notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cerraron 1 hora antes del partido.</div></div>';
+    notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cierran 20 minutos antes de cada partido.</div></div>';
   } else if(window.prodeLockTime) {
     const mins = Math.round((window.prodeLockTime - Date.now()) / 60000);
     if(mins > 0 && mins <= 120) notice = '<div style="grid-column:1/-1;background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:10px;padding:8px;margin-bottom:10px;text-align:center;font-size:12px;color:var(--gold)">⏰ El prode cierra en ' + mins + ' minutos</div>';
@@ -3059,7 +3071,11 @@ function renderProdeGrid() {
     const hLogo = m.teams.home.logo;
     const aLogo = m.teams.away.logo;
     const dateStr = new Date(m.fixture.date).toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    return `<div class="prode-match-card ${sel?'selected':''}">
+    const matchLocked = alreadySubmitted || window.isMatchLocked(m);
+    const lockBadge = (window.isMatchLocked(m) && !alreadySubmitted)
+      ? `<div style="font-size:10px;color:var(--red);text-align:center;margin-top:4px;font-weight:700">🔒 Cerrado</div>`
+      : '';
+    return `<div class="prode-match-card ${sel?'selected':''} ${matchLocked&&!alreadySubmitted?'opacity:0.7':''}">
       <div class="prode-match-date">${dateStr}</div>
       <div class="prode-teams">
         <div class="prode-team">
@@ -3076,27 +3092,28 @@ function renderProdeGrid() {
         <div class="prode-score-wrap">
           <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
             id="ph-${fid}" value="${sel?sel.split('-')[0]:''}"
-            ${disabled?'disabled':''}
+            ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             placeholder="0">
           <span class="prode-score-sep">-</span>
           <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
             id="pa-${fid}" value="${sel?sel.split('-')[1]:''}"
-            ${disabled?'disabled':''}
+            ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             placeholder="0">
         </div>
+        ${lockBadge}
       </div>
     </div>`;
   }).join('');
 
-  // Submit bar — reinsertarlo al final de la grilla (innerHTML lo sobreescribe)
+  // Submit bar: mostrar si hay partidos aún no bloqueados y no enviaron todavía
+  const hayPartidosAbiertos = !alreadySubmitted && prodeMatches.some(m => !window.isMatchLocked(m));
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
-    grid.appendChild(submitBar);
-    submitBar.style.display = disabled ? 'none' : 'flex';
+    submitBar.style.display = hayPartidosAbiertos ? 'flex' : 'none';
     submitBar.style.gridColumn = '1/-1';
-    if(!disabled) {
+    if(hayPartidosAbiertos) {
       document.getElementById('prodeCount').textContent = count;
       if(submitBtn) {
         submitBtn.disabled = count === 0 || !prodeSession;
