@@ -792,233 +792,124 @@ function renderScorers(players){
 // ── FIXTURE CON SELECTOR DESPLEGABLE ─────────────────
 let allFixtureEvents = [];
 let fechaActual = 1;
-const TOTAL_JORNADAS = 38;
 const COMP_LOWER = 'eng.1';
-window._fechasCache = {};
+window._jornadasMap = {};
+window._jornadasArr = [];
 
 async function loadFixture(){
   if(fixtureLoaded) return;
   fixtureLoaded = true;
   const container = document.getElementById('fixtureContainer');
-  container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
+  container.innerHTML = '<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>';
 
   try{
-    // Cargar scoreboard actual para detectar jornada en curso
-    const r = await fetch(`${SITE_ESPN}/${COMP_LOWER}/scoreboard?seasontype=2&limit=100`);
+    const r = await fetch(SITE_ESPN + '/' + COMP_LOWER + '/scoreboard?dates=20250801-20260531&limit=1000');
     if(!r.ok) throw new Error('ESPN ' + r.status);
     const data = await r.json();
     const events = data.events || [];
+    if(!events.length) throw new Error('sin eventos');
 
-    // Detectar jornada actual
-    let jornadaDetectada = 1;
-    if(events.length){
-      const w = events[0]?.week?.number
-        || events[0]?.competitions?.[0]?.week?.number
-        || null;
-      if(w){
-        jornadaDetectada = w;
-      } else {
-        const evDate = new Date(events[0].date);
-        const seasonStart = new Date('2025-08-09');
-        jornadaDetectada = Math.max(1, Math.ceil((evDate - seasonStart) / (7*24*60*60*1000)));
-      }
+    // Agrupar por semana (lunes a domingo)
+    const byWeek = {};
+    events.forEach(ev => {
+      const d = new Date(ev.date);
+      const day = d.getUTCDay();
+      const diff = (day === 0) ? -6 : 1 - day;
+      const monday = new Date(d);
+      monday.setUTCDate(d.getUTCDate() + diff);
+      const key = monday.toISOString().slice(0,10);
+      if(!byWeek[key]) byWeek[key] = [];
+      byWeek[key].push(ev);
+    });
+
+    const semanas = Object.keys(byWeek).sort();
+    semanas.forEach((semana, i) => {
+      window._jornadasMap[i+1] = byWeek[semana];
+    });
+    window._jornadasArr = semanas.map((_, i) => i+1);
+    const totalFechas = semanas.length;
+
+    // Detectar fecha actual
+    const now = Date.now();
+    fechaActual = totalFechas;
+    for(let i = 1; i <= totalFechas; i++){
+      const evs = window._jornadasMap[i] || [];
+      const hayFuturos = evs.some(ev => new Date(ev.date).getTime() >= now - 4*60*60*1000);
+      if(hayFuturos){ fechaActual = i; break; }
     }
-    fechaActual = jornadaDetectada;
-
-    // Guardar en cache
-    if(events.length) window._fechasCache[fechaActual] = events;
 
     // Widget próximo partido
-    const now = Date.now();
-    const proximos = events.filter(ev => new Date(ev.date).getTime() > now)
+    const proximos = events
+      .filter(ev => new Date(ev.date).getTime() > now)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
     if(proximos.length) loadNextMatchWidget(proximos);
 
-    renderSelectorFechas();
+    renderSelectorFechas(totalFechas);
 
   }catch(e){
     container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
   }
 }
 
-function renderSelectorFechas(){
+function renderSelectorFechas(totalFechas){
   const cont = document.getElementById('fixtureContainer');
-
-  // Armar options del select
   let options = '';
-  for(let i = 1; i <= TOTAL_JORNADAS; i++){
+  for(let i = 1; i <= totalFechas; i++){
     const sel = i === fechaActual ? 'selected' : '';
-    options += `<option value="${i}" ${sel}>Fecha ${i}</option>`;
+    options += '<option value="' + i + '" ' + sel + '>Fecha ' + i + '</option>';
   }
-
-  cont.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-      <button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif;flex-shrink:0">‹</button>
-      <select id="fechaSelect" onchange="seleccionarFecha(parseInt(this.value))"
-        style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--txt);
-        padding:8px 12px;border-radius:8px;font-size:14px;font-weight:600;
-        font-family:'Barlow',sans-serif;cursor:pointer;outline:none">
-        ${options}
-      </select>
-      <button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif;flex-shrink:0">›</button>
-    </div>
-    <div id="fechaPartidos"></div>`;
-
-  cargarYRenderFecha(fechaActual);
+  cont.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">' +
+    '<button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:Barlow,sans-serif;flex-shrink:0">&#8249;</button>' +
+    '<select id="fechaSelect" onchange="seleccionarFecha(parseInt(this.value))" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:8px 12px;border-radius:8px;font-size:14px;font-weight:600;font-family:Barlow,sans-serif;cursor:pointer;outline:none">' +
+    options + '</select>' +
+    '<button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:Barlow,sans-serif;flex-shrink:0">&#8250;</button>' +
+    '</div><div id="fechaPartidos"></div>';
+  renderFecha(window._jornadasMap[fechaActual] || [], fechaActual);
 }
 
 function seleccionarFecha(f){
   fechaActual = f;
   const sel = document.getElementById('fechaSelect');
   if(sel) sel.value = f;
-  cargarYRenderFecha(f);
+  renderFecha(window._jornadasMap[f] || [], f);
 }
 
 function navegarFecha(dir){
-  const nueva = Math.max(1, Math.min(TOTAL_JORNADAS, fechaActual + dir));
+  const total = window._jornadasArr.length;
+  const nueva = Math.max(1, Math.min(total, fechaActual + dir));
   seleccionarFecha(nueva);
-}
-
-async function cargarYRenderFecha(fechaNum){
-  const cont = document.getElementById('fechaPartidos');
-  if(!cont) return;
-
-  // Si está en cache, renderizar directo
-  if(window._fechasCache[fechaNum]){
-    renderFecha(window._fechasCache[fechaNum], fechaNum);
-    return;
-  }
-
-  cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando jornada ${fechaNum}...</div>`;
-
-  try{
-    const r = await fetch(`${SITE_ESPN}/${COMP_LOWER}/scoreboard?seasontype=2&week=${fechaNum}&limit=100`);
-    if(!r.ok) throw new Error('ESPN ' + r.status);
-    const data = await r.json();
-    const events = data.events || [];
-    window._fechasCache[fechaNum] = events;
-    renderFecha(events, fechaNum);
-  }catch(e){
-    cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la jornada ${fechaNum}. <button class="retry-btn" onclick="delete window._fechasCache[${fechaNum}];cargarYRenderFecha(${fechaNum})">Reintentar</button></div>`;
-  }
 }
 
 function renderFecha(events, fechaNum){
   const cont = document.getElementById('fechaPartidos');
   if(!cont) return;
-
   if(!events || !events.length){
-    cont.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ${fechaNum}.</div>`;
+    cont.innerHTML = '<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ' + fechaNum + '.</div>';
     return;
   }
-
-  const sorted = [...events].sort((a,b)=>new Date(a.date)-new Date(b.date));
-
-  // Agrupar por día
+  const sorted = [...events].sort((a,b) => new Date(a.date) - new Date(b.date));
   const byDate = {};
-  sorted.forEach(ev=>{
+  sorted.forEach(ev => {
     const dateStr = ev.date
       ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
       : 'Sin fecha';
     if(!byDate[dateStr]) byDate[dateStr] = [];
     byDate[dateStr].push(ev);
   });
-
   let html = '';
   for(const [dateStr, evs] of Object.entries(byDate)){
-    html += `<div class="fixture-group"><div class="section-hdr">📅 ${dateStr}</div>`;
-    evs.forEach(ev=>{ html += buildFixtureCard(ev); });
-    html += `</div>`;
+    html += '<div class="fixture-group"><div class="section-hdr">📅 ' + dateStr + '</div>';
+    evs.forEach(ev => { html += buildFixtureCard(ev); });
+    html += '</div>';
   }
-
-  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos.</div>`;
-}
-
-function buildFixtureCard(ev){
-  const comps  = ev.competitions?.[0];
-  const comps2 = comps?.competitors || [];
-  const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
-  const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
-
-  const status  = comps?.status?.type?.name || '';
-  const isLive  = status==='STATUS_IN_PROGRESS';
-  const isFt    = status==='STATUS_FINAL';
-  const hName   = home.team?.displayName || '—';
-  const aName   = away.team?.displayName || '—';
-  const hLogo   = home.team?.logo || '';
-  const aLogo   = away.team?.logo || '';
-  const hScore  = home.score ?? '';
-  const aScore  = away.score ?? '';
-  const time    = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
-  const clock   = comps?.status?.displayClock || '';
-
-  const statusHtml = isLive
-    ? `<span class="fx-status" style="color:var(--red)"><span class="live-dot"></span>${clock}'</span>`
-    : isFt
-      ? `<span class="fx-status" style="color:var(--muted2)">FT</span>`
-      : `<span class="fx-time">${time} hs</span>`;
-
-  const scoreHtml = (isLive||isFt) && hScore!=='' && aScore!==''
-    ? `<div class="fx-score">${hScore} - ${aScore}</div>`
-    : `<div class="fx-vs">VS</div>`;
-
-  const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
-  const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
-
-  // Cuotas simuladas (sin NaN)
-  const _n1 = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
-  const _n2 = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
-  const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (parseInt(ev.id||0) % 1000)) % 100;
-  let pH = Math.min(62, 36 + 7 + (seed % 13));
-  let pA = Math.min(45, 20 + (seed % 14));
-  let pD = Math.max(15, 100 - pH - pA);
-
-  // Ajustar cuotas en vivo según marcador
-  if(isLive && hScore !== '' && aScore !== ''){
-    const diff = parseInt(hScore) - parseInt(aScore);
-    if(diff > 0){ pH = Math.min(82, pH + diff*8); pA = Math.max(6, pA - diff*6); }
-    else if(diff < 0){ pA = Math.min(82, pA + Math.abs(diff)*8); pH = Math.max(6, pH - Math.abs(diff)*6); }
-    pD = Math.max(6, 100 - pH - pA);
-  }
-
-  const oH = (100/pH*0.9).toFixed(2);
-  const oD = (100/pD*0.9).toFixed(2);
-  const oA = (100/pA*0.9).toFixed(2);
-
-  // Cuotas solo si no terminó
-  const cuotasHtml = !isFt ? `
-    <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg3);border-top:1px solid var(--border)">
-      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Local</div>
-        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--green)':'var(--blue)'}">${oH}</div>
-      </div>
-      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Empate</div>
-        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--gold)':'var(--blue)'}">${oD}</div>
-      </div>
-      <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Visita</div>
-        <div style="font-size:13px;font-weight:700;color:${isLive?'var(--red)':'var(--blue)'}">${oA}</div>
-      </div>
-      ${isLive ? `<div style="display:flex;align-items:center;padding:0 4px;font-size:9px;color:var(--red);font-weight:700">EN<br>VIVO</div>` : ''}
-    </div>` : '';
-
-  return `<div class="fixture-card ${isLive?'is-live':''}" style="display:block;padding:0;overflow:hidden">
-    <div style="display:grid;grid-template-columns:1fr 90px 1fr;align-items:center;gap:8px;padding:11px 14px">
-      <div class="fx-team">${hLogoHtml}<span class="fx-name">${hName}</span></div>
-      <div class="fx-center">${scoreHtml}${statusHtml}</div>
-      <div class="fx-team right"><span class="fx-name">${aName}</span>${aLogoHtml}</div>
-    </div>
-    ${cuotasHtml}
-  </div>`;
+  cont.innerHTML = html || '<div class="error-msg"><span class="err-ico">📭</span>Sin partidos.</div>';
 }
 
 function renderFixture(data){
-  // Mantener compatibilidad con llamada desde preload
-  allFixtureEvents = data.events || [];
   fixtureLoaded = false;
   loadFixture();
 }
+
 
 // ── NEXT MATCH WIDGET ─────────────────────────────────
 function loadNextMatchWidget(events){
@@ -1076,6 +967,7 @@ function errorHTML(msg, retryFn){
 // ── INIT ──────────────────────────────────────────────
 loadStandings();
 // Fixture se carga lazy al hacer clic en la tab
+// Pero también lo precargamos en background
 setTimeout(()=>{ if(!fixtureLoaded) loadFixture(); }, 2000);
 </script>
 </body>
