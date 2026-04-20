@@ -3923,6 +3923,16 @@ async function loadF1NextRace() {
   }
 }
 
+
+const NATIONALITY_FLAGS = {
+  'British':'🇬🇧','Italian':'🇮🇹','Dutch':'🇳🇱','Monegasque':'🇲🇨','Spanish':'🇪🇸',
+  'Australian':'🇦🇺','Mexican':'🇲🇽','Finnish':'🇫🇮','French':'🇫🇷','German':'🇩🇪',
+  'Canadian':'🇨🇦','Japanese':'🇯🇵','Danish':'🇩🇰','Thai':'🇹🇭','Chinese':'🇨🇳',
+  'American':'🇺🇸','Brazilian':'🇧🇷','Argentine':'🇦🇷','New Zealander':'🇳🇿',
+  'Austrian':'🇦🇹','Belgian':'🇧🇪','Swiss':'🇨🇭','Polish':'🇵🇱','Swedish':'🇸🇪',
+  'Russian':'🇷🇺','Norwegian':'🇳🇴','South African':'🇿🇦','Colombian':'🇨🇴',
+  'Azerbaijani':'🇦🇿','Bahraini':'🇧🇭'
+};
 const teamColors = {
   'Red Bull Racing':'#3671C6','Ferrari':'#E8002D','Mercedes':'#27F4D2',
   'McLaren':'#FF8000','Aston Martin':'#229971','Alpine':'#FF87BC',
@@ -3972,7 +3982,7 @@ async function loadF1Drivers() {
       const team   = e.team || {};
       const pts    = e.stats?.find(s=>s.name==='points')?.displayValue || e.points || '—';
       const teamColor = teamColors[team.displayName] || teamColors[team.shortDisplayName] || '#555';
-      const flag = driver.flag?.href ? `<img src="${driver.flag.href}" width="20" style="border-radius:2px">` : (driver.citizenship||'🏁');
+      const flag = driver.flag?.href ? `<img src="${driver.flag.href}" width="20" style="border-radius:2px">` : (NATIONALITY_FLAGS[driver.citizenship] || driver.citizenship || '🏁');
       return `<div class="driver-row">
         <div class="driver-pos ${i===0?'p1':i===1?'p2':i===2?'p3':''}">${i+1}</div>
         <div class="team-color-bar" style="background:${teamColor}"></div>
@@ -4624,6 +4634,75 @@ async function loadLeagueModalContent(leagueId, tab) {
       }
       return;
     }
+    // Copa Libertadores / Sudamericana → ESPN scoreboard próximos 14 días
+    if(leagueId === '13' || leagueId === '11') {
+      const espnSlug2 = leagueId === '13' ? 'conmebol.libertadores' : 'conmebol.sudamericana';
+      const ck2 = 'fp_espn_fixture_' + leagueId;
+      let fixtureMatches = cacheGet(ck2, CACHE_TTL.fixture_list);
+      if(!fixtureMatches) {
+        try {
+          // Buscar próximos 14 días
+          const dates = [];
+          for(let i=0; i<=14; i++) {
+            const d = new Date(Date.now() + i*86400000);
+            dates.push(d.toISOString().slice(0,10).replace(/-/g,''));
+          }
+          const allEvts = [];
+          // ESPN acepta rango: dates=YYYYMMDD-YYYYMMDD
+          const from = dates[0];
+          const to = dates[dates.length-1];
+          const url2 = `https://site.api.espn.com/apis/site/v2/sports/soccer/${espnSlug2}/scoreboard?dates=${from}-${to}&limit=50`;
+          const r2 = await fetch(url2);
+          if(r2.ok) {
+            const d2 = await r2.json();
+            (d2.events||[]).forEach(e => {
+              const comps = e.competitions?.[0];
+              const teams = comps?.competitors || [];
+              const home = teams.find(t=>t.homeAway==='home') || teams[0] || {};
+              const away = teams.find(t=>t.homeAway==='away') || teams[1] || {};
+              const state = e.status?.type?.state;
+              const isPost = state === 'post' || ['FT','AET','PEN'].includes(e.status?.type?.shortDetail);
+              allEvts.push({
+                fixture: { id: e.id, date: e.date, status: { short: isPost ? 'FT' : state === 'in' ? '1H' : 'NS', elapsed: null } },
+                teams: {
+                  home: { name: home.team?.displayName || home.team?.shortDisplayName || '—', logo: home.team?.logos?.[0]?.href },
+                  away: { name: away.team?.displayName || away.team?.shortDisplayName || '—', logo: away.team?.logos?.[0]?.href }
+                },
+                goals: { home: home.score ?? null, away: away.score ?? null },
+                league: { id: leagueId, name: leagueId==='13'?'Copa Libertadores':'Copa Sudamericana' }
+              });
+            });
+          }
+          if(allEvts.length) { fixtureMatches = allEvts; cacheSet(ck2, fixtureMatches); }
+        } catch(e2) { console.warn('ESPN fixture Conmebol:', e2); }
+      }
+      if(fixtureMatches && fixtureMatches.length) {
+        const groups = {};
+        fixtureMatches.forEach(m => {
+          const d = m.fixture.date.substring(0,10);
+          if(!groups[d]) groups[d] = [];
+          groups[d].push(m);
+        });
+        body.innerHTML = Object.entries(groups).sort().map(([date, matches]) => `
+          <div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">
+            ${new Date(date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+          </div>
+          ${matches.map(m => {
+            const isFT = m.fixture.status.short === 'FT';
+            const score = isFT ? `${m.goals.home??''}-${m.goals.away??''}` : new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div style="font-size:11px;color:${isFT?'var(--muted2)':'var(--green)'};width:42px;text-align:center;flex-shrink:0;font-weight:600">${score}</div>
+              <div style="flex:1;font-size:12px;font-weight:500">${m.teams.home.name}</div>
+              <div style="font-size:10px;color:var(--muted2);font-weight:600">vs</div>
+              <div style="flex:1;font-size:12px;font-weight:500;text-align:right">${m.teams.away.name}</div>
+            </div>`;
+          }).join('')}`).join('');
+      } else {
+        body.innerHTML = '<div class="empty-state">No hay fixture disponible para esta competencia.</div>';
+      }
+      return;
+    }
+
     const fdCode2 = FD_LEAGUE_MAP[leagueId];
     const intl2 = ['35','34','9','10','1'];
     const season2 = intl2.includes(leagueId) ? '2025' : '2024';
