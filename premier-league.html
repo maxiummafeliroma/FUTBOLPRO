@@ -789,10 +789,12 @@ function renderScorers(players){
   document.getElementById('scorersContainer').innerHTML = html;
 }
 
-// ── FIXTURE CON SELECTOR DE FECHAS ───────────────────
-let allFixtureEvents = []; // todos los partidos del torneo
+// ── FIXTURE CON SELECTOR DESPLEGABLE ─────────────────
+let allFixtureEvents = [];
 let fechaActual = 1;
-let totalFechas = 14; // se actualiza con los datos reales
+const TOTAL_JORNADAS = 38;
+const COMP_LOWER = 'eng.1';
+window._fechasCache = {};
 
 async function loadFixture(){
   if(fixtureLoaded) return;
@@ -801,212 +803,112 @@ async function loadFixture(){
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
 
   try{
-    // Paso 1: obtener el calendario de la liga para saber las jornadas
-    const calUrl = `${SITE_ESPN}/${COMP.toLowerCase()}/calendar/ondays?seasontype=2`;
-    const calR = await fetch(calUrl);
-    let eventDates = [];
-    if(calR.ok){
-      const calData = await calR.json();
-      eventDates = calData.eventDate?.dates || [];
-    }
+    // Cargar scoreboard actual para detectar jornada en curso
+    const r = await fetch(`${SITE_ESPN}/${COMP_LOWER}/scoreboard?seasontype=2&limit=100`);
+    if(!r.ok) throw new Error('ESPN ' + r.status);
+    const data = await r.json();
+    const events = data.events || [];
 
-    // Si no hay calendar, generar fechas semanales de la temporada
-    if(!eventDates.length){
-      const s = new Date('2025-08-01');
-      const e = new Date('2026-06-30');
-      let d = new Date(s);
-      while(d <= e){
-        eventDates.push(d.toISOString().slice(0,10).replace(/-/g,''));
-        d.setDate(d.getDate() + 7);
+    // Detectar jornada actual
+    let jornadaDetectada = 1;
+    if(events.length){
+      const w = events[0]?.week?.number
+        || events[0]?.competitions?.[0]?.week?.number
+        || null;
+      if(w){
+        jornadaDetectada = w;
+      } else {
+        const evDate = new Date(events[0].date);
+        const seasonStart = new Date('2025-08-09');
+        jornadaDetectada = Math.max(1, Math.ceil((evDate - seasonStart) / (7*24*60*60*1000)));
       }
     }
+    fechaActual = jornadaDetectada;
 
-    const fechas = {}; // { jornada: [eventos] }
-    const now = Date.now();
-
-    // Paso 2: cargar en lotes de 6 fechas por request (usando ranges de 7 días)
-    // Agrupar eventDates de a 7 días
-    const ranges = [];
-    for(let i = 0; i < eventDates.length; i++){
-      const d = eventDates[i].toString().replace(/-/g,'');
-      if(i === 0 || i % 7 === 0){
-        const end7 = eventDates[Math.min(i+6, eventDates.length-1)].toString().replace(/-/g,'');
-        ranges.push(d + '-' + end7);
-      }
-    }
-
-    // Deduplicar rangos
-    const uniqueRanges = [...new Set(ranges)];
-
-    // Cargar en lotes de 6
-    const BATCH = 6;
-    let allEvents = [];
-    for(let i = 0; i < uniqueRanges.length; i += BATCH){
-      const batch = uniqueRanges.slice(i, i + BATCH);
-      const results = await Promise.all(
-        batch.map(r =>
-          fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?dates=${r}&limit=100`)
-            .then(res => res.ok ? res.json() : {events:[]})
-            .catch(() => ({events:[]}))
-        )
-      );
-      results.forEach(data => {
-        allEvents = allEvents.concat(data.events || []);
-      });
-      // Si ya pasamos de hoy y tenemos suficientes datos, parar
-      const lastRange = batch[batch.length-1];
-      const lastDate = parseInt(lastRange.split('-')[1] || lastRange);
-      const nowStr = parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
-      if(lastDate > nowStr && Object.keys(fechas).length > 3) {
-        // Procesar lo que tenemos y seguir cargando en background
-        break;
-      }
-    }
-
-    // Deduplicar eventos
-    const seen = new Set();
-    const uniqueEvents = allEvents.filter(ev => {
-      if(seen.has(ev.id)) return false;
-      seen.add(ev.id);
-      return true;
-    });
-
-    // Agrupar por jornada — usar season.slug, name, o week number
-    uniqueEvents.forEach(ev => {
-      // ESPN a veces tiene el número de jornada en season.displayName o competitions[0].series
-      let jornada = ev.week?.number
-        || ev.competitions?.[0]?.week?.number
-        || ev.season?.week
-        || 0;
-
-      if(!jornada){
-        // Fallback: agrupar por semana de la temporada
-        const evDate = new Date(ev.date);
-        const seasonStart = new Date('2025-08-01');
-        jornada = Math.ceil((evDate - seasonStart) / (7 * 24 * 60 * 60 * 1000));
-        jornada = Math.max(1, jornada);
-      }
-
-      if(!fechas[jornada]) fechas[jornada] = [];
-      if(!fechas[jornada].find(e => e.id === ev.id)) fechas[jornada].push(ev);
-    });
-
-    // Si aún no hay fechas, usar scoreboard actual (fallback final)
-    if(Object.keys(fechas).length === 0){
-      const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard`);
-      if(r.ok){
-        const data = await r.json();
-        (data.events||[]).forEach(ev => {
-          if(!fechas[1]) fechas[1] = [];
-          fechas[1].push(ev);
-        });
-      }
-    }
-
-    const fechasOrdenadas = Object.keys(fechas).map(Number).sort((a,b)=>a-b);
-    if(!fechasOrdenadas.length) throw new Error('sin fechas');
-
-    allFixtureEvents = Object.values(fechas).flat();
-
-    // Detectar jornada actual: primera con partidos futuros o en curso
-    fechaActual = fechasOrdenadas[0];
-    for(const f of fechasOrdenadas){
-      const hayActivos = (fechas[f]||[]).some(ev => {
-        const t = new Date(ev.date).getTime();
-        return t >= now - 4*60*60*1000; // desde hace 4 horas
-      });
-      if(hayActivos){ fechaActual = f; break; }
-      fechaActual = f; // última jornada pasada
-    }
+    // Guardar en cache
+    if(events.length) window._fechasCache[fechaActual] = events;
 
     // Widget próximo partido
-    const proximos = allFixtureEvents
-      .filter(ev => new Date(ev.date).getTime() > now)
+    const now = Date.now();
+    const proximos = events.filter(ev => new Date(ev.date).getTime() > now)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
     if(proximos.length) loadNextMatchWidget(proximos);
 
-    renderSelectorFechas(fechasOrdenadas, fechas);
+    renderSelectorFechas();
 
   }catch(e){
     container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
   }
 }
-async function cargarFechasPasadas(fechas){
-  try{
-    // Cargar scoreboard de la semana pasada
-    const hace7 = new Date(Date.now() - 7*24*60*60*1000);
-    const dateStr = hace7.toISOString().slice(0,10).replace(/-/g,'');
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=${dateStr}`);
-    const data = await r.json();
-    (data.events||[]).forEach(ev=>{
-      const f = ev.week?.number || 1;
-      if(!fechas[f]) fechas[f] = [];
-      if(!fechas[f].find(e=>e.id===ev.id)) fechas[f].push(ev);
-    });
-  }catch(e){}
-}
 
-function renderSelectorFechas(fechasArr, fechasMap){
+function renderSelectorFechas(){
   const cont = document.getElementById('fixtureContainer');
 
-  let selectorHtml = `<div style="margin-bottom:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">‹</button>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--txt)" id="fechaTitulo">Fecha ${fechaActual}</div>
-      <button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif">›</button>
+  // Armar options del select
+  let options = '';
+  for(let i = 1; i <= TOTAL_JORNADAS; i++){
+    const sel = i === fechaActual ? 'selected' : '';
+    options += `<option value="${i}" ${sel}>Fecha ${i}</option>`;
+  }
+
+  cont.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <button onclick="navegarFecha(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif;flex-shrink:0">‹</button>
+      <select id="fechaSelect" onchange="seleccionarFecha(parseInt(this.value))"
+        style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--txt);
+        padding:8px 12px;border-radius:8px;font-size:14px;font-weight:600;
+        font-family:'Barlow',sans-serif;cursor:pointer;outline:none">
+        ${options}
+      </select>
+      <button onclick="navegarFecha(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:16px;font-family:'Barlow',sans-serif;flex-shrink:0">›</button>
     </div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center" id="fechaBtns">`;
+    <div id="fechaPartidos"></div>`;
 
-  fechasArr.forEach(f=>{
-    const activo = f === fechaActual;
-    selectorHtml += `<button onclick="seleccionarFecha(${f})" id="fbtn-${f}" 
-      style="padding:4px 10px;border-radius:50px;border:1px solid ${activo?'var(--green)':'var(--border)'};
-      background:${activo?'rgba(0,230,118,0.1)':'transparent'};
-      color:${activo?'var(--green)':'var(--muted2)'};
-      font-size:11px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s">
-      F${f}
-    </button>`;
-  });
-
-  selectorHtml += `</div></div><div id="fechaPartidos"></div>`;
-
-  cont.innerHTML = selectorHtml;
-
-  // Guardar fechasMap globalmente
-  window._fechasMap = fechasMap;
-  window._fechasArr = fechasArr;
-
-  renderFecha(fechasMap[fechaActual] || [], fechaActual);
+  cargarYRenderFecha(fechaActual);
 }
 
 function seleccionarFecha(f){
   fechaActual = f;
-  document.getElementById('fechaTitulo').textContent = `Fecha ${f}`;
-  // Actualizar botones
-  document.querySelectorAll('[id^="fbtn-"]').forEach(btn=>{
-    const num = parseInt(btn.id.replace('fbtn-',''));
-    const activo = num === f;
-    btn.style.borderColor = activo ? 'var(--green)' : 'var(--border)';
-    btn.style.background  = activo ? 'rgba(0,230,118,0.1)' : 'transparent';
-    btn.style.color       = activo ? 'var(--green)' : 'var(--muted2)';
-  });
-  renderFecha(window._fechasMap?.[f] || [], f);
+  const sel = document.getElementById('fechaSelect');
+  if(sel) sel.value = f;
+  cargarYRenderFecha(f);
 }
 
 function navegarFecha(dir){
-  const arr = window._fechasArr || [];
-  const idx = arr.indexOf(fechaActual);
-  const newIdx = idx + dir;
-  if(newIdx >= 0 && newIdx < arr.length) seleccionarFecha(arr[newIdx]);
+  const nueva = Math.max(1, Math.min(TOTAL_JORNADAS, fechaActual + dir));
+  seleccionarFecha(nueva);
+}
+
+async function cargarYRenderFecha(fechaNum){
+  const cont = document.getElementById('fechaPartidos');
+  if(!cont) return;
+
+  // Si está en cache, renderizar directo
+  if(window._fechasCache[fechaNum]){
+    renderFecha(window._fechasCache[fechaNum], fechaNum);
+    return;
+  }
+
+  cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando jornada ${fechaNum}...</div>`;
+
+  try{
+    const r = await fetch(`${SITE_ESPN}/${COMP_LOWER}/scoreboard?seasontype=2&week=${fechaNum}&limit=100`);
+    if(!r.ok) throw new Error('ESPN ' + r.status);
+    const data = await r.json();
+    const events = data.events || [];
+    window._fechasCache[fechaNum] = events;
+    renderFecha(events, fechaNum);
+  }catch(e){
+    cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la jornada ${fechaNum}. <button class="retry-btn" onclick="delete window._fechasCache[${fechaNum}];cargarYRenderFecha(${fechaNum})">Reintentar</button></div>`;
+  }
 }
 
 function renderFecha(events, fechaNum){
   const cont = document.getElementById('fechaPartidos');
   if(!cont) return;
 
-  if(!events.length){
-    // Intentar cargar fecha específica de ESPN
-    cargarFechaESPN(fechaNum);
+  if(!events || !events.length){
+    cont.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ${fechaNum}.</div>`;
     return;
   }
 
@@ -1015,7 +917,9 @@ function renderFecha(events, fechaNum){
   // Agrupar por día
   const byDate = {};
   sorted.forEach(ev=>{
-    const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : 'Sin fecha';
+    const dateStr = ev.date
+      ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})
+      : 'Sin fecha';
     if(!byDate[dateStr]) byDate[dateStr] = [];
     byDate[dateStr].push(ev);
   });
@@ -1027,25 +931,7 @@ function renderFecha(events, fechaNum){
     html += `</div>`;
   }
 
-  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para esta fecha.</div>`;
-}
-
-async function cargarFechaESPN(fechaNum){
-  const cont = document.getElementById('fechaPartidos');
-  if(cont) cont.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fecha ${fechaNum}...</div>`;
-  try{
-    const r = await fetch(`${SITE_ESPN}/${COMP.toLowerCase()}/scoreboard?week=${fechaNum}&seasontype=1`);
-    const data = await r.json();
-    const events = data.events || [];
-    if(events.length){
-      if(window._fechasMap) window._fechasMap[fechaNum] = events;
-      renderFecha(events, fechaNum);
-    } else {
-      if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos para la Fecha ${fechaNum}.</div>`;
-    }
-  }catch(e){
-    if(cont) cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar la fecha ${fechaNum}.</div>`;
-  }
+  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos.</div>`;
 }
 
 function buildFixtureCard(ev){
@@ -1190,8 +1076,7 @@ function errorHTML(msg, retryFn){
 // ── INIT ──────────────────────────────────────────────
 loadStandings();
 // Fixture se carga lazy al hacer clic en la tab
-// Pero también lo precargamos en background
-setTimeout(()=>{ if(!fixtureLoaded){ fixtureLoaded=true; fetch(`${SITE_ESPN}/${COMP}/scoreboard`).then(r=>r.json()).then(d=>{ fixtureLoaded=false; renderFixture(d); }); } }, 1500);
+setTimeout(()=>{ if(!fixtureLoaded) loadFixture(); }, 2000);
 </script>
 </body>
 </html>
