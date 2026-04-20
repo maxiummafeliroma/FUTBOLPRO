@@ -313,7 +313,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <!-- HERO -->
 <div class="page-hero">
   <div class="page-hero-inner">
-    <div class="liga-badge" style="font-size:40px;background:transparent;box-shadow:none;border:none">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div>
+    <div class="liga-badge" style="background:transparent;border:none;padding:0"><img src="https://a.espncdn.com/i/leaguelogos/soccer/500/23.png" style="width:64px;height:64px;object-fit:contain" alt="Premier League"></div>
     <div class="page-hero-info">
       <div class="page-hero-title">Premier <span>League</span></div>
       <div class="page-hero-sub">Temporada 2025/26 · England · First Division</div>
@@ -531,16 +531,16 @@ function renderZona(entries, containerId, esAnual){
       : `<div class="mini-logo-fb">${(team.abbreviation||team.displayName||'?').substring(0,3)}</div>`;
 
     // Colores posición
+    // Premier League: top 4 Champions, 5th Europa League playoff, 6th Conference, last 3 relegated
     let posClass = 'pos-n';
-    if(!esAnual){
-      if(pos===1) posClass='pos-cl';       // clasifica copa
-    } else {
-      if(pos<=6)  posClass='pos-cl';       // clasifica Libertadores/Suda
-      if(pos>=sorted.length-2) posClass='pos-rel'; // descenso
-    }
+    let posStyle = '';
+    if(pos<=4) posClass='pos-cl';                        // Champions League
+    else if(pos===5) posStyle='color:var(--blue);font-weight:700';  // Europa League
+    else if(pos===6) posStyle='color:var(--purple);font-weight:700'; // Conference League
+    else if(pos>=sorted.length-2) posClass='pos-rel';    // Relegation
 
     html += `<tr>
-      <td><span class="${posClass}">${pos}</span></td>
+      <td><span class="${posClass}" style="${posStyle}">${pos}</span></td>
       <td><div class="team-cell">${logoHtml}<span>${team.displayName||team.shortDisplayName||'—'}</span></div></td>
       <td>${pj}</td><td>${g}</td><td>${e}</td><td>${p}</td>
       <td>${gf}</td><td>${gc}</td><td>${difStr}</td>
@@ -608,7 +608,7 @@ function renderAnual(allEntries){
     else if(pos===rows.length) posClass='pos-rel'; // solo el último desciende por tabla anual
 
     html += `<tr>
-      <td><span class="${posClass}">${pos}</span></td>
+      <td><span class="${posClass}" style="${posStyle}">${pos}</span></td>
       <td><div class="team-cell">${logoHtml}<span>${t.team?.displayName||'—'}</span></div></td>
       <td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
       <td>${t.gf}</td><td>${t.gc}</td><td>${difStr}</td>
