@@ -1961,14 +1961,14 @@ function normalizeFDMatch(m, compCode) {
 const APISPORTS_BASE = 'https://v3.football.api-sports.io';
 
 async function loadArgentinaFixtures() {
-  const cacheKey = 'fp_arg_fixtures_' + today();
-  const cached = cacheGet(cacheKey, CACHE_TTL.fixtures);
+  const cacheKey = 'fp_arg_fixtures_season';
+  const cached = cacheGet(cacheKey, 3 * 60 * 60 * 1000); // 3hs cache
   if(cached) return cached;
   try {
-    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/fixtures?league=128&season=2025&next=20'));
+    const res = await fetch('/api/football?endpoint=' + encodeURIComponent('/fixtures?league=128&season=2025&timezone=America/Argentina/Buenos_Aires'));
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if(data && data.response) {
+    if(data && data.response && data.response.length) {
       cacheSet(cacheKey, data.response);
       return data.response;
     }
@@ -4606,29 +4606,68 @@ async function loadLeagueModalContent(leagueId, tab) {
       await loadPrimeraNacionalFixture(body);
       return;
     }
-    // Argentina: usar api-sports
+    // Argentina: usar api-sports — agrupar por jornada
     if(leagueId === '128') {
       const fixtures = await loadArgentinaFixtures();
       if(fixtures && fixtures.length) {
-        const groups = {};
+        // Agrupar por round — api-sports devuelve "Liga Profesional - 1" etc
+        const rounds = {};
         fixtures.forEach(m => {
-          const d = m.fixture.date.substring(0,10);
-          if(!groups[d]) groups[d] = [];
-          groups[d].push(m);
+          const rawRound = m.league?.round || m.fixture?.round || 'Sin fecha';
+          // Extraer número: "Liga Profesional - 3" → "Fecha 3"
+          const num = rawRound.match(/(\d+)$/);
+          const roundLabel = num ? 'Fecha ' + num[1] : rawRound;
+          const roundNum = num ? parseInt(num[1]) : 99;
+          if(!rounds[roundNum]) rounds[roundNum] = { label: roundLabel, matches: [] };
+          rounds[roundNum].matches.push(m);
         });
-        body.innerHTML = Object.entries(groups).map(([date, matches]) => `
-          <div style="padding:8px 12px 4px;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">
-            ${new Date(date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+
+        // Solo fechas 1-16 (torneo regular)
+        const sortedRounds = Object.entries(rounds)
+          .filter(([n]) => parseInt(n) >= 1 && parseInt(n) <= 16)
+          .sort(([a],[b]) => parseInt(a) - parseInt(b));
+
+        if(!sortedRounds.length) {
+          body.innerHTML = '<div class="empty-state">No hay fixture disponible.</div>';
+          return;
+        }
+
+        body.innerHTML = sortedRounds.map(([roundNum, {label, matches}]) => {
+          const sortedMatches = matches.sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+          return `
+          <div style="padding:10px 12px 4px;font-size:12px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(0,230,118,0.15);margin-bottom:2px">
+            ${label}
           </div>
-          ${matches.map(m => `
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03)">
-              <div style="font-size:11px;color:var(--muted2);width:40px;text-align:center;flex-shrink:0">
-                ${new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
+          ${sortedMatches.map(m => {
+            const status = m.fixture.status?.short;
+            const isFT = ['FT','AET','PEN'].includes(status);
+            const isLive = ['1H','HT','2H','ET','BT','P','INT'].includes(status);
+            const gH = m.goals?.home ?? null;
+            const gA = m.goals?.away ?? null;
+            let centerContent;
+            if(isFT && gH !== null) {
+              centerContent = `<div style="font-size:14px;font-weight:800;color:var(--txt);min-width:48px;text-align:center">${gH} - ${gA}</div>`;
+            } else if(isLive && gH !== null) {
+              centerContent = `<div style="font-size:13px;font-weight:800;color:var(--red);min-width:48px;text-align:center">${gH} - ${gA} <span style="font-size:9px">EN VIVO</span></div>`;
+            } else {
+              const hora = new Date(m.fixture.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+              centerContent = `<div style="font-size:11px;color:var(--muted2);min-width:48px;text-align:center;font-weight:600">${hora}</div>`;
+            }
+            const homeLogo = m.teams?.home?.logo ? `<img src="${m.teams.home.logo}" width="18" height="18" style="object-fit:contain;flex-shrink:0">` : '';
+            const awayLogo = m.teams?.away?.logo ? `<img src="${m.teams.away.logo}" width="18" height="18" style="object-fit:contain;flex-shrink:0">` : '';
+            return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div style="flex:1;display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                <div style="font-size:12px;font-weight:${isFT&&gH>gA?'700':'500'};text-align:right">${m.teams.home.name}</div>
+                ${homeLogo}
               </div>
-              <div style="flex:1;font-size:12px;font-weight:500">${m.teams.home.name}</div>
-              <div style="font-size:11px;color:var(--muted2);font-weight:600">vs</div>
-              <div style="flex:1;font-size:12px;font-weight:500;text-align:right">${m.teams.away.name}</div>
-            </div>`).join('')}`).join('');
+              ${centerContent}
+              <div style="flex:1;display:flex;align-items:center;gap:6px">
+                ${awayLogo}
+                <div style="font-size:12px;font-weight:${isFT&&gA>gH?'700':'500'}">${m.teams.away.name}</div>
+              </div>
+            </div>`;
+          }).join('')}`;
+        }).join('');
       } else {
         body.innerHTML = '<div class="empty-state">No hay fixture disponible para Argentina.</div>';
       }
