@@ -3548,38 +3548,39 @@ async function loadNBAPlayoffs() {
   const container = document.getElementById('nbaPlayoffBracket');
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando playoffs...</div>';
 
-  const cacheKey = 'fp_nba_playoffs_' + today();
-  const cached = cacheGet(cacheKey, 30 * 60 * 1000); // 30 min cache
-  let data = cached;
-
-  if (!data) {
+  // 1) Intentar balldontlie API (gratuita, sin key)
+  const bdlCacheKey = 'fp_bdl_playoffs_' + today();
+  const bdlCached = cacheGet(bdlCacheKey, 30 * 60 * 1000);
+  if (!bdlCached) {
     try {
-      data = await espnFetch('/basketball/nba/scoreboard?groups=playoff');
-    } catch(e) {}
-  }
-
-  // Intentar con el endpoint de bracket de ESPN
-  let bracketData = null;
-  const bracketCacheKey = 'fp_nba_bracket_' + today();
-  const bracketCached = cacheGet(bracketCacheKey, 60 * 60 * 1000);
-  if (bracketCached) {
-    bracketData = bracketCached;
-  } else {
-    try {
-      const r = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/playoffs');
+      const r = await fetch('https://api.balldontlie.io/v1/playoffs/series?season=2025', {
+        headers: {'Authorization': ''}
+      });
       if (r.ok) {
-        bracketData = await r.json();
-        cacheSet(bracketCacheKey, bracketData);
+        const data = await r.json();
+        if (data.data && data.data.length > 0) {
+          cacheSet(bdlCacheKey, data);
+          renderNBABracketFromBDL(data, container);
+          return;
+        }
       }
     } catch(e) {}
-  }
-
-  if (bracketData && bracketData.bracketGroups) {
-    renderNBABracket(bracketData, container);
+  } else {
+    renderNBABracketFromBDL(bdlCached, container);
     return;
   }
 
-  // Fallback: bracket estático con estado actual (playoffs 2025)
+  // 2) Fallback: bracket estático actualizado manualmente
+  renderNBABracketStatic(container);
+}
+
+function renderNBABracketFromBDL(data, container) {
+  // Si balldontlie devuelve datos, usarlos; sino fallback
+  if (!data || !data.data || !data.data.length) {
+    renderNBABracketStatic(container);
+    return;
+  }
+  // Por ahora fallback hasta mapear estructura BDL
   renderNBABracketStatic(container);
 }
 
@@ -3675,18 +3676,19 @@ function renderNBABracketStatic(container) {
     hou: 'https://a.espncdn.com/i/teamlogos/nba/500/hou.png',
   };
 
+  // Resultados al 20/04/2026 - Game 1 jugados
   const bracket = {
     east: [
-      [{seed:1,name:'Pistons',abbr:'det',wins:0},{seed:8,name:'Magic',abbr:'orl',wins:0}],
-      [{seed:2,name:'Celtics',abbr:'bos',wins:0},{seed:7,name:'76ers',abbr:'phi',wins:0}],
-      [{seed:3,name:'Knicks',abbr:'ny',wins:0},{seed:6,name:'Hawks',abbr:'atl',wins:0}],
-      [{seed:4,name:'Cavaliers',abbr:'cle',wins:0},{seed:5,name:'Raptors',abbr:'tor',wins:0}],
+      [{seed:1,name:'Pistons',abbr:'det',wins:0},{seed:8,name:'Magic',abbr:'orl',wins:1}],     // Magic gana G1 112-101
+      [{seed:2,name:'Celtics',abbr:'bos',wins:0},{seed:7,name:'76ers',abbr:'phi',wins:0}],     // G1 hoy
+      [{seed:3,name:'Knicks',abbr:'ny',wins:0},{seed:6,name:'Hawks',abbr:'atl',wins:0}],       // G1 hoy
+      [{seed:4,name:'Cavaliers',abbr:'cle',wins:1},{seed:5,name:'Raptors',abbr:'tor',wins:0}], // Cavs gana G1 126-113
     ],
     west: [
-      [{seed:1,name:'Thunder',abbr:'okc',wins:0},{seed:8,name:'Suns',abbr:'phx',wins:0}],
-      [{seed:2,name:'Spurs',abbr:'sa',wins:0},{seed:7,name:'T. Blazers',abbr:'por',wins:0}],
-      [{seed:3,name:'Nuggets',abbr:'den',wins:0},{seed:6,name:'Timberwolves',abbr:'min',wins:0}],
-      [{seed:4,name:'Lakers',abbr:'lal',wins:0},{seed:5,name:'Rockets',abbr:'hou',wins:0}],
+      [{seed:1,name:'Thunder',abbr:'okc',wins:0},{seed:8,name:'Suns',abbr:'phx',wins:0}],     // G1 hoy
+      [{seed:2,name:'Spurs',abbr:'sa',wins:1},{seed:7,name:'T. Blazers',abbr:'por',wins:0}],   // Spurs gana G1 111-98
+      [{seed:3,name:'Nuggets',abbr:'den',wins:0},{seed:6,name:'Timberwolves',abbr:'min',wins:0}], // G1 hoy
+      [{seed:4,name:'Lakers',abbr:'lal',wins:1},{seed:5,name:'Rockets',abbr:'hou',wins:0}],   // Lakers gana G1 107-98
     ]
   };
 
@@ -3736,7 +3738,7 @@ function renderNBABracketStatic(container) {
 
   container.innerHTML = `
     <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;text-align:center">
-      🏀 Playoffs NBA 2026 — Primera Ronda (todos los partidos 0-0)
+      🏀 Playoffs NBA 2026 — Primera Ronda (Game 1 jugados el 18-19/04)
     </div>
     <div class="bracket-wrap nba-bracket">
       ${buildConf(bracket.east, '🏆 Conferencia Este')}
@@ -3896,7 +3898,28 @@ async function loadF1NextRace() {
         <span style="font-weight:700;color:var(--f1red)">${days}d ${hours}h</span>
       </div>`;
   } else {
-    container.innerHTML = '<div class="empty-state">No se encontró info de la próxima carrera.</div>';
+    // Fallback estático: próxima carrera conocida
+    const nextRaceDate = new Date('2026-05-03T20:00:00-03:00'); // GP Miami - carrera
+    const now2 = Date.now();
+    const diff2 = nextRaceDate - now2;
+    const days2 = Math.max(0, Math.floor(diff2 / 86400000));
+    const hours2 = Math.max(0, Math.floor((diff2 % 86400000) / 3600000));
+    const mins2 = Math.max(0, Math.floor((diff2 % 3600000) / 60000));
+    container.innerHTML = `
+      <div class="next-race-label">🏁 PRÓXIMA CARRERA · RONDA 4</div>
+      <div class="next-race-name">GP de Miami</div>
+      <div class="next-race-details">
+        <div class="race-detail">📍 <strong>Miami International Autodrome, EE.UU.</strong></div>
+        <div class="race-detail">📅 <strong>3 de mayo de 2026</strong></div>
+        <div class="race-detail">🕐 <strong>20:00 ARG</strong></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Cuenta regresiva</div>
+      <div class="countdown-grid">
+        <div class="countdown-unit"><div class="countdown-num">${days2}</div><div class="countdown-lbl">Días</div></div>
+        <div class="countdown-unit"><div class="countdown-num">${hours2}</div><div class="countdown-lbl">Horas</div></div>
+        <div class="countdown-unit"><div class="countdown-num">${mins2}</div><div class="countdown-lbl">Min</div></div>
+        <div class="countdown-unit"><div class="countdown-num">4</div><div class="countdown-lbl">Fecha</div></div>
+      </div>`;
   }
 }
 
@@ -3904,7 +3927,8 @@ const teamColors = {
   'Red Bull Racing':'#3671C6','Ferrari':'#E8002D','Mercedes':'#27F4D2',
   'McLaren':'#FF8000','Aston Martin':'#229971','Alpine':'#FF87BC',
   'Williams':'#64C4FF','Haas':'#B6BABD','Sauber':'#52E252','RB':'#6692FF',
-  'Kick Sauber':'#52E252','Racing Bulls':'#6692FF'
+  'Kick Sauber':'#52E252','Racing Bulls':'#6692FF','Cadillac':'#CC0000',
+  'Audi':'#BB0000'
 };
 
 async function loadF1Drivers() {
@@ -3914,6 +3938,28 @@ async function loadF1Drivers() {
   const cacheKey = 'fp_espn_f1_drivers';
   const cached = cacheGet(cacheKey, CACHE_TTL.f1);
   let data = cached;
+
+  // Intentar Jolpica primero (reemplazo de Ergast, gratuito)
+  if(!data) {
+    try {
+      const r = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings/?format=json&limit=20');
+      if(r.ok) {
+        const jd = await r.json();
+        const standings = jd?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+        if(standings.length) {
+          const entries = standings.map(s => ({
+            athlete: { displayName: s.Driver.givenName + ' ' + s.Driver.familyName, citizenship: s.Driver.nationality },
+            team: { displayName: s.Constructors?.[0]?.name || '—', shortDisplayName: s.Constructors?.[0]?.name || '—' },
+            stats: [{ name: 'points', displayValue: s.points }],
+            points: s.points
+          }));
+          data = { standings: [{ entries }] };
+          cacheSet(cacheKey, data);
+        }
+      }
+    } catch(e) {}
+  }
+
   if(!data) {
     data = await espnFetch('/racing/f1/standings');
     if(data) cacheSet(cacheKey, data);
@@ -3944,16 +3990,18 @@ async function loadF1Drivers() {
     return;
   }
 
-  // Fallback estático actualizado 2025
+  // Fallback estático 2026 — tras GP Japón (Ronda 3)
   const fallback = [
-    {pos:1,name:'Max Verstappen',team:'Red Bull Racing',pts:136,flag:'🇳🇱'},
-    {pos:2,name:'Lando Norris',team:'McLaren',pts:113,flag:'🇬🇧'},
-    {pos:3,name:'Charles Leclerc',team:'Ferrari',pts:98,flag:'🇲🇨'},
-    {pos:4,name:'Oscar Piastri',team:'McLaren',pts:95,flag:'🇦🇺'},
-    {pos:5,name:'Carlos Sainz',team:'Ferrari',pts:88,flag:'🇪🇸'},
-    {pos:6,name:'Lewis Hamilton',team:'Ferrari',pts:70,flag:'🇬🇧'},
-    {pos:7,name:'George Russell',team:'Mercedes',pts:62,flag:'🇬🇧'},
-    {pos:8,name:'Fernando Alonso',team:'Aston Martin',pts:24,flag:'🇪🇸'},
+    {pos:1,name:'Kimi Antonelli',team:'Mercedes',pts:72,flag:'🇮🇹'},
+    {pos:2,name:'George Russell',team:'Mercedes',pts:63,flag:'🇬🇧'},
+    {pos:3,name:'Charles Leclerc',team:'Ferrari',pts:49,flag:'🇲🇨'},
+    {pos:4,name:'Lewis Hamilton',team:'Ferrari',pts:41,flag:'🇬🇧'},
+    {pos:5,name:'Lando Norris',team:'McLaren',pts:25,flag:'🇬🇧'},
+    {pos:6,name:'Oscar Piastri',team:'McLaren',pts:18,flag:'🇦🇺'},
+    {pos:7,name:'Max Verstappen',team:'Red Bull Racing',pts:12,flag:'🇳🇱'},
+    {pos:8,name:'Carlos Sainz',team:'Williams',pts:10,flag:'🇪🇸'},
+    {pos:9,name:'Franco Colapinto',team:'Alpine',pts:8,flag:'🇦🇷'},
+    {pos:10,name:'Isack Hadjar',team:'Red Bull Racing',pts:4,flag:'🇫🇷'},
   ];
   container.innerHTML = fallback.map(d => renderDriverRow(d)).join('');
 }
@@ -4006,11 +4054,14 @@ async function loadF1Teams() {
     return;
   }
 
-  // Fallback
+  // Fallback 2026 — tras GP Japón (Ronda 3)
   const fb = [
-    {pos:1,name:'McLaren',pts:208,color:'#FF8000'},{pos:2,name:'Ferrari',pts:158,color:'#E8002D'},
-    {pos:3,name:'Red Bull Racing',pts:136,color:'#3671C6'},{pos:4,name:'Mercedes',pts:132,color:'#27F4D2'},
-    {pos:5,name:'Aston Martin',pts:24,color:'#229971'}
+    {pos:1,name:'Mercedes',pts:135,color:'#27F4D2'},
+    {pos:2,name:'Ferrari',pts:90,color:'#E8002D'},
+    {pos:3,name:'McLaren',pts:56,color:'#FF8000'},
+    {pos:4,name:'Red Bull Racing',pts:16,color:'#3671C6'},
+    {pos:5,name:'Williams',pts:10,color:'#64C4FF'},
+    {pos:6,name:'Alpine',pts:8,color:'#FF87BC'},
   ];
   container.innerHTML = fb.map(t => `
     <div class="driver-row">
