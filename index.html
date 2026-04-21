@@ -3095,7 +3095,7 @@ function renderProdeGrid() {
     const hLogo = m.teams.home.logo;
     const aLogo = m.teams.away.logo;
     const dateStr = new Date(m.fixture.date).toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const matchLocked = alreadySubmitted || window.isMatchLocked(m);
+    const matchLocked = window.isMatchLocked(m); // solo bloquear por tiempo, no por envío previo
     const lockBadge = (window.isMatchLocked(m) && !alreadySubmitted)
       ? `<div style="font-size:10px;color:var(--red);text-align:center;margin-top:4px;font-weight:700">🔒 Cerrado</div>`
       : '';
