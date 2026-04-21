@@ -459,6 +459,13 @@ async function callAI(userText) {
     })
   });
   const data = await res.json();
+  // LOG visible para diagnóstico mobile
+  if(!data.content?.[0]?.text) {
+    const errInfo = JSON.stringify(data).substring(0, 250);
+    console.warn('[ELI ERROR]', errInfo);
+    const st = document.getElementById('status');
+    if(st) { st.textContent = '⚠️ ' + errInfo; setTimeout(()=>{ st.textContent=''; }, 10000); }
+  }
   let reply = data.content?.[0]?.text || 'Perdoname, no pude entender bien. ¿Lo repetís?';
   history.push({ role: 'assistant', content: reply });
   return extractMemory(reply);
