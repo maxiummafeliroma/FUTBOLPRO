@@ -3081,7 +3081,7 @@ function renderProdeGrid() {
 
   let notice = '';
   if(alreadySubmitted) {
-    notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos enviados</div><div style="font-size:12px;color:var(--muted2)">Ya enviaste tus pronósticos para esta fecha.</div></div>';
+    notice = '<div style="grid-column:1/-1;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">✅ Pronósticos guardados</div><div style="font-size:12px;color:var(--muted2)">Podés seguir agregando o modificando hasta que cierre el prode.</div></div>';
   } else if(isLocked) {
     notice = '<div style="grid-column:1/-1;background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center"><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">🔒 Prode cerrado</div><div style="font-size:12px;color:var(--muted2)">Los pronósticos cierran 20 minutos antes de cada partido.</div></div>';
   } else if(window.prodeLockTime) {
@@ -3119,14 +3119,14 @@ function renderProdeGrid() {
             ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
-            placeholder="0">
+            placeholder="-">
           <span class="prode-score-sep">-</span>
           <input type="number" min="0" max="9" class="prode-score-input ${sel?'filled':''}"
             id="pa-${fid}" value="${sel?sel.split('-')[1]:''}"
             ${matchLocked?'disabled':''}
             oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
             onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateProdeScore(${fid})"
-            placeholder="0">
+            placeholder="-">
         </div>
         ${lockBadge}
       </div>
@@ -3134,7 +3134,7 @@ function renderProdeGrid() {
   }).join('');
 
   // Submit bar: fixed fuera del grid, visible si hay partidos abiertos
-  const hayAbiertos = !alreadySubmitted && prodeMatches.some(m => !window.isMatchLocked(m));
+  const hayAbiertos = prodeMatches.some(m => !window.isMatchLocked(m));
   const count = Object.keys(prodePronosticos).length;
   if(submitBar) {
     submitBar.style.display = hayAbiertos ? 'flex' : 'none';
@@ -3187,10 +3187,7 @@ async function submitPronosticos() {
     return;
   }
 
-  if (window.prodeAlreadySubmitted) {
-    showProdeToast('Ya enviaste tus pronósticos para esta fecha');
-    return;
-  }
+  // Permitir re-envío parcial — el upsert merge-duplicates actualiza los existentes y agrega nuevos
 
   if (window.prodeLocked) {
     showProdeToast('El prode está cerrado');
