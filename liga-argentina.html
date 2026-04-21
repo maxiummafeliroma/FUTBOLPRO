@@ -282,10 +282,22 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 }
 @media(max-width:600px){
   .hero-stats{gap:12px}
-  .standings-wrap th:nth-child(n+8){display:none}
-  .standings-wrap td:nth-child(n+8){display:none}
+  /* Tabla: scroll horizontal, todas las columnas visibles */
+  .standings-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .standings-wrap table{font-size:10px;min-width:500px}
+  .standings-wrap th{padding:7px 3px;font-size:9px;letter-spacing:0}
+  .standings-wrap td{padding:6px 3px}
+  .standings-wrap td:first-child,.standings-wrap th:first-child{padding-left:8px}
+  .standings-wrap td:nth-child(2){max-width:100px}
+  .mini-logo{width:16px;height:16px}
+  .mini-logo-fb{width:16px;height:16px;font-size:7px}
+  .team-cell{gap:4px}
   .form-badges{display:none}
-  .fx-name{max-width:80px}
+  .fx-name{max-width:75px;font-size:11px}
+  /* Tabs: más compactos */
+  .inner-tabs{padding:3px}
+  .inner-tab{font-size:10px;padding:7px 2px;letter-spacing:0}
+  .tab-lbl{display:none}
 }
 </style>
 </head>
@@ -327,12 +339,12 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
     <!-- TABS FILA 1 -->
     <div class="inner-tabs" style="margin-bottom:4px">
-      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">🅰 Zona A</button>
-      <button class="inner-tab" onclick="showTab('zonaB',this)" id="btn-zonaB">🅱 Zona B</button>
-      <button class="inner-tab" onclick="showTab('anual',this)" id="btn-anual">📊 Anual</button>
-      <button class="inner-tab" onclick="showTab('promedios',this)" id="btn-promedios">📉 Promedios</button>
-      <button class="inner-tab" onclick="showTab('goleadores',this)" id="btn-goleadores">⚽ Goleadores</button>
-      <button class="inner-tab" onclick="showTab('fixture',this)" id="btn-fixture">📅 Fixture</button>
+      <button class="inner-tab active" onclick="showTab('zonaA',this)" id="btn-zonaA">🅰 <span class="tab-lbl">Zona </span>A</button>
+      <button class="inner-tab" onclick="showTab('zonaB',this)" id="btn-zonaB">🅱 <span class="tab-lbl">Zona </span>B</button>
+      <button class="inner-tab" onclick="showTab('anual',this)" id="btn-anual">📊 <span class="tab-lbl">Anual</span></button>
+      <button class="inner-tab" onclick="showTab('promedios',this)" id="btn-promedios">📉 <span class="tab-lbl">Prom.</span></button>
+      <button class="inner-tab" onclick="showTab('goleadores',this)" id="btn-goleadores">⚽ <span class="tab-lbl">Goles</span></button>
+      <button class="inner-tab" onclick="showTab('fixture',this)" id="btn-fixture">📅 <span class="tab-lbl">Fixture</span></button>
     </div>
 
     <!-- ZONA A -->
