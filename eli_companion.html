@@ -341,7 +341,7 @@
 </div>
 
 <script>
-const API_KEY = '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';
+// API key manejada por el servidor
 const chatEl = document.getElementById('chat');
 const inputEl = document.getElementById('input');
 const sendBtn = document.getElementById('send-btn');
@@ -443,14 +443,9 @@ function extractMemory(text) {
 async function callAI(userText) {
   history.push({ role: 'user', content: userText });
   const msgs = history.slice(-20);
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
