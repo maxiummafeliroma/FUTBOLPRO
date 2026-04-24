@@ -3708,104 +3708,153 @@ async function loadNBAPlayoffs() {
   const container = document.getElementById('nbaPlayoffBracket');
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando playoffs...</div>';
 
-  // Intentar múltiples endpoints ESPN para playoffs
-  const endpoints = [
-    '/basketball/nba/playoffs',
-    '/basketball/nba/tournaments/playoffs',
-  ];
+  const BDL_KEY = '09167dab-75d5-4696-9b53-4b96bba3e2c0';
+  const cacheKey = 'fp_bdl_nba_playoffs_2025';
+  const cacheTS  = 'fp_bdl_nba_playoffs_ts';
 
-  const cacheKey = 'fp_espn_nba_playoffs_' + today();
-  let data = cacheGet(cacheKey, 30*60*1000); // 30min cache
-
-  if(!data) {
-    for(const ep of endpoints) {
-      try {
-        const r = await espnFetch(ep);
-        if(r && (r.bracketGroups || r.groups || r.children || r.bracket)) {
-          data = r; cacheSet(cacheKey, r); break;
-        }
-      } catch(e) { console.warn('[NBA Playoffs ESPN]', ep, e.message); }
-    }
+  // Caché de 30 minutos
+  const cached = localStorage.getItem(cacheKey);
+  const ts     = parseInt(localStorage.getItem(cacheTS)||'0');
+  if(cached && Date.now() - ts < 30*60*1000) {
+    renderNBABracketFromGames(JSON.parse(cached), container);
+    return;
   }
 
-  if(data) {
-    renderNBABracketESPN(data, container);
-  } else {
+  try {
+    // Traer todos los juegos postseason 2025 (temporada NBA 2025-26)
+    const url = `https://api.balldontlie.io/v1/games?seasons[]=2025&postseason=true&per_page=100`;
+    const res = await fetch(url, { headers: { 'Authorization': BDL_KEY } });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const games = data.data || [];
+    if(!games.length) throw new Error('sin juegos');
+    localStorage.setItem(cacheKey, JSON.stringify(games));
+    localStorage.setItem(cacheTS, String(Date.now()));
+    renderNBABracketFromGames(games, container);
+  } catch(e) {
+    console.warn('[BDL Playoffs]', e.message);
     container.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar el bracket.<br><button class="retry-btn" onclick="loadNBAPlayoffs()">Reintentar</button></div>`;
   }
 }
 
-function renderNBABracketESPN(data, container) {
-  // ESPN devuelve la llave en data.bracketGroups o data.groups
-  const groups = data.bracketGroups || data.groups || data.children || [];
-  if(!groups.length) { renderNBABracketStatic(container); return; }
-
-  const east = groups.find(g => (g.name||g.abbreviation||'').toLowerCase().includes('east') || (g.id||'').includes('east')) || groups[0];
-  const west = groups.find(g => (g.name||g.abbreviation||'').toLowerCase().includes('west') || (g.id||'').includes('west')) || groups[1];
-
-  if(!east || !west) { renderNBABracketStatic(container); return; }
-
-  const roundNames = ['Primera Ronda','Semis Conf.','Final Conf.','Finales NBA'];
-
-  const buildTeamCard = (comp, otherComp) => {
-    if(!comp) return `<div class="nba-bracket-team tbd"><span class="bracket-seed">-</span><div class="bracket-logo-placeholder">?</div><span class="bracket-name" style="color:var(--muted2)">TBD</span><span class="bracket-score">-</span></div>`;
-    const wins = parseInt(comp.wins||0);
-    const otherWins = parseInt(otherComp?.wins||0);
-    const totalNeeded = 4;
-    const isDone = wins===totalNeeded || otherWins===totalNeeded;
-    const isWinner = isDone && wins > otherWins;
-    const isLoser  = isDone && wins < otherWins;
-    const seed = comp.seed || comp.curveSeed || '';
-    const logo = comp.team?.logos?.[0]?.href || comp.team?.logo || '';
-    const name = comp.team?.shortDisplayName || comp.team?.abbreviation || comp.team?.displayName || '?';
-    return `<div class="nba-bracket-team ${isWinner?'winner':''} ${isLoser?'loser':''}">
-      <span class="bracket-seed">${seed}</span>
-      ${logo?`<img class="nba-bracket-logo" src="${logo}" onerror="this.style.display='none'">` : `<div class="bracket-logo-placeholder">${name.substring(0,2)}</div>`}
-      <span class="bracket-name">${name}</span>
-      <span class="bracket-score">${wins}</span>
-    </div>`;
+function renderNBABracketFromGames(games, container) {
+  // Logos ESPN por abbreviation
+  const LOGOS = {
+    DET:'det',ORL:'orl',BOS:'bos',PHI:'phi',NYK:'ny',ATL:'atl',
+    CLE:'cle',TOR:'tor',OKC:'okc',PHX:'phx',SAS:'sa',POR:'por',
+    DEN:'den',MIN:'min',LAL:'lal',HOU:'hou',MIA:'mia',MIL:'mil',
+    IND:'ind',CHI:'chi',CHA:'cha',WAS:'wsh',BKN:'bkn',NOP:'no',
+    DAL:'dal',UTA:'uta',SAC:'sac',MEM:'mem',GSW:'gs',LAC:'lac',
   };
+  const logo = (abbr) => abbr
+    ? `<img class="nba-bracket-logo" src="https://a.espncdn.com/i/teamlogos/nba/500/${LOGOS[abbr]||abbr.toLowerCase()}.png" onerror="this.style.display='none'">`
+    : '';
 
-  const buildSeries = (series) => {
-    if(!series) return `<div class="bracket-series"><div class="nba-bracket-team tbd" style="justify-content:center;color:var(--muted2);font-size:11px;padding:8px">Por definir</div></div>`;
-    const c1 = series.competitors?.[0] || series.teams?.[0];
-    const c2 = series.competitors?.[1] || series.teams?.[1];
-    const w1 = parseInt(c1?.wins||0), w2 = parseInt(c2?.wins||0);
-    const done = w1===4||w2===4||series.completed||series.status?.type?.completed;
-    const active = !done && (series.started||series.status?.type?.state==='in'||series.status?.type?.state==='post'||(w1+w2)>0);
-    const statusTxt = done ? `${w1>w2?(c1?.team?.abbreviation||'?'):(c2?.team?.abbreviation||'?')} gana ${Math.max(w1,w2)}-${Math.min(w1,w2)}` : active ? `Serie ${w1}-${w2}` : 'Por jugar';
+  // Calcular victorias por serie agrupando por matchup
+  // Clave de serie: sorted abbr1_abbr2
+  const seriesMap = {};
+
+  games.forEach(g => {
+    const h = g.home_team;
+    const v = g.visitor_team;
+    if(!h || !v) return;
+    const key = [h.abbreviation, v.abbreviation].sort().join('_');
+    if(!seriesMap[key]) {
+      seriesMap[key] = {
+        t1: h, t2: v,
+        w1: 0, w2: 0,
+        conf: h.conference || '',
+        round: detectRound(g),
+      };
+    }
+    const s = seriesMap[key];
+    const hScore = parseInt(g.home_team_score||0);
+    const vScore = parseInt(g.visitor_team_score||0);
+    const finished = g.status === 'Final' || g.period >= 4;
+    if(finished && hScore !== vScore) {
+      if(hScore > vScore) {
+        if(s.t1.abbreviation === h.abbreviation) s.w1++; else s.w2++;
+      } else {
+        if(s.t2.abbreviation === v.abbreviation) s.w2++; else s.w1++;
+      }
+    }
+  });
+
+  const allSeries = Object.values(seriesMap);
+
+  // Separar por conferencia y ronda
+  const east = allSeries.filter(s => s.conf === 'East' || s.t1.conference === 'East');
+  const west = allSeries.filter(s => s.conf === 'West' || s.t1.conference === 'West');
+
+  const getRound = (arr, r) => arr.filter(s => s.round === r);
+
+  const buildSeriesCard = (s) => {
+    if(!s) return `<div class="bracket-series"><div class="nba-bracket-team tbd"><span class="bracket-name" style="color:var(--muted2)">TBD</span></div><div class="nba-bracket-team tbd"><span class="bracket-name" style="color:var(--muted2)">TBD</span></div></div>`;
+    const done = s.w1 === 4 || s.w2 === 4;
+    const active = !done && (s.w1 + s.w2) > 0;
+    const iW1 = done && s.w1 > s.w2;
+    const iW2 = done && s.w2 > s.w1;
+    const statusTxt = done
+      ? `${iW1 ? s.t1.abbreviation : s.t2.abbreviation} gana ${Math.max(s.w1,s.w2)}-${Math.min(s.w1,s.w2)}`
+      : active ? `${s.w1}-${s.w2}` : 'Por jugar';
+    const buildTeam = (t, wins, isW, isL) => `
+      <div class="nba-bracket-team ${isW?'winner':''} ${isL?'loser':''}">
+        ${logo(t.abbreviation)}
+        <span class="bracket-name">${t.abbreviation||'?'}</span>
+        <span class="bracket-score">${wins}</span>
+      </div>`;
     return `<div class="bracket-series ${done?'done':''} ${active?'active':''}">
-      ${buildTeamCard(c1,c2)}
-      ${buildTeamCard(c2,c1)}
+      ${buildTeam(s.t1, s.w1, iW1, done&&!iW1)}
+      ${buildTeam(s.t2, s.w2, iW2, done&&!iW2)}
       <div class="bracket-status">${statusTxt}</div>
     </div>`;
   };
 
-  const buildConf = (group, label) => {
-    const rounds = group.rounds || group.children || [];
-    const roundsHTML = [0,1,2,3].map(ri => {
-      const round = rounds[ri] || {};
-      const series = round.series || round.competitions || [];
-      const expected = Math.pow(2, 3-ri);
-      const cards = Array.from({length:expected}, (_,i) => buildSeries(series[i]||null));
-      return `<div class="bracket-round">
-        <div class="bracket-round-label">${roundNames[ri]||'Ronda '+(ri+1)}</div>
-        ${cards.join('')}
-      </div>`;
-    }).join('');
+  const buildConf = (series, label) => {
+    const r1 = getRound(series, 1); const r2 = getRound(series, 2);
+    const r3 = getRound(series, 3); const r4 = getRound(series, 4);
+    const tbd = () => `<div class="bracket-series"><div class="nba-bracket-team tbd" style="padding:8px;color:var(--muted2);font-size:10px">TBD</div></div>`;
+    const rounds = [
+      { name:'1ra Ronda', cards: Array.from({length:4},(_,i)=>buildSeriesCard(r1[i]||null)) },
+      { name:'Semis Conf.', cards: Array.from({length:2},(_,i)=>buildSeriesCard(r2[i]||null)) },
+      { name:'Final Conf.', cards: [buildSeriesCard(r3[0]||null)] },
+      { name:'Finales NBA', cards: [buildSeriesCard(r4[0]||null)] },
+    ];
     return `<div class="bracket-conf">
       <div class="bracket-conf-title">${label}</div>
-      <div class="bracket-rounds">${roundsHTML}</div>
+      <div class="bracket-rounds">
+        ${rounds.map(r=>`<div class="bracket-round">
+          <div class="bracket-round-label">${r.name}</div>
+          ${r.cards.join('')}
+        </div>`).join('')}
+      </div>
     </div>`;
   };
 
+  const updated = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   container.innerHTML = `
-    <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;text-align:center">🏀 Playoffs NBA 2026 · Datos en vivo via ESPN</div>
+    <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;text-align:center">
+      🏀 Playoffs NBA 2026 · Actualizado ${updated} · <button onclick="localStorage.removeItem('fp_bdl_nba_playoffs_2025');loadNBAPlayoffs()" style="background:transparent;border:none;color:var(--blue);font-size:10px;cursor:pointer;text-decoration:underline">Actualizar</button>
+    </div>
     <div class="bracket-wrap nba-bracket">
       ${buildConf(east,'🏆 Conferencia Este')}
       <div class="bracket-divider"></div>
       ${buildConf(west,'🏆 Conferencia Oeste')}
     </div>`;
+}
+
+function detectRound(game) {
+  // Detectar ronda por fecha o campo round si existe
+  const r = game.round || game.playoff_round;
+  if(r) {
+    if(typeof r === 'number') return r;
+    if(r.includes('1') || r.toLowerCase().includes('first')) return 1;
+    if(r.includes('2') || r.toLowerCase().includes('second')) return 2;
+    if(r.includes('3') || r.toLowerCase().includes('conf')) return 3;
+    if(r.includes('4') || r.toLowerCase().includes('final')) return 4;
+  }
+  // Fallback: por ahora todos R1 hasta tener datos reales
+  return 1;
 }
 
 
