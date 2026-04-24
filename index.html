@@ -3776,100 +3776,145 @@ function renderNBABracketFromGames(games, container) {
     IND:'ind',CHI:'chi',CHA:'cha',WAS:'wsh',BKN:'bkn',NOP:'no',
     DAL:'dal',UTA:'uta',SAC:'sac',MEM:'mem',GSW:'gs',LAC:'lac',
   };
-  const logo = abbr => abbr
+  const logoImg = abbr => abbr
     ? `<img class="nba-bracket-logo" src="https://a.espncdn.com/i/teamlogos/nba/500/${LOGOS[abbr]||abbr.toLowerCase()}.png" onerror="this.style.display='none'">`
     : '';
 
-  // Calcular victorias por serie
+  // Seeds conocidos NBA 2026
+  const SEEDS = {
+    NYK:1,BOS:2,DET:3,CLE:4,TOR:5,ORL:6,PHI:7,ATL:8,
+    OKC:1,SAS:2,DEN:3,LAL:4,HOU:5,POR:6,MIN:7,PHX:8,
+  };
+
+  // Agrupar juegos por serie
   const seriesMap = {};
   games.forEach(g => {
     const h = g.home_team, v = g.visitor_team;
     if(!h||!v) return;
     const key = [h.abbreviation,v.abbreviation].sort().join('_');
-    if(!seriesMap[key]) seriesMap[key] = { t1:h, t2:v, w1:0, w2:0, round:detectRound(g) };
+    if(!seriesMap[key]) seriesMap[key] = { t1:h, t2:v, w1:0, w2:0, games:[] };
+    seriesMap[key].games.push(g);
     const s = seriesMap[key];
     const hs = parseInt(g.home_team_score||0), vs = parseInt(g.visitor_team_score||0);
-    if((g.status==='Final'||g.period>=4) && hs!==vs) {
+    if(g.status==='Final' && hs!==vs) {
       if(hs>vs){ if(s.t1.abbreviation===h.abbreviation) s.w1++; else s.w2++; }
       else     { if(s.t2.abbreviation===v.abbreviation) s.w2++; else s.w1++; }
     }
   });
 
   const allSeries = Object.values(seriesMap);
-  const eastAll = allSeries.filter(s => s.t1.conference==='East'||s.t2.conference==='East');
-  const westAll = allSeries.filter(s => s.t1.conference==='West'||s.t2.conference==='West');
-  const byRound = (arr,r) => arr.filter(s=>s.round===r);
+
+  // Detectar ronda por lógica de matchups:
+  // R1: equipos cuyos seeds son pares conocidos (1v8, 2v7, 3v6, 4v5)
+  // R2: equipos que ganaron en R1
+  // R3: equipos que ganaron en R2
+  // R4: ganadores de R3
+
+  const R1_PAIRS = [
+    ['NYK','ATL'],['BOS','PHI'],['DET','ORL'],['CLE','TOR'],  // Este
+    ['OKC','PHX'],['SAS','POR'],['DEN','MIN'],['LAL','HOU'],  // Oeste
+  ];
+
+  const isR1Pair = (a1, a2) => R1_PAIRS.some(p =>
+    (p[0]===a1&&p[1]===a2)||(p[0]===a2&&p[1]===a1)
+  );
+
+  // Ganadores de cada serie
+  const getWinner = (s) => {
+    if(s.w1===4) return s.t1.abbreviation;
+    if(s.w2===4) return s.t2.abbreviation;
+    return null;
+  };
+
+  // Asignar rondas
+  const r1Series = allSeries.filter(s => isR1Pair(s.t1.abbreviation, s.t2.abbreviation));
+  const r1Winners = new Set(r1Series.map(s => getWinner(s)).filter(Boolean));
+
+  const r2Series = allSeries.filter(s => {
+    if(isR1Pair(s.t1.abbreviation, s.t2.abbreviation)) return false;
+    // Ambos equipos son ganadores de R1, o al menos uno (serie en curso)
+    const a1InR1 = r1Series.some(r => r.t1.abbreviation===s.t1.abbreviation||r.t2.abbreviation===s.t1.abbreviation);
+    const a2InR1 = r1Series.some(r => r.t1.abbreviation===s.t2.abbreviation||r.t2.abbreviation===s.t2.abbreviation);
+    return a1InR1 && a2InR1;
+  });
+  const r2Winners = new Set(r2Series.map(s => getWinner(s)).filter(Boolean));
+
+  const r3Series = allSeries.filter(s => {
+    if(isR1Pair(s.t1.abbreviation, s.t2.abbreviation)) return false;
+    if(r2Series.includes(s)) return false;
+    const a1InR2 = r2Series.some(r => r.t1.abbreviation===s.t1.abbreviation||r.t2.abbreviation===s.t1.abbreviation);
+    const a2InR2 = r2Series.some(r => r.t1.abbreviation===s.t2.abbreviation||r.t2.abbreviation===s.t2.abbreviation);
+    return a1InR2 && a2InR2;
+  });
+
+  const finalSeries = allSeries.filter(s =>
+    !r1Series.includes(s) && !r2Series.includes(s) && !r3Series.includes(s)
+  );
+
+  // Separar por conf
+  const confFilter = (arr, conf) => arr.filter(s => s.t1.conference===conf||s.t2.conference===conf);
+  const r1e = confFilter(r1Series,'East').sort((a,b) => {
+    const sa = Math.min(SEEDS[a.t1.abbreviation]||9,SEEDS[a.t2.abbreviation]||9);
+    const sb = Math.min(SEEDS[b.t1.abbreviation]||9,SEEDS[b.t2.abbreviation]||9);
+    return sa-sb;
+  });
+  const r2e = confFilter(r2Series,'East');
+  const r3e = confFilter(r3Series,'East');
+  const r1w = confFilter(r1Series,'West').sort((a,b) => {
+    const sa = Math.min(SEEDS[a.t1.abbreviation]||9,SEEDS[a.t2.abbreviation]||9);
+    const sb = Math.min(SEEDS[b.t1.abbreviation]||9,SEEDS[b.t2.abbreviation]||9);
+    return sa-sb;
+  });
+  const r2w = confFilter(r2Series,'West');
+  const r3w = confFilter(r3Series,'West');
 
   // Card de serie
-  const seriesCard = (s) => {
-    if(!s) return `<div class="bracket-series"><div class="nba-bracket-team tbd" style="font-size:10px;color:var(--muted2);padding:6px 8px">TBD</div><div class="nba-bracket-team tbd" style="font-size:10px;color:var(--muted2);padding:6px 8px">TBD</div></div>`;
+  const card = (s) => {
+    if(!s) return `<div class="bracket-series" style="opacity:.25"><div class="nba-bracket-team"><span class="bracket-name" style="font-size:10px;color:var(--muted2)">—</span><span class="bracket-score">-</span></div><div class="nba-bracket-team"><span class="bracket-name" style="font-size:10px;color:var(--muted2)">—</span><span class="bracket-score">-</span></div></div>`;
     const done = s.w1===4||s.w2===4;
     const active = !done&&(s.w1+s.w2)>0;
     const iW1=done&&s.w1>s.w2, iW2=done&&s.w2>s.w1;
-    const status = done
-      ? `${iW1?s.t1.abbreviation:s.t2.abbreviation} gana ${Math.max(s.w1,s.w2)}-${Math.min(s.w1,s.w2)}`
-      : active ? `${s.w1}-${s.w2}` : '';
-    const team = (t,w,isW,isL) => `<div class="nba-bracket-team ${isW?'winner':''} ${isL?'loser':''}">
-      ${logo(t.abbreviation)}
+    const teamRow = (t,w,isW,isL) => `<div class="nba-bracket-team ${isW?'winner':''} ${isL?'loser':''}">
+      ${logoImg(t.abbreviation)}
       <span class="bracket-name">${t.abbreviation}</span>
       <span class="bracket-score">${w}</span>
     </div>`;
-    return `<div class="bracket-series ${done?'done':''} ${active?'active':''}">
-      ${team(s.t1,s.w1,iW1,done&&!iW1)}
-      ${team(s.t2,s.w2,iW2,done&&!iW2)}
+    const status = done
+      ? `${iW1?s.t1.abbreviation:s.t2.abbreviation} gana ${Math.max(s.w1,s.w2)}-${Math.min(s.w1,s.w2)}`
+      : active ? `Serie ${s.w1}-${s.w2}` : '';
+    return `<div class="bracket-series ${done?'done':active?'active':''}">
+      ${teamRow(s.t1,s.w1,iW1,done&&!iW1)}
+      ${teamRow(s.t2,s.w2,iW2,done&&!iW2)}
       ${status?`<div class="bracket-status">${status}</div>`:''}
     </div>`;
   };
 
-  const tbd = () => `<div class="bracket-series"><div class="nba-bracket-team tbd" style="font-size:10px;color:var(--muted2);padding:6px 8px">TBD</div><div class="nba-bracket-team tbd" style="font-size:10px;color:var(--muted2);padding:6px 8px">TBD</div></div>`;
-
-  // Construir lado (East=izq, West=der)
-  // East: R1→R2→R3→[FINAL]  West: [FINAL]←R3←R2←R1
-  const buildSide = (seriesAll, isRight) => {
-    const r1 = byRound(seriesAll,1); const r2 = byRound(seriesAll,2);
-    const r3 = byRound(seriesAll,3);
-    const col_r1 = Array.from({length:4},(_,i)=>seriesCard(r1[i]||null)).join('');
-    const col_r2 = Array.from({length:2},(_,i)=>seriesCard(r2[i]||null)).join('');
-    const col_r3 = seriesCard(r3[0]||null);
-
-    // SVG lines: R1→R2
-    const svgR1R2 = `<svg width="40" height="340" style="flex-shrink:0;overflow:visible">
-      <line x1="${isRight?40:0}" y1="42"  x2="20" y2="42"  stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="${isRight?40:0}" y1="116" x2="20" y2="116" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="42" x2="20" y2="116" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="79" x2="${isRight?0:40}" y2="79" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="${isRight?40:0}" y1="196" x2="20" y2="196" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="${isRight?40:0}" y1="270" x2="20" y2="270" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="196" x2="20" y2="270" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="233" x2="${isRight?0:40}" y2="233" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-    </svg>`;
-
-    // SVG lines: R2→R3
-    const svgR2R3 = `<svg width="40" height="340" style="flex-shrink:0;overflow:visible">
-      <line x1="${isRight?40:0}" y1="79"  x2="20" y2="79"  stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="${isRight?40:0}" y1="233" x2="20" y2="233" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="79"  x2="20" y2="233" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-      <line x1="20" y1="156" x2="${isRight?0:40}" y2="156" stroke="rgba(0,176,255,0.5)" stroke-width="1.5"/>
-    </svg>`;
-
-    const cols = isRight
-      ? `<div style="display:flex;flex-direction:column;justify-content:center;padding-top:120px">${col_r3}</div>
-         ${svgR2R3}
-         <div style="display:flex;flex-direction:column;gap:155px;padding-top:57px">${col_r2}</div>
-         ${svgR1R2}
-         <div style="display:flex;flex-direction:column;gap:4px">${col_r1}</div>`
-      : `<div style="display:flex;flex-direction:column;gap:4px">${col_r1}</div>
-         ${svgR1R2}
-         <div style="display:flex;flex-direction:column;gap:155px;padding-top:57px">${col_r2}</div>
-         ${svgR2R3}
-         <div style="display:flex;flex-direction:column;justify-content:center;padding-top:120px">${col_r3}</div>`;
-
-    return `<div style="display:flex;align-items:flex-start;gap:0">${cols}</div>`;
+  // R1: pares 1v8 y 4v5 van arriba, 2v7 y 3v6 van abajo
+  const colR1 = (series) => {
+    const top = series.filter(s => {
+      const s1 = Math.min(SEEDS[s.t1.abbreviation]||9,SEEDS[s.t2.abbreviation]||9);
+      return s1===1||s1===4;
+    });
+    const bot = series.filter(s => {
+      const s1 = Math.min(SEEDS[s.t1.abbreviation]||9,SEEDS[s.t2.abbreviation]||9);
+      return s1===2||s1===3;
+    });
+    return `<div style="display:flex;flex-direction:column;gap:4px;min-width:130px">
+      ${top.map(s=>card(s)).join('')}
+      <div style="flex:1;min-height:20px"></div>
+      ${bot.map(s=>card(s)).join('')}
+    </div>`;
   };
 
-  // Final NBA (ronda 4)
-  const finalSeries = allSeries.filter(s=>s.round===4);
-  const finalCard = seriesCard(finalSeries[0]||null);
+  const colR2 = (series) => `
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:130px;padding-top:35px">
+      ${[0,1].map(i => card(series[i]||null)).join('<div style="min-height:60px;flex:1"></div>')}
+    </div>`;
+
+  const colR3 = (series) => `
+    <div style="display:flex;flex-direction:column;min-width:130px;justify-content:center;padding-top:90px">
+      ${card(series[0]||null)}
+    </div>`;
 
   const updated = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
 
@@ -3880,21 +3925,36 @@ function renderNBABracketFromGames(games, container) {
         style="background:transparent;border:none;color:var(--blue);font-size:10px;cursor:pointer;text-decoration:underline">Actualizar</button>
     </div>
     <div class="bracket-wrap" style="padding-bottom:16px">
-      <div style="display:flex;align-items:center;min-width:900px;gap:0">
-
-        <!-- ESTE (izquierda → centro) -->
-        ${buildSide(eastAll, false)}
-
-        <!-- COPA + FINAL -->
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;gap:4px;flex-shrink:0">
-          <span style="font-size:28px;filter:drop-shadow(0 0 10px rgba(255,214,0,0.5))">🏆</span>
-          <span style="font-size:8px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:1px">Final</span>
-          ${finalCard}
+      <div style="display:flex;align-items:flex-start;min-width:860px;gap:8px">
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">1ra Ronda · Este</div>
+          ${colR1(r1e)}
         </div>
-
-        <!-- OESTE (centro → derecha) -->
-        ${buildSide(westAll, true)}
-
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">Semis Este</div>
+          ${colR2(r2e)}
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">Final Este</div>
+          ${colR3(r3e)}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 8px 0;flex-shrink:0;gap:4px">
+          <span style="font-size:28px;filter:drop-shadow(0 0 10px rgba(255,214,0,0.5))">🏆</span>
+          <span style="font-size:8px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:1px">Final NBA</span>
+          ${card(finalSeries[0]||null)}
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">Final Oeste</div>
+          ${colR3(r3w)}
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">Semis Oeste</div>
+          ${colR2(r2w)}
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--blue);font-weight:700;text-align:center;margin-bottom:4px;text-transform:uppercase">1ra Ronda · Oeste</div>
+          ${colR1(r1w)}
+        </div>
       </div>
     </div>`;
 }
