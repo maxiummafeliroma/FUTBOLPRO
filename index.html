@@ -3383,16 +3383,29 @@ async function submitPronosticos() {
     updated_at: new Date().toISOString()
   }));
 
-  // 🔥 UPSERT SUPABASE via supaFetch
-  const result = await supaFetch('/rest/v1/pronosticos', {
-    method: 'POST',
-    prefer: 'resolution=merge-duplicates,return=minimal',
-    body: JSON.stringify(rows)
-  });
-
-  // Supabase devuelve {} (204) en éxito con return=minimal, o array vacío
-  // {} = éxito (204/return=minimal), array = éxito con datos, null = fallo de red
-  const isOk = result !== null && !result?.error;
+  // 🔥 UPSERT SUPABASE — PATCH por cada partido (update), POST si no existe
+  let isOk = true;
+  for(const row of rows) {
+    // Intentar PATCH primero
+    const patch = await supaFetch(
+      `/rest/v1/pronosticos?user_id=eq.${row.user_id}&fixture_id=eq.${row.fixture_id}`,
+      { method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ pronostico: row.pronostico, updated_at: row.updated_at }) }
+    );
+    if(patch === null) { isOk = false; break; }
+    // Verificar si existía — si no, insertar
+    const exists = await supaFetch(
+      `/rest/v1/pronosticos?user_id=eq.${row.user_id}&fixture_id=eq.${row.fixture_id}&select=fixture_id`
+    );
+    if(!exists || !Array.isArray(exists) || !exists.length) {
+      const post = await supaFetch('/rest/v1/pronosticos', {
+        method: 'POST', prefer: 'return=minimal',
+        body: JSON.stringify([row])
+      });
+      if(post === null) { isOk = false; break; }
+    }
+  }
+  
   if(!isOk) {
     console.warn('[Prode] Error Supabase:', result);
     btn.disabled = false;
