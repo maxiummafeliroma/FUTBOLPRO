@@ -2001,6 +2001,7 @@ async function loadArgentinaStandings() {
           form: e.stats?.find(s=>s.name==='streak')?.displayValue || ''
         })).sort((a,b) => b.points - a.points);
         cacheSet(cacheKey, rows);
+        window._argStandings = rows; // para fallback de predicciones
         return rows;
       }
     }
@@ -2476,40 +2477,190 @@ async function openPredModal(fixtureId) {
   document.getElementById('predScoreBox').innerHTML = '';
   document.getElementById('predStatsBox').innerHTML = '';
 
-  // Predicción IA con análisis tipo apuestas
-  const _fid = parseInt(String(fixtureId).replace(/[^0-9]/g,'') || '0');
-  const _hn = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
-  const _an = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
-  const seed = (_hn.charCodeAt(0) + _an.charCodeAt(0) + (_fid % 1000)) % 100;
-  const homeAdv = 7;
-  let pHome = 38 + homeAdv + (seed % 13);
-  let pAway = 22 + (seed % 14);
-  let pDraw = 100 - pHome - pAway;
-  if(pDraw < 14) { pDraw = 14; pAway = 100 - pHome - pDraw; }
-  pHome = Math.min(pHome, 65); pAway = Math.min(pAway, 48);
-  pDraw = 100 - pHome - pAway;
+  const isLive = ['1H','HT','2H','ET'].includes(match.fixture.status.short);
+  const isFT   = ['FT','AET','PEN'].includes(match.fixture.status.short);
 
-  // Determinar resultado más probable
+  // Obtener odds reales (con caché diario) y renderizar
+  const realOdds = await getOddsForMatch(hName, aName, match.league.id);
+  renderPredModal(match, hName, aName, realOdds, isLive, isFT);
+}
+
+// ── ODDS-API — caché diario ────────────────────────────────────────
+const ODDS_API_KEY  = '720cef0397689fcfe70a446194acb4d2';
+const ODDS_CACHE_KEY = 'fp_oddsapi_';
+
+// Mapeo leagueId interno → sport_key de Odds-API
+const ODDS_SPORT_MAP = {
+  '39':  'soccer_epl',
+  '140': 'soccer_spain_la_liga',
+  '135': 'soccer_italy_serie_a',
+  '78':  'soccer_germany_bundesliga',
+  '61':  'soccer_france_ligue_1',
+  '128': 'soccer_argentina_primera_division',
+  '529': 'soccer_uefa_champs_league',
+  '2':   'soccer_uefa_champs_league',
+  '3':   'soccer_uefa_europa_league',
+  '848': 'soccer_uefa_europa_conference_league',
+};
+
+async function getOddsCache(sportKey) {
+  const key = ODDS_CACHE_KEY + sportKey + '_' + today();
+  try {
+    const raw = localStorage.getItem(key);
+    if(raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+async function fetchOddsSport(sportKey) {
+  // Verificar caché primero
+  const cached = await getOddsCache(sportKey);
+  if(cached) return cached;
+
+  try {
+    const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(Array.isArray(data)) {
+      const key = ODDS_CACHE_KEY + sportKey + '_' + today();
+      try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+      return data;
+    }
+  } catch(e) { console.warn('[OddsAPI]', sportKey, e.message); }
+  return null;
+}
+
+function normStr(s) {
+  return (s||'').toLowerCase()
+    .replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i')
+    .replace(/[óòö]/g,'o').replace(/[úùü]/g,'u')
+    .replace(/\bfc\b|\bac\b|\bsc\b|\bcf\b|\bcd\b|\bsd\b/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function teamMatch(apiName, localName) {
+  const a = normStr(apiName), b = normStr(localName);
+  if(a === b) return true;
+  if(a.includes(b) || b.includes(a)) return true;
+  // coincidencia de primera palabra
+  const aw = a.split(' ')[0], bw = b.split(' ')[0];
+  return aw.length > 3 && aw === bw;
+}
+
+async function getOddsForMatch(hName, aName, leagueId) {
+  const sportKey = ODDS_SPORT_MAP[String(leagueId)];
+  if(!sportKey) return null;
+
+  const data = await fetchOddsSport(sportKey);
+  if(!data || !data.length) return null;
+
+  const game = data.find(g =>
+    teamMatch(g.home_team, hName) && teamMatch(g.away_team, aName)
+  );
+  if(!game) return null;
+
+  // Tomar bookmaker con más mercados (Pinnacle > bet365 > primero disponible)
+  const preferred = ['pinnacle','bet365','unibet','williamhill'];
+  let bm = null;
+  for(const name of preferred) {
+    bm = game.bookmakers.find(b => b.key.includes(name));
+    if(bm) break;
+  }
+  if(!bm) bm = game.bookmakers[0];
+  if(!bm) return null;
+
+  const h2h = bm.markets.find(m => m.key === 'h2h');
+  if(!h2h) return null;
+
+  const oHome = h2h.outcomes.find(o => teamMatch(o.name, hName))?.price;
+  const oAway = h2h.outcomes.find(o => teamMatch(o.name, aName))?.price;
+  const oDraw = h2h.outcomes.find(o => o.name === 'Draw')?.price;
+
+  if(!oHome || !oAway) return null;
+
+  return { oHome, oDraw: oDraw||3.30, oAway, bookmaker: bm.title, source: 'real' };
+}
+
+function oddsToProb(odd) { return Math.round(100 / odd); }
+
+function renderPredModal(match, hName, aName, realOdds, isLive, isFT) {
+  let pHome, pDraw, pAway, oddsHome, oddsDraw, oddsAway, sourceLabel;
+
+  if(realOdds) {
+    // ── Odds reales de casa de apuestas ──────────────────
+    oddsHome = realOdds.oHome.toFixed(2);
+    oddsDraw = realOdds.oDraw.toFixed(2);
+    oddsAway = realOdds.oAway.toFixed(2);
+    // Convertir a probabilidades implícitas y normalizar
+    const rawH = 1/realOdds.oHome, rawD = 1/realOdds.oDraw, rawA = 1/realOdds.oAway;
+    const total = rawH + rawD + rawA;
+    pHome = Math.round(rawH/total*100);
+    pDraw = Math.round(rawD/total*100);
+    pAway = 100 - pHome - pDraw;
+    sourceLabel = `📊 ${realOdds.bookmaker}`;
+  } else {
+    // ── Fallback: fórmula mejorada con datos ESPN ─────────
+    // Buscar datos reales del equipo en standings de Argentina
+    const findTeam = (name) => {
+      if(!window._argStandings) return null;
+      const norm = normStr(name);
+      return window._argStandings.find(e => {
+        const n = normStr(e.team?.name||'');
+        return n === norm || n.includes(norm.split(' ')[0]) || norm.includes(n.split(' ')[0]);
+      });
+    };
+    const hEntry = findTeam(hName);
+    const aEntry = findTeam(aName);
+
+    let hPts = hEntry?.points || 0;
+    let aPts = aEntry?.points || 0;
+    let hDif = hEntry?.goalsDiff || 0;
+    let aDif = aEntry?.goalsDiff || 0;
+
+    // Si no hay datos ESPN, usar seed neutro
+    const _fid = parseInt(String(match.fixture.id).replace(/[^0-9]/g,'') || '0');
+    const _hn = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
+    const _an = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
+    const seed = (_hn.charCodeAt(0) + _an.charCodeAt(0) + (_fid % 1000)) % 100;
+
+    // Base neutra 33/33/33, ajustada por pts y DIF reales
+    let baseH = 33, baseA = 33, baseD = 34;
+    if(hPts > 0 || aPts > 0) {
+      const total = hPts + aPts || 1;
+      baseH = Math.round(25 + (hPts/total)*30);
+      baseA = Math.round(20 + (aPts/total)*25);
+      baseD = 100 - baseH - baseA;
+      // Ajuste por diferencia de goles
+      const difAdj = Math.min(8, Math.abs(hDif - aDif) * 1.5);
+      if(hDif > aDif) { baseH = Math.min(65, baseH + difAdj); baseA = Math.max(10, baseA - difAdj/2); }
+      else if(aDif > hDif) { baseA = Math.min(55, baseA + difAdj); baseH = Math.max(15, baseH - difAdj/2); }
+    } else {
+      // Sin datos: ventaja local pequeña + algo de variación por seed
+      baseH = 37 + (seed % 8);
+      baseA = 28 + (seed % 8);
+    }
+    baseD = Math.max(14, 100 - baseH - baseA);
+    baseH = Math.min(65, baseH); baseA = Math.min(55, baseA);
+    baseD = 100 - baseH - baseA;
+
+    pHome = baseH; pDraw = baseD; pAway = baseA;
+    oddsHome = (100/pHome*0.9).toFixed(2);
+    oddsDraw = (100/pDraw*0.9).toFixed(2);
+    oddsAway = (100/pAway*0.9).toFixed(2);
+    sourceLabel = `🔢 Análisis estadístico`;
+  }
+
   const maxP = Math.max(pHome, pDraw, pAway);
   const resultLabel = maxP === pHome ? 'Victoria Local' : maxP === pAway ? 'Victoria Visitante' : 'Empate';
   const resultCode  = maxP === pHome ? '1' : maxP === pAway ? '2' : 'X';
 
-  // Goals prediction basada en seed
-  const expectedGoals = 1.8 + (seed % 20) / 10; // entre 1.8 y 3.8
-  const goalsLine = expectedGoals > 2.5 ? '+2.5' : expectedGoals > 1.5 ? '+1.5' : '-1.5';
-  const goalsLabel = expectedGoals > 2.5 ? 'Más de 2.5 goles' : 'Más de 1.5 goles';
-  const ambosMarcan = (seed % 3 !== 0); // 66% de probabilidad
-
-  // Cuotas simuladas realistas
-  const oddsHome = (100 / pHome * 0.9).toFixed(2);
-  const oddsDraw = (100 / pDraw * 0.9).toFixed(2);
-  const oddsAway = (100 / pAway * 0.9).toFixed(2);
-  const oddsOver = expectedGoals > 2.5 ? (1.70 + seed%30/100).toFixed(2) : (1.90 + seed%20/100).toFixed(2);
-
-  const isLive = ['1H','HT','2H','ET'].includes(match.fixture.status.short);
-  const isFT   = ['FT','AET','PEN'].includes(match.fixture.status.short);
-
-
+  // Goles esperados basado en probabilidades
+  const expectedGoals = realOdds
+    ? (2.0 + (1/parseFloat(oddsHome) + 1/parseFloat(oddsAway)) * 1.5).toFixed(1)
+    : (1.8 + pHome/100 + pAway/100).toFixed(1);
+  const goalsLabel = parseFloat(expectedGoals) > 2.5 ? 'Más de 2.5 goles' : 'Más de 1.5 goles';
+  const oddsOver = parseFloat(expectedGoals) > 2.5 ? (1.72).toFixed(2) : (1.92).toFixed(2);
 
   document.getElementById('predBarsRow').innerHTML = `
     <div class="pred-bar-col"><div class="pred-bar-track"><div class="pred-bar-fill" style="height:${pHome}%;background:var(--green)"></div></div><div class="pred-pct" style="color:var(--green)">${pHome}%</div><div class="pred-lbl">Local</div></div>
@@ -2519,9 +2670,9 @@ async function openPredModal(fixtureId) {
 
   document.getElementById('predScoreBox').innerHTML = `
     <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:8px;padding:10px;margin-bottom:8px">
-      <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">⚡ Recomendación IA</div>
+      <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">⚡ Recomendación · ${sourceLabel}</div>
       <div style="font-size:16px;font-weight:700;color:var(--green)">${resultLabel} (${resultCode})</div>
-      <div style="font-size:12px;color:var(--muted2);margin-top:2px">${goalsLabel} · ${ambosMarcan?'Ambos marcan':'No ambos marcan'}</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:2px">${goalsLabel}</div>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:6px">
       <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
@@ -2537,15 +2688,15 @@ async function openPredModal(fixtureId) {
         <div style="font-size:14px;font-weight:700;color:var(--blue)">${oddsAway}</div>
       </div>
       <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
-        <div style="font-size:9px;color:var(--muted2)">${goalsLine} goles</div>
+        <div style="font-size:9px;color:var(--muted2)">+2.5 goles</div>
         <div style="font-size:14px;font-weight:700;color:var(--txt)">${oddsOver}</div>
       </div>
     </div>
   `;
 
   document.getElementById('predStatsBox').innerHTML = `
-    <div class="pred-stat-row"><span class="pred-stat-key">Goles esperados</span><span class="pred-stat-val">${expectedGoals.toFixed(1)} aprox.</span></div>
-    <div class="pred-stat-row"><span class="pred-stat-key">Ventaja local</span><span class="pred-stat-val">+${homeAdv}% jugando de local</span></div>
+    <div class="pred-stat-row"><span class="pred-stat-key">Goles esperados</span><span class="pred-stat-val">${expectedGoals} aprox.</span></div>
+    <div class="pred-stat-row"><span class="pred-stat-key">Fuente</span><span class="pred-stat-val">${sourceLabel}</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Estado</span><span class="pred-stat-val">${isLive ? '🔴 En vivo' : isFT ? '✅ Finalizado' : '📅 Próximo'}</span></div>
     <div class="pred-stat-row"><span class="pred-stat-key">Liga</span><span class="pred-stat-val">${match.league.name}</span></div>
     <div style="font-size:9px;color:var(--muted);margin-top:8px;text-align:center">⚠️ Solo con fines informativos. No constituye asesoramiento de apuestas.</div>

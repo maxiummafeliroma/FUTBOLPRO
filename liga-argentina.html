@@ -540,11 +540,17 @@ function renderZona(entries, containerId, esAnual){
     return;
   }
 
-  // Ordenar por puntos desc
+  // Ordenar: 1º puntos, 2º diferencia de goles, 3º goles a favor
   const sorted = [...entries].sort((a,b)=>{
-    const pa = getStat(a.stats||[],['points','PTS']).num;
-    const pb = getStat(b.stats||[],['points','PTS']).num;
-    return pb-pa;
+    const pa  = getStat(a.stats||[],['points','PTS']).num;
+    const pb  = getStat(b.stats||[],['points','PTS']).num;
+    if(pb !== pa) return pb - pa;
+    const da  = getStat(a.stats||[],['pointDifferential','differential','GD']).num;
+    const db  = getStat(b.stats||[],['pointDifferential','differential','GD']).num;
+    if(db !== da) return db - da;
+    const gfa = getStat(a.stats||[],['pointsFor','goalsFor','GF']).num;
+    const gfb = getStat(b.stats||[],['pointsFor','goalsFor','GF']).num;
+    return gfb - gfa;
   });
 
   let html = `<div class="standings-wrap"><table>
@@ -633,7 +639,7 @@ function renderAnual(allEntries){
     mapa[id].pts += getStat(s,['points','PTS']).num;
   });
 
-  const rows = Object.values(mapa).sort((a,b)=>b.pts-a.pts);
+  const rows = Object.values(mapa).sort((a,b)=> b.pts!==a.pts ? b.pts-a.pts : (b.gf-b.gc)!==(a.gf-a.gc) ? (b.gf-b.gc)-(a.gf-a.gc) : b.gf-a.gf);
 
   let html = `<div class="standings-wrap"><table>
     <thead><tr>
