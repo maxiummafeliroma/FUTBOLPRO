@@ -218,8 +218,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
     <div class="inner-tabs">
       <button class="inner-tab active" onclick="showTab('tabla',this)">📊 <span class="tab-lbl">Tabla</span></button>
-      <button class="inner-tab" onclick="showTab('goleadores',this)">⚽ <span class="tab-lbl">Goles</span></button>
-      <button class="inner-tab" onclick="showTab('fixture',this)">📅 <span class="tab-lbl">Fixture</span></button>
+      <button class="inner-tab" onclick="showTab('fixture',this)">📅 <span class="tab-lbl">Partidos</span></button>
+      <button class="inner-tab" onclick="showTab('playoff',this)">🏆 <span class="tab-lbl">Playoff</span></button>
     </div>
 
     <!-- TABLA -->
@@ -229,17 +229,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
       </div>
     </div>
 
-    <!-- GOLEADORES -->
-    <div class="tab-section" id="tab-goleadores">
-      <div id="scorersContainer">
-        <div class="load-msg"><span class="spin"></span>Cargando goleadores...</div>
-      </div>
-    </div>
-
     <!-- FIXTURE -->
     <div class="tab-section" id="tab-fixture">
       <div id="fixtureContainer">
         <div class="load-msg"><span class="spin"></span>Cargando fixture...</div>
+      </div>
+    </div>
+
+    <!-- PLAYOFF -->
+    <div class="tab-section" id="tab-playoff">
+      <div id="playoffContainer">
+        <div class="load-msg"><span class="spin"></span>Cargando playoff...</div>
       </div>
     </div>
 
@@ -279,14 +279,14 @@ function toggleTheme(){
 }
 
 // ── TABS ──────────────────────────────────────────────
-let scorersLoaded=false, fixtureLoaded=false;
+let fixtureLoaded=false, playoffLoaded=false;
 function showTab(id, btn){
   document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
-  if(id==='goleadores' && !scorersLoaded){ scorersLoaded=true; loadScorers(); }
-  if(id==='fixture'    && !fixtureLoaded){ fixtureLoaded=true; loadFixture(); }
+  if(id==='fixture' && !fixtureLoaded){ fixtureLoaded=true; loadFixture(); }
+  if(id==='playoff' && !playoffLoaded){ playoffLoaded=true; loadPlayoff(); }
 }
 
 // ── ESPN API via proxy ────────────────────────────────
@@ -424,59 +424,6 @@ function renderTabla(data){
   cont.innerHTML=html;
 }
 
-// ── GOLEADORES ────────────────────────────────────────
-async function loadScorers(){
-  const cont=document.getElementById('scorersContainer');
-  const cacheKey='fp_ucl_scorers_'+new Date().toLocaleDateString('en-CA');
-  const cached=cacheGet(cacheKey, 3*60*60*1000);
-  if(cached){ renderScorers(cached); return; }
-
-  try{
-    const data=await espnFetch(`/soccer/${COMP}/leaders`);
-    if(!data) throw new Error('sin datos');
-    cacheSet(cacheKey, data);
-    renderScorers(data);
-  }catch(e){
-    cont.innerHTML=`<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar goleadores.<br><button class="retry-btn" onclick="scorersLoaded=false;loadScorers()">Reintentar</button></div>`;
-  }
-}
-
-function renderScorers(data){
-  const cont=document.getElementById('scorersContainer');
-  const cats=data.categories||[];
-  const goalsCat=cats.find(c=>c.name==='goals'||c.abbreviation==='G')||cats[0];
-  const leaders=goalsCat?.leaders||[];
-
-  if(!leaders.length){
-    cont.innerHTML=`<div class="error-msg"><span class="err-ico">📭</span>Sin datos de goleadores.</div>`;
-    return;
-  }
-
-  const avatarColors=['#00e676','#00b0ff','#ff6d00','#ffd600','#aa00ff','#f44336','#00bcd4','#ff4081'];
-  const getColor=i=>avatarColors[i%avatarColors.length];
-
-  cont.innerHTML=leaders.slice(0,15).map((l,i)=>{
-    const athlete=l.athlete||{};
-    const team=l.team||{};
-    const goals=l.value||l.displayValue||'0';
-    const name=athlete.displayName||athlete.fullName||'—';
-    const club=team.displayName||team.shortDisplayName||'—';
-    const initials=name.split(' ').map(p=>p[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-    return `<div class="scorer-row">
-      <div class="scorer-rank ${i<3?'top':''}">${i+1}</div>
-      <div class="scorer-av" style="background:${getColor(i)}22;color:${getColor(i)}">${initials}</div>
-      <div class="scorer-info">
-        <div class="scorer-name">${name}</div>
-        <div class="scorer-club">${club}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="scorer-goals">${goals}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">goles</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
 // ── FIXTURE ───────────────────────────────────────────
 async function loadFixture(){
   const cont=document.getElementById('fixtureContainer');
@@ -548,6 +495,101 @@ function renderFixture(data){
     html+='</div>';
   });
   cont.innerHTML=html;
+}
+
+// ── PLAYOFF UCL ──────────────────────────────────────
+async function loadPlayoff(){
+  const cont = document.getElementById('playoffContainer');
+
+  // Intentar ESPN via proxy
+  try {
+    const data = await espnFetch('/soccer/uefa.champions/scoreboard');
+    if(data && data.events && data.events.length) {
+      renderUCLPlayoff(data.events, cont);
+      return;
+    }
+  } catch(e) { console.warn('[UCL Playoff ESPN]', e.message); }
+
+  cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar el playoff.<br><button class="retry-btn" onclick="playoffLoaded=false;loadPlayoff()">Reintentar</button></div>`;
+}
+
+function renderUCLPlayoff(events, cont) {
+  // Separar por ronda/fase
+  const byRound = {};
+  events.forEach(ev => {
+    const round = ev.season?.slug || ev.competitions?.[0]?.type?.abbreviation || ev.competitions?.[0]?.notes?.[0]?.headline || 'Partido';
+    if(!byRound[round]) byRound[round] = [];
+    byRound[round].push(ev);
+  });
+
+  // Si hay pocas rondas, mostrar todo junto
+  const allEvents = events;
+
+  let html = `<div style="font-size:12px;color:var(--muted2);margin-bottom:12px">
+    ⭐ <strong style="color:var(--txt)">UEFA Champions League</strong> · Fase Eliminatoria
+  </div>`;
+
+  // Agrupar por nombre de fase
+  const groups = {};
+  allEvents.forEach(ev => {
+    const note = ev.competitions?.[0]?.notes?.find(n=>n.type==='event')?.headline
+      || ev.competitions?.[0]?.series?.title
+      || ev.season?.displayName
+      || 'Playoff';
+    if(!groups[note]) groups[note] = [];
+    groups[note].push(ev);
+  });
+
+  Object.entries(groups).forEach(([round, evs]) => {
+    html += `<div class="fixture-group">
+      <div class="section-hdr">⭐ ${round}</div>`;
+    evs.forEach(ev => {
+      const comps  = ev.competitions?.[0];
+      const comps2 = comps?.competitors || [];
+      const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+      const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+      const status = comps?.status?.type?.name || '';
+      const isLive = status === 'STATUS_IN_PROGRESS';
+      const isFt   = status === 'STATUS_FINAL';
+      const hName  = home.team?.displayName || '—';
+      const aName  = away.team?.displayName || '—';
+      const hLogo  = home.team?.logo || '';
+      const aLogo  = away.team?.logo || '';
+      const hScore = home.score ?? '';
+      const aScore = away.score ?? '';
+      const time   = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+      const clock  = comps?.status?.displayClock || '';
+      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}) : '';
+
+      const statusHtml = isLive
+        ? `<span class="fx-status" style="color:var(--red)"><span class="live-dot"></span>${clock}'</span>`
+        : isFt ? `<span class="fx-status" style="color:var(--muted2)">FT</span>`
+        : `<span class="fx-time">${dateStr} ${time}hs</span>`;
+
+      const scoreHtml = (isLive||isFt) && hScore!=='' && aScore!==''
+        ? `<div class="fx-score">${hScore} - ${aScore}</div>`
+        : `<div class="fx-vs">VS</div>`;
+
+      const hL = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
+      const aL = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
+
+      // Resultado global de ida/vuelta si existe
+      const aggregate = comps?.notes?.find(n=>n.type==='aggregate')?.headline || '';
+
+      html += `<div class="fixture-card ${isLive?'is-live':''}">
+        <div class="fx-team">${hL}<span class="fx-name">${hName}</span></div>
+        <div class="fx-center">
+          ${scoreHtml}
+          ${statusHtml}
+          ${aggregate ? `<div style="font-size:9px;color:var(--gold);margin-top:2px">${aggregate}</div>` : ''}
+        </div>
+        <div class="fx-team right"><span class="fx-name">${aName}</span>${aL}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos disponibles.</div>`;
 }
 
 // ── INIT ──────────────────────────────────────────────
