@@ -498,98 +498,138 @@ function renderFixture(data){
 }
 
 // ── PLAYOFF UCL ──────────────────────────────────────
+// Fechas de cada fase (del calendario ESPN que vimos)
+const UCL_PHASES = [
+  { label:'Cuartos de Final', dateFrom:'2026-04-07', dateTo:'2026-04-16' },
+  { label:'Semifinales',      dateFrom:'2026-04-28', dateTo:'2026-05-07' },
+  { label:'Final',            dateFrom:'2026-05-30', dateTo:'2026-05-31' },
+];
+
 async function loadPlayoff(){
   const cont = document.getElementById('playoffContainer');
+  cont.innerHTML = '<div class="load-msg"><span class="spin"></span>Cargando bracket...</div>';
 
-  // Intentar ESPN via proxy
+  const cacheKey = 'fp_ucl_playoff_' + new Date().toLocaleDateString('en-CA');
+  const cached = cacheGet(cacheKey, 60*60*1000);
+  if(cached){ renderUCLBracket(cached, cont); return; }
+
   try {
-    const data = await espnFetch('/soccer/uefa.champions/scoreboard');
-    if(data && data.events && data.events.length) {
-      renderUCLPlayoff(data.events, cont);
-      return;
-    }
-  } catch(e) { console.warn('[UCL Playoff ESPN]', e.message); }
+    // Traer todos los partidos de la fase eliminatoria en paralelo
+    const results = await Promise.all(
+      UCL_PHASES.map(ph =>
+        espnFetch(`/soccer/uefa.champions/scoreboard?dates=${ph.dateFrom.replace(/-/g,'')}`)
+          .catch(() => null)
+      )
+    );
 
-  cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar el playoff.<br><button class="retry-btn" onclick="playoffLoaded=false;loadPlayoff()">Reintentar</button></div>`;
+    // Combinar todos los eventos
+    const allEvents = [];
+    results.forEach((data, i) => {
+      if(data?.events?.length) {
+        data.events.forEach(ev => { ev._phase = UCL_PHASES[i].label; allEvents.push(ev); });
+      }
+    });
+
+    if(!allEvents.length) throw new Error('sin datos');
+    cacheSet(cacheKey, allEvents);
+    renderUCLBracket(allEvents, cont);
+  } catch(e) {
+    console.warn('[UCL Playoff]', e.message);
+    // Fallback: usar scoreboard actual
+    const data = await espnFetch('/soccer/uefa.champions/scoreboard');
+    if(data?.events?.length) {
+      data.events.forEach(ev => { ev._phase = 'Semifinales'; });
+      renderUCLBracket(data.events, cont);
+    } else {
+      cont.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar el bracket.<br><button class="retry-btn" onclick="playoffLoaded=false;loadPlayoff()">Reintentar</button></div>`;
+    }
+  }
 }
 
-function renderUCLPlayoff(events, cont) {
-  // Separar por ronda/fase
-  const byRound = {};
-  events.forEach(ev => {
-    const round = ev.season?.slug || ev.competitions?.[0]?.type?.abbreviation || ev.competitions?.[0]?.notes?.[0]?.headline || 'Partido';
-    if(!byRound[round]) byRound[round] = [];
-    byRound[round].push(ev);
+function renderUCLBracket(allEvents, cont) {
+  // Agrupar por fase y luego por matchup (ida+vuelta juntos)
+  const phases = {};
+  allEvents.forEach(ev => {
+    const phase = ev._phase || 'Playoff';
+    if(!phases[phase]) phases[phase] = {};
+    // Agrupar ida/vuelta: usar shortName del partido
+    const comps2 = ev.competitions?.[0]?.competitors || [];
+    const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+    const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+    const hName = home.team?.shortDisplayName || home.team?.displayName || '?';
+    const aName = away.team?.shortDisplayName || away.team?.displayName || '?';
+    // Key del enfrentamiento: equipos ordenados
+    const matchKey = [hName, aName].sort().join('_');
+    if(!phases[phase][matchKey]) phases[phase][matchKey] = { hName, aName, hLogo:home.team?.logo||'', aLogo:away.team?.logo||'', legs:[] };
+    phases[phase][matchKey].legs.push(ev);
   });
 
-  // Si hay pocas rondas, mostrar todo junto
-  const allEvents = events;
+  const phaseOrder = ['Cuartos de Final','Semifinales','Final'];
 
   let html = `<div style="font-size:12px;color:var(--muted2);margin-bottom:12px">
-    ⭐ <strong style="color:var(--txt)">UEFA Champions League</strong> · Fase Eliminatoria
+    ⭐ <strong style="color:var(--txt)">UEFA Champions League 2024-25</strong> · Fase Eliminatoria
   </div>`;
 
-  // Agrupar por nombre de fase
-  const groups = {};
-  allEvents.forEach(ev => {
-    const note = ev.competitions?.[0]?.notes?.find(n=>n.type==='event')?.headline
-      || ev.competitions?.[0]?.series?.title
-      || ev.season?.displayName
-      || 'Playoff';
-    if(!groups[note]) groups[note] = [];
-    groups[note].push(ev);
-  });
+  phaseOrder.forEach(phaseName => {
+    const matchups = phases[phaseName];
+    if(!matchups) return;
 
-  Object.entries(groups).forEach(([round, evs]) => {
     html += `<div class="fixture-group">
-      <div class="section-hdr">⭐ ${round}</div>`;
-    evs.forEach(ev => {
-      const comps  = ev.competitions?.[0];
-      const comps2 = comps?.competitors || [];
-      const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
-      const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
-      const status = comps?.status?.type?.name || '';
-      const isLive = status === 'STATUS_IN_PROGRESS';
-      const isFt   = status === 'STATUS_FINAL';
-      const hName  = home.team?.displayName || '—';
-      const aName  = away.team?.displayName || '—';
-      const hLogo  = home.team?.logo || '';
-      const aLogo  = away.team?.logo || '';
-      const hScore = home.score ?? '';
-      const aScore = away.score ?? '';
-      const time   = ev.date ? new Date(ev.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
-      const clock  = comps?.status?.displayClock || '';
-      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'}) : '';
+      <div class="section-hdr">⭐ ${phaseName}</div>`;
 
-      const statusHtml = isLive
-        ? `<span class="fx-status" style="color:var(--red)"><span class="live-dot"></span>${clock}'</span>`
-        : isFt ? `<span class="fx-status" style="color:var(--muted2)">FT</span>`
-        : `<span class="fx-time">${dateStr} ${time}hs</span>`;
+    Object.values(matchups).forEach(m => {
+      const hL = m.hLogo ? `<img class="mini-logo" src="${m.hLogo}" alt="" style="width:28px;height:28px;border-radius:50%">` : `<div class="mini-logo-fb">${m.hName.substring(0,3)}</div>`;
+      const aL = m.aLogo ? `<img class="mini-logo" src="${m.aLogo}" alt="" style="width:28px;height:28px;border-radius:50%">` : `<div class="mini-logo-fb">${m.aName.substring(0,3)}</div>`;
 
-      const scoreHtml = (isLive||isFt) && hScore!=='' && aScore!==''
-        ? `<div class="fx-score">${hScore} - ${aScore}</div>`
-        : `<div class="fx-vs">VS</div>`;
+      // Calcular resultado global sumando goles de ida y vuelta
+      let totalH = 0, totalA = 0, legsHtml = '';
+      m.legs.forEach((leg, li) => {
+        const comps = leg.competitions?.[0];
+        const comps2 = comps?.competitors || [];
+        const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
+        const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
+        const isHomeSameAsM = (home.team?.shortDisplayName||home.team?.displayName||'') === m.hName;
+        const hScore = parseInt(home.score||0);
+        const aScore = parseInt(away.score||0);
+        const isFt = comps?.status?.type?.name === 'STATUS_FINAL';
+        const isLive = comps?.status?.type?.name === 'STATUS_IN_PROGRESS';
+        const dateStr = leg.date ? new Date(leg.date).toLocaleDateString('es-AR',{day:'numeric',month:'short'}) : '';
+        const timeStr = leg.date ? new Date(leg.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+        const legNote = comps?.notes?.find(n=>n.type==='event')?.headline || `Partido ${li+1}`;
 
-      const hL = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
-      const aL = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
+        if(isFt) {
+          if(isHomeSameAsM){ totalH+=hScore; totalA+=aScore; }
+          else { totalH+=aScore; totalA+=hScore; }
+        }
 
-      // Resultado global de ida/vuelta si existe
-      const aggregate = comps?.notes?.find(n=>n.type==='aggregate')?.headline || '';
+        const scoreStr = isFt ? `${hScore}-${aScore}` : isLive ? `${hScore}-${aScore} 🔴` : timeStr+'hs';
+        legsHtml += `<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 8px;color:var(--muted2);border-top:1px solid var(--border)">
+          <span style="color:var(--muted)">${legNote} · ${dateStr}</span>
+          <span style="font-weight:600;color:${isFt?'var(--txt)':isLive?'var(--red)':'var(--muted2)'}">${scoreStr}</span>
+        </div>`;
+      });
 
-      html += `<div class="fixture-card ${isLive?'is-live':''}">
-        <div class="fx-team">${hL}<span class="fx-name">${hName}</span></div>
-        <div class="fx-center">
-          ${scoreHtml}
-          ${statusHtml}
-          ${aggregate ? `<div style="font-size:9px;color:var(--gold);margin-top:2px">${aggregate}</div>` : ''}
+      const hasResults = m.legs.some(l => l.competitions?.[0]?.status?.type?.name === 'STATUS_FINAL');
+      const globalStr = hasResults ? `${totalH} - ${totalA}` : 'vs';
+      const globalColor = hasResults ? (totalH>totalA?'var(--green)':totalH<totalA?'var(--red)':'var(--gold)') : 'var(--muted)';
+
+      html += `<div style="background:var(--card);border:1px solid var(--border);border-top:none;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 80px 1fr;align-items:center;gap:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:8px">${hL}<span style="font-size:13px;font-weight:600">${m.hName}</span></div>
+          <div style="text-align:center">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${globalColor}">${globalStr}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Global</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-direction:row-reverse">${aL}<span style="font-size:13px;font-weight:600;text-align:right">${m.aName}</span></div>
         </div>
-        <div class="fx-team right"><span class="fx-name">${aName}</span>${aL}</div>
+        ${legsHtml}
       </div>`;
     });
+
     html += '</div>';
   });
 
-  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin partidos disponibles.</div>`;
+  cont.innerHTML = html || `<div class="error-msg"><span class="err-ico">📭</span>Sin datos disponibles.</div>`;
 }
 
 // ── INIT ──────────────────────────────────────────────
