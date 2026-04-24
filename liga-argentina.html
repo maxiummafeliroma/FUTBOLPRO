@@ -276,35 +276,37 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .stat-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:width .8s ease}
 
 /* PLAYOFF BRACKET */
-.bracket-wrap{overflow-x:auto;padding-bottom:8px}
-.bracket-layout{display:flex;gap:0;align-items:flex-start;min-width:700px}
-.bracket-side{flex:1;min-width:0}
-.bracket-side-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:6px 0;margin-bottom:8px;border-bottom:1px solid var(--border)}
-.bracket-col{display:flex;flex-direction:column;gap:6px;padding:0 4px}
-.bracket-match{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color .2s;min-width:160px}
-.bracket-match:hover{border-color:rgba(0,176,255,0.4)}
-.bracket-match.active{border-color:rgba(0,176,255,0.3)}
-.bracket-match.done{border-color:rgba(0,230,118,0.3)}
-.bracket-team{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:11px;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.03)}
-.bracket-team:last-of-type{border-bottom:none}
-.bracket-team.winner{background:rgba(0,230,118,0.08);font-weight:700;color:var(--green)}
-.bracket-team.loser{opacity:.4}
-.bracket-seed{font-size:9px;font-weight:700;color:var(--muted2);min-width:12px;text-align:center}
-.bracket-logo{width:18px;height:18px;object-fit:contain;flex-shrink:0;border-radius:50%}
-.bracket-logo-fb{width:18px;height:18px;border-radius:50%;background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:var(--muted2);flex-shrink:0}
-.bracket-tname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
-.bracket-score{font-size:12px;font-weight:800;min-width:10px;text-align:right;font-family:'Barlow Condensed',sans-serif}
-.bracket-match-status{font-size:9px;color:var(--muted2);text-align:center;padding:2px 6px;background:var(--bg3);border-top:1px solid var(--border)}
-.bracket-pred-btn{display:flex;align-items:center;justify-content:center;gap:3px;padding:4px;background:rgba(0,176,255,0.07);border:none;border-top:1px solid var(--border);color:var(--blue);font-size:9px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;width:100%;transition:background .2s;letter-spacing:.3px}
-.bracket-pred-btn:hover{background:rgba(0,176,255,0.15)}
-.bracket-tbd{background:var(--card2);border:1px dashed rgba(255,255,255,0.08);border-radius:8px;padding:10px 8px;min-width:160px;display:flex;flex-direction:column;gap:4px}
-.bracket-tbd-team{height:28px;background:var(--card3);border-radius:4px;opacity:.4}
-.bracket-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;gap:6px;min-width:60px}
-.bracket-final-slot{background:var(--card2);border:1px solid rgba(255,214,0,0.3);border-radius:8px;padding:8px;text-align:center;min-width:100px}
-.bracket-final-lbl{font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.bracket-champion{font-size:10px;color:var(--muted2);font-style:italic}
-.bracket-rounds-row{display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px}
-.bracket-round-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:3px 6px;background:var(--card2);border-radius:4px}
+.bk-wrap{overflow-x:auto;padding-bottom:8px}
+.bk-container{display:grid;grid-template-columns:1fr 80px 200px 80px 1fr;align-items:center;min-width:780px;gap:0;position:relative}
+.bk-side{display:flex;flex-direction:column;gap:0}
+.bk-col1{display:flex;flex-direction:column;gap:4px}
+.bk-col2{display:flex;flex-direction:column;gap:4px;justify-content:space-around}
+.bk-col3{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0}
+.bk-match{background:var(--card);border:1px solid rgba(0,230,118,0.25);border-radius:6px;overflow:hidden;min-width:170px;margin-bottom:4px}
+.bk-match.active{border-color:rgba(0,230,118,0.35)}
+.bk-match.done{border-color:rgba(0,230,118,0.5)}
+.bk-team{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:11px;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.04)}
+.bk-team:last-of-type{border-bottom:none}
+.bk-team.winner{background:rgba(0,230,118,0.08);font-weight:700;color:var(--green)}
+.bk-team.loser{opacity:.4}
+.bk-seed{font-size:9px;font-weight:700;color:var(--green);min-width:20px}
+.bk-logo{width:18px;height:18px;object-fit:contain;flex-shrink:0;border-radius:50%}
+.bk-logo-fb{width:18px;height:18px;border-radius:50%;background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:var(--muted2);flex-shrink:0}
+.bk-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.bk-score{font-size:12px;font-weight:800;min-width:10px;text-align:right;font-family:'Barlow Condensed',sans-serif;color:var(--txt)}
+.bk-status{font-size:9px;color:var(--muted2);text-align:center;padding:2px 6px;background:var(--bg3)}
+.bk-tbd{background:var(--card2);border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:8px;min-width:130px;margin-bottom:4px}
+.bk-tbd-row{height:22px;background:var(--card3);border-radius:3px;margin-bottom:3px;opacity:.35}
+.bk-tbd-row:last-child{margin-bottom:0}
+.bk-lines-left{position:relative;width:70px;align-self:stretch}
+.bk-lines-right{position:relative;width:70px;align-self:stretch}
+.bk-semifinal-left{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.bk-semifinal-right{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.bk-final-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 8px}
+.bk-trophy{font-size:36px;display:block;text-align:center;filter:drop-shadow(0 0 8px rgba(255,214,0,0.4))}
+.bk-final-lbl{font-size:10px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.bk-final-match{background:var(--card2);border:1px solid rgba(255,214,0,0.4);border-radius:6px;padding:8px 12px;text-align:center;min-width:110px}
+.bk-final-team{font-size:11px;color:var(--muted2);padding:3px 0}
 
 /* PRED MODAL PLAYOFF */
 .playoff-pred-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:16px}
@@ -1342,22 +1344,20 @@ function sortZona(entries){
 // Cruces según Excel: 1a-1b, 8b-8a, 4b-4a, 5a-5b, 2b-2a, 7a-7b, 3a-3b, 6b-6a
 // Formato: [posA, posB, localEs] donde localEs='a' o 'b'
 // ── BRACKET LLAVE PLAYOFF ────────────────────────────
-// Llave izquierda (col B del Excel): 1a,8b,4b,5a,2b,7a,3a,6b
-// Llave derecha  (col E del Excel):  1b,8a,4a,5b,2a,7b,3b,6a
-// Cruces R1: 1a vs 8b | 4b vs 5a | 2b vs 7a | 3a vs 6b (lado izq)
-//            1b vs 8a | 4a vs 5b | 2a vs 7b | 3b vs 6a (lado der)
+// Llave izquierda: 1a-8b | 4b-5a | 2b-7a | 3a-6b
+// Llave derecha:   1b-8a | 4a-5b | 2a-7b | 3b-6a
 
-const BRACKET_LEFT = [
-  { z1:'a', p1:1, z2:'b', p2:8 },
-  { z1:'b', p1:4, z2:'a', p2:5 },
-  { z1:'b', p1:2, z2:'a', p2:7 },
-  { z1:'a', p1:3, z2:'b', p2:6 },
+const BRACKET_LEFT  = [
+  {z1:'a',p1:1,z2:'b',p2:8},
+  {z1:'b',p1:4,z2:'a',p2:5},
+  {z1:'b',p1:2,z2:'a',p2:7},
+  {z1:'a',p1:3,z2:'b',p2:6},
 ];
 const BRACKET_RIGHT = [
-  { z1:'b', p1:1, z2:'a', p2:8 },
-  { z1:'a', p1:4, z2:'b', p2:5 },
-  { z1:'a', p1:2, z2:'b', p2:7 },
-  { z1:'b', p1:3, z2:'a', p2:6 },
+  {z1:'b',p1:1,z2:'a',p2:8},
+  {z1:'a',p1:4,z2:'b',p2:5},
+  {z1:'a',p1:2,z2:'b',p2:7},
+  {z1:'b',p1:3,z2:'a',p2:6},
 ];
 
 function getT(zona, pos){
@@ -1365,75 +1365,58 @@ function getT(zona, pos){
   const e = z[pos-1];
   if(!e) return null;
   const team = e.team||{};
-  const stats = e.stats||[];
   return {
     name: team.displayName||team.shortDisplayName||'?',
     abbr: (team.abbreviation||'?').substring(0,3),
     logo: team.logos?.[0]?.href||'',
-    zona: zona.toUpperCase(),
-    pos,
+    zona: zona.toUpperCase(), pos,
   };
 }
 
-function buildBracketTeam(t, wins=null, isWinner=false, isLoser=false){
-  if(!t) return `<div class="bracket-team"><span class="bracket-seed">?</span><div class="bracket-logo-fb">?</div><span class="bracket-tname" style="color:var(--muted)">Por definir</span></div>`;
+function bkTeam(t, isW=false, isL=false, score=null){
+  if(!t) return `<div class="bk-team"><span class="bk-seed">?</span><div class="bk-logo-fb">?</div><span class="bk-name" style="color:var(--muted)">TBD</span></div>`;
   const logo = t.logo
-    ? `<img class="bracket-logo" src="${t.logo}" onerror="this.style.display='none'">`
-    : `<div class="bracket-logo-fb">${t.abbr}</div>`;
-  const sc = wins!==null ? `<span class="bracket-score">${wins}</span>` : '';
-  return `<div class="bracket-team ${isWinner?'winner':''} ${isLoser?'loser':''}">
-    <span class="bracket-seed">${t.pos}${t.zona}</span>
-    ${logo}
-    <span class="bracket-tname">${t.name}</span>
-    ${sc}
+    ? `<img class="bk-logo" src="${t.logo}" onerror="this.style.display='none'">`
+    : `<div class="bk-logo-fb">${t.abbr}</div>`;
+  const sc = score!==null ? `<span class="bk-score">${score}</span>` : '';
+  return `<div class="bk-team ${isW?'winner':''} ${isL?'loser':''}">
+    <span class="bk-seed">${t.pos}${t.zona}</span>${logo}
+    <span class="bk-name">${t.name}</span>${sc}
   </div>`;
 }
 
-function buildBracketMatch(t1, t2, active=true, done=false, w1=null, w2=null){
-  const escaped1 = (t1?.name||'').replace(/'/g,"\'");
-  const escaped2 = (t2?.name||'').replace(/'/g,"\'");
-  const logo1 = t1?.logo||''; const logo2 = t2?.logo||'';
-  const isWin1 = done && w1!==null && w2!==null && w1>w2;
-  const isWin2 = done && w1!==null && w2!==null && w2>w1;
-  const status = done ? 'Finalizado' : active ? 'Por jugar' : 'Por definir';
-  return `<div class="bracket-match ${done?'done':active?'active':''}">
-    ${buildBracketTeam(t1, done&&w1!==null?w1:null, isWin1, done&&!isWin1&&w1!==null)}
-    ${buildBracketTeam(t2, done&&w2!==null?w2:null, isWin2, done&&!isWin2&&w2!==null)}
-    <div class="bracket-match-status">${status}</div>
-    ${active&&t1&&t2?`<button class="bracket-pred-btn" onclick="openPlayoffPred('${escaped1}','${escaped2}','${logo1}','${logo2}')">⚡ Predicción</button>`:''}
+function bkMatch(t1, t2, done=false, w1=null, w2=null){
+  const iW1=done&&w1>w2, iW2=done&&w2>w1;
+  const status = done ? 'Final' : 'Por jugar';
+  return `<div class="bk-match ${done?'done':'active'}">
+    ${bkTeam(t1,iW1,done&&!iW1,done?w1:null)}
+    ${bkTeam(t2,iW2,done&&!iW2,done?w2:null)}
+    <div class="bk-status">${status}</div>
   </div>`;
 }
 
-function buildTBD(){
-  return `<div class="bracket-tbd">
-    <div class="bracket-tbd-team"></div>
-    <div class="bracket-tbd-team"></div>
-  </div>`;
+function bkTBD(){
+  return `<div class="bk-tbd"><div class="bk-tbd-row"></div><div class="bk-tbd-row"></div></div>`;
 }
 
-function buildBracketSide(matchDefs, label, invertido=false){
-  // R1: 4 partidos → R2: 2 TBD → R3: 1 TBD
-  // invertido=true para llave derecha (R3→R2→R1, apunta al centro)
-  const r1 = matchDefs.map(m => {
-    const t1 = getT(m.z1, m.p1);
-    const t2 = getT(m.z2, m.p2);
-    return buildBracketMatch(t1, t2, true);
-  });
-  const r2 = [buildTBD(), buildTBD()];
-  const r3 = [buildTBD()];
-
-  const colR1 = `<div style="display:flex;flex-direction:column;gap:6px">${r1.join('')}</div>`;
-  const colR2 = `<div style="display:flex;flex-direction:column;gap:18px;padding-top:18px">${r2.join('')}</div>`;
-  const colR3 = `<div style="display:flex;flex-direction:column;justify-content:center;flex:1;padding-top:52px">${r3.join('')}</div>`;
-
-  const cols = invertido
-    ? `${colR3}${colR2}${colR1}`
-    : `${colR1}${colR2}${colR3}`;
-
-  return `<div class="bracket-side">
-    <div class="bracket-side-title">${label}</div>
-    <div style="display:flex;gap:6px;align-items:flex-start">${cols}</div>
-  </div>`;
+// Líneas conectoras SVG — lado izquierdo (→ centro)
+function svgLinesLeft(heights){
+  // heights: array de 4 alturas en px de cada partido R1
+  // Dibuja líneas L-shaped desde cada partido hacia 2 TBDs de semis
+  const W=70, H=heights.reduce((a,b)=>a+b,0)+heights.length*4;
+  const mids = [];
+  let y=0;
+  heights.forEach(h=>{ mids.push(y+h/2); y+=h+4; });
+  // Par 1→semi1, Par 2→semi1, Par 3→semi2, Par 4→semi2
+  const semiH = H/4;
+  const s1y = semiH, s2y = semiH*3;
+  const lines = [
+    `<polyline points="${0},${mids[0]} ${W*0.5},${mids[0]} ${W*0.5},${s1y} ${W},${s1y}" fill="none" stroke="rgba(0,230,118,0.4)" stroke-width="1.5"/>`,
+    `<polyline points="${0},${mids[1]} ${W*0.5},${mids[1]} ${W*0.5},${s1y} ${W},${s1y}" fill="none" stroke="rgba(0,230,118,0.4)" stroke-width="1.5"/>`,
+    `<polyline points="${0},${mids[2]} ${W*0.5},${mids[2]} ${W*0.5},${s2y} ${W},${s2y}" fill="none" stroke="rgba(0,230,118,0.4)" stroke-width="1.5"/>`,
+    `<polyline points="${0},${mids[3]} ${W*0.5},${mids[3]} ${W*0.5},${s2y} ${W},${s2y}" fill="none" stroke="rgba(0,230,118,0.4)" stroke-width="1.5"/>`,
+  ];
+  return `<svg width="${W}" height="${H}" style="overflow:visible;display:block">${lines.join('')}</svg>`;
 }
 
 function renderPlayoff(){
@@ -1446,26 +1429,106 @@ function renderPlayoff(){
     return;
   }
 
-  const leftSide  = buildBracketSide(BRACKET_LEFT,  '🔵 Llave Izquierda');
-  const rightSide = buildBracketSide(BRACKET_RIGHT, '🔴 Llave Derecha', true);
+  // Armar partidos R1
+  const leftMatches  = BRACKET_LEFT.map(m  => ({ t1:getT(m.z1,m.p1),  t2:getT(m.z2,m.p2)  }));
+  const rightMatches = BRACKET_RIGHT.map(m => ({ t1:getT(m.z1,m.p1),  t2:getT(m.z2,m.p2)  }));
+
+  // HTML de cada partido R1
+  const lR1 = leftMatches.map(m  => bkMatch(m.t1,m.t2));
+  const rR1 = rightMatches.map(m => bkMatch(m.t1,m.t2));
+
+  // Semis TBD
+  const lSemi = [bkTBD(), bkTBD()];
+  const rSemi = [bkTBD(), bkTBD()];
+
+  // Final TBD
+  const lFinal = bkTBD();
+  const rFinal = bkTBD();
 
   cont.innerHTML = `
-    <div style="font-size:12px;color:var(--muted2);margin-bottom:10px;padding:0 2px">
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:10px">
       🏆 <strong style="color:var(--txt)">Playoff Liga Profesional 2026</strong>
       <span style="float:right;font-size:10px;color:var(--muted)">Top 8 de cada zona</span>
     </div>
-    <div class="bracket-wrap">
-      <div style="display:flex;gap:10px;min-width:700px;align-items:flex-start">
-        ${leftSide}
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 6px 0;gap:8px;flex-shrink:0">
-          <div style="font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px">🏆 Final</div>
-          <div style="width:60px;border:1px dashed rgba(255,214,0,0.3);border-radius:8px;padding:8px 4px;text-align:center">
-            <div style="font-size:9px;color:var(--muted2)">TBD</div>
-            <div style="font-size:9px;color:var(--muted2)">vs</div>
-            <div style="font-size:9px;color:var(--muted2)">TBD</div>
-          </div>
+    <div class="bk-wrap">
+      <div style="display:flex;align-items:center;min-width:860px;gap:0">
+
+        <!-- LLAVE IZQUIERDA: R1 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${lR1.join('')}
         </div>
-        ${rightSide}
+
+        <!-- LÍNEAS IZQ R1→SEMIS -->
+        <svg width="50" height="340" style="overflow:visible;flex-shrink:0">
+          <!-- P1+P2 → Semi1 -->
+          <line x1="0" y1="42"  x2="25" y2="42"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="0" y1="116" x2="25" y2="116" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="42"  x2="25" y2="116" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="79"  x2="50" y2="79"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <!-- P3+P4 → Semi2 -->
+          <line x1="0" y1="196" x2="25" y2="196" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="0" y1="270" x2="25" y2="270" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="196" x2="25" y2="270" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="233" x2="50" y2="233" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+        </svg>
+
+        <!-- SEMIS IZQ -->
+        <div style="display:flex;flex-direction:column;gap:150px;justify-content:space-around">
+          ${lSemi.join('')}
+        </div>
+
+        <!-- LÍNEAS IZQ SEMIS→FINAL -->
+        <svg width="50" height="340" style="overflow:visible;flex-shrink:0">
+          <line x1="0" y1="79"  x2="25" y2="79"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="0" y1="261" x2="25" y2="261" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="79"  x2="25" y2="261" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="170" x2="50" y2="170" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+        </svg>
+
+        <!-- FINAL IZQ TBD -->
+        <div style="display:flex;align-items:center">${lFinal}</div>
+
+        <!-- COPA CENTRAL -->
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 10px;gap:4px;flex-shrink:0">
+          <span style="font-size:32px;filter:drop-shadow(0 0 10px rgba(255,214,0,0.5))">🏆</span>
+          <span style="font-size:9px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:1px">Final</span>
+        </div>
+
+        <!-- FINAL DER TBD -->
+        <div style="display:flex;align-items:center">${rFinal}</div>
+
+        <!-- LÍNEAS DER FINAL→SEMIS -->
+        <svg width="50" height="340" style="overflow:visible;flex-shrink:0">
+          <line x1="0"  y1="170" x2="25" y2="170" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="79"  x2="25" y2="261" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="79"  x2="50" y2="79"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="261" x2="50" y2="261" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+        </svg>
+
+        <!-- SEMIS DER -->
+        <div style="display:flex;flex-direction:column;gap:150px;justify-content:space-around">
+          ${rSemi.join('')}
+        </div>
+
+        <!-- LÍNEAS DER SEMIS→R1 -->
+        <svg width="50" height="340" style="overflow:visible;flex-shrink:0">
+          <!-- Semi1 → P1+P2 -->
+          <line x1="0" y1="79"  x2="25" y2="79"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="42"  x2="25" y2="116" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="42"  x2="50" y2="42"  stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="116" x2="50" y2="116" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <!-- Semi2 → P3+P4 -->
+          <line x1="0" y1="233" x2="25" y2="233" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="196" x2="25" y2="270" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="196" x2="50" y2="196" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+          <line x1="25" y1="270" x2="50" y2="270" stroke="rgba(0,230,118,0.5)" stroke-width="1.5"/>
+        </svg>
+
+        <!-- LLAVE DERECHA: R1 -->
+        <div style="display:flex;flex-direction:column;gap:4px">
+          ${rR1.join('')}
+        </div>
+
       </div>
     </div>
     <div style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center">
