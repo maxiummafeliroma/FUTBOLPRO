@@ -2952,7 +2952,12 @@ async function supaFetch(path, opts={}, _retry=false) {
   if(opts.prefer) headers['Prefer'] = opts.prefer;
   try {
     const res = await fetch(SUPA_URL + path, { method: opts.method||'GET', headers, body: opts.body });
-    if(res.status === 204) return {};
+    if(res.status === 204 || res.status === 201) return {};
+    if(res.status >= 400 && res.status < 500 && res.status !== 401) {
+      const errText = await res.text().catch(()=>'');
+      console.warn('[supabase] HTTP '+res.status, path, errText.substring(0,200));
+      return { error: true, status: res.status, message: errText };
+    }
     if(res.status === 401 && !_retry && prodeSession?.refresh_token) {
       // Token vencido — intentar refresh
       const ref = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
@@ -2971,7 +2976,11 @@ async function supaFetch(path, opts={}, _retry=false) {
         }
       }
     }
-    return await res.json();
+    const ct = res.headers.get('content-type')||'';
+    if(!ct.includes('json')) return {};
+    const text = await res.text();
+    if(!text || !text.trim()) return {};
+    return JSON.parse(text);
   } catch(e) { console.warn('[supabase]', path, e.message); return null; }
 }
 
@@ -3382,7 +3391,8 @@ async function submitPronosticos() {
   });
 
   // Supabase devuelve {} (204) en éxito con return=minimal, o array vacío
-  const isOk = result !== null && !result?.error && !result?.message;
+  // {} = éxito (204/return=minimal), array = éxito con datos, null = fallo de red
+  const isOk = result !== null && !result?.error;
   if(!isOk) {
     console.warn('[Prode] Error Supabase:', result);
     btn.disabled = false;
