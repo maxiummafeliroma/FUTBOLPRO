@@ -289,10 +289,20 @@ function showTab(id, btn){
   if(id==='fixture'    && !fixtureLoaded){ fixtureLoaded=true; loadFixture(); }
 }
 
-// ── ESPN API ──────────────────────────────────────────
+// ── ESPN API via proxy ────────────────────────────────
 const COMP = 'uefa.champions';
-const SITE_ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
-const V2_ESPN   = 'https://site.api.espn.com/apis/v2/sports/soccer';
+
+async function espnFetch(path) {
+  try {
+    const isV2 = path.startsWith('/sports/') || path.includes('/standings') || path.includes('/groups');
+    const proxyUrl = isV2
+      ? `/api/espn?v2=1&path=${encodeURIComponent(path)}`
+      : `/api/espn?path=${encodeURIComponent(path)}`;
+    const res = await fetch(proxyUrl);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  } catch(e) { console.warn('[ESPN UCL]', path, e.message); return null; }
+}
 
 function cacheGet(key, ttl){
   try{
@@ -323,9 +333,8 @@ async function loadTabla(){
   if(cached){ renderTabla(cached); return; }
 
   try{
-    const r=await fetch(`${V2_ESPN}/soccer/${COMP}/standings`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
+    const data=await espnFetch(`/soccer/${COMP}/standings`);
+    if(!data) throw new Error('sin datos');
     cacheSet(cacheKey, data);
     renderTabla(data);
   }catch(e){
@@ -423,9 +432,8 @@ async function loadScorers(){
   if(cached){ renderScorers(cached); return; }
 
   try{
-    const r=await fetch(`${SITE_ESPN}/soccer/${COMP}/leaders`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
+    const data=await espnFetch(`/soccer/${COMP}/leaders`);
+    if(!data) throw new Error('sin datos');
     cacheSet(cacheKey, data);
     renderScorers(data);
   }catch(e){
@@ -477,9 +485,8 @@ async function loadFixture(){
   if(cached){ renderFixture(cached); return; }
 
   try{
-    const r=await fetch(`${SITE_ESPN}/soccer/${COMP}/scoreboard`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
+    const data=await espnFetch(`/soccer/${COMP}/scoreboard`);
+    if(!data) throw new Error('sin datos');
     cacheSet(cacheKey, data);
     renderFixture(data);
   }catch(e){
