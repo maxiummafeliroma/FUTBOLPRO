@@ -3212,8 +3212,8 @@ async function loadPronosticosPrevios() {
   const query = '/rest/v1/pronosticos?user_id=eq.' + prodeUser.id + '&fixture_id=in.(' + fixtureIds.join(',') + ')&select=fixture_id,pronostico';
   const data = await supaFetch(query);
   if(Array.isArray(data) && data.length > 0) {
-    data.forEach(p => { prodePronosticos[p.fixture_id] = p.pronostico; });
-    window.prodeAlreadySubmitted = true;
+    data.forEach(p => { prodePronosticos[String(p.fixture_id)] = p.pronostico; });
+    // No bloquear el formulario — el usuario puede modificar partidos no iniciados
   }
   // También calcular puntos automáticamente para partidos terminados
   calcularPuntosAutomatico();
@@ -3241,7 +3241,7 @@ function renderProdeGrid() {
   }
 
   grid.innerHTML = notice + prodeMatches.map(m => {
-    const fid  = m.fixture.id;
+    const fid  = String(m.fixture.id);
     const sel  = prodePronosticos[fid];
     const hLogo = m.teams.home.logo;
     const aLogo = m.teams.away.logo;
@@ -3300,6 +3300,7 @@ function renderProdeGrid() {
 }
 
 function updateProdeScore(fixtureId) {
+  fixtureId = String(fixtureId);
   const h = document.getElementById('ph-' + fixtureId);
   const a = document.getElementById('pa-' + fixtureId);
   if(!h || !a) return;
@@ -3367,7 +3368,7 @@ async function submitPronosticos() {
 
   const rows = Object.entries(prodePronosticos).map(([fixture_id, pronostico]) => ({
     user_id: prodeUser.id,
-    fixture_id: parseInt(fixture_id),
+    fixture_id: parseInt(String(fixture_id)),
     pronostico,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
