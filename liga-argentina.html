@@ -276,26 +276,35 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .stat-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:width .8s ease}
 
 /* PLAYOFF BRACKET */
-.playoff-bracket{display:flex;flex-direction:column;gap:8px}
-.playoff-round-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--blue);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.playoff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
-.playoff-serie{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s}
-.playoff-serie:hover{border-color:rgba(0,176,255,0.3)}
-.playoff-serie.active{border-color:rgba(0,176,255,0.4)}
-.playoff-serie.done{border-color:rgba(0,230,118,0.3)}
-.playoff-match-num{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:5px 10px;background:var(--card2);border-bottom:1px solid var(--border)}
-.playoff-team{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.03)}
-.playoff-team:last-of-type{border-bottom:none}
-.playoff-team.winner{background:rgba(0,230,118,0.07);font-weight:700;color:var(--green)}
-.playoff-team.loser{opacity:.45}
-.playoff-seed{font-size:10px;font-weight:700;color:var(--muted2);min-width:16px;text-align:center}
-.playoff-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,0.04)}
-.playoff-logo-fb{width:22px;height:22px;border-radius:50%;background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--muted2);flex-shrink:0}
-.playoff-tname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.playoff-wins{font-size:14px;font-weight:800;min-width:14px;text-align:right;font-family:'Barlow Condensed',sans-serif}
-.playoff-status{font-size:9px;color:var(--muted2);text-align:center;padding:3px 8px;background:var(--bg3);border-top:1px solid var(--border)}
-.playoff-pred-btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:5px;background:rgba(0,176,255,0.08);border:none;border-top:1px solid var(--border);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;width:100%;transition:background .2s}
-.playoff-pred-btn:hover{background:rgba(0,176,255,0.15)}
+.bracket-wrap{overflow-x:auto;padding-bottom:8px}
+.bracket-layout{display:flex;gap:0;align-items:flex-start;min-width:700px}
+.bracket-side{flex:1;min-width:0}
+.bracket-side-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:var(--blue);text-transform:uppercase;letter-spacing:.8px;text-align:center;padding:6px 0;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.bracket-col{display:flex;flex-direction:column;gap:6px;padding:0 4px}
+.bracket-match{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color .2s;min-width:160px}
+.bracket-match:hover{border-color:rgba(0,176,255,0.4)}
+.bracket-match.active{border-color:rgba(0,176,255,0.3)}
+.bracket-match.done{border-color:rgba(0,230,118,0.3)}
+.bracket-team{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:11px;font-weight:500;border-bottom:1px solid rgba(255,255,255,0.03)}
+.bracket-team:last-of-type{border-bottom:none}
+.bracket-team.winner{background:rgba(0,230,118,0.08);font-weight:700;color:var(--green)}
+.bracket-team.loser{opacity:.4}
+.bracket-seed{font-size:9px;font-weight:700;color:var(--muted2);min-width:12px;text-align:center}
+.bracket-logo{width:18px;height:18px;object-fit:contain;flex-shrink:0;border-radius:50%}
+.bracket-logo-fb{width:18px;height:18px;border-radius:50%;background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:var(--muted2);flex-shrink:0}
+.bracket-tname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.bracket-score{font-size:12px;font-weight:800;min-width:10px;text-align:right;font-family:'Barlow Condensed',sans-serif}
+.bracket-match-status{font-size:9px;color:var(--muted2);text-align:center;padding:2px 6px;background:var(--bg3);border-top:1px solid var(--border)}
+.bracket-pred-btn{display:flex;align-items:center;justify-content:center;gap:3px;padding:4px;background:rgba(0,176,255,0.07);border:none;border-top:1px solid var(--border);color:var(--blue);font-size:9px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;width:100%;transition:background .2s;letter-spacing:.3px}
+.bracket-pred-btn:hover{background:rgba(0,176,255,0.15)}
+.bracket-tbd{background:var(--card2);border:1px dashed rgba(255,255,255,0.08);border-radius:8px;padding:10px 8px;min-width:160px;display:flex;flex-direction:column;gap:4px}
+.bracket-tbd-team{height:28px;background:var(--card3);border-radius:4px;opacity:.4}
+.bracket-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;gap:6px;min-width:60px}
+.bracket-final-slot{background:var(--card2);border:1px solid rgba(255,214,0,0.3);border-radius:8px;padding:8px;text-align:center;min-width:100px}
+.bracket-final-lbl{font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.bracket-champion{font-size:10px;color:var(--muted2);font-style:italic}
+.bracket-rounds-row{display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px}
+.bracket-round-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:3px 6px;background:var(--card2);border-radius:4px}
 
 /* PRED MODAL PLAYOFF */
 .playoff-pred-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:16px}
@@ -363,7 +372,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 <!-- HERO -->
 <div class="page-hero">
   <div class="page-hero-inner">
-    <div class="liga-badge">🇦🇷</div>
+    <div class="liga-badge"><img src="https://flagcdn.com/w80/ar.png" alt="Argentina" style="width:40px;height:auto;border-radius:4px"></div>
     <div class="page-hero-info">
       <div class="page-hero-title">Liga Profesional <span>Argentina</span></div>
       <div class="page-hero-sub">Temporada 2026 · AFA · Primera División</div>
@@ -1332,43 +1341,93 @@ function sortZona(entries){
 // ── RENDER PLAYOFF ────────────────────────────────────
 // Cruces según Excel: 1a-1b, 8b-8a, 4b-4a, 5a-5b, 2b-2a, 7a-7b, 3a-3b, 6b-6a
 // Formato: [posA, posB, localEs] donde localEs='a' o 'b'
-const PLAYOFF_CRUCES = [
-  { local:'a', pos_local:1, visit:'b', pos_visit:1, lbl:'Partido 1' },
-  { local:'b', pos_local:8, visit:'a', pos_visit:8, lbl:'Partido 2' },
-  { local:'b', pos_local:4, visit:'a', pos_visit:4, lbl:'Partido 3' },
-  { local:'a', pos_local:5, visit:'b', pos_visit:5, lbl:'Partido 4' },
-  { local:'b', pos_local:2, visit:'a', pos_visit:2, lbl:'Partido 5' },
-  { local:'a', pos_local:7, visit:'b', pos_visit:7, lbl:'Partido 6' },
-  { local:'a', pos_local:3, visit:'b', pos_visit:3, lbl:'Partido 7' },
-  { local:'b', pos_local:6, visit:'a', pos_visit:6, lbl:'Partido 8' },
+// ── BRACKET LLAVE PLAYOFF ────────────────────────────
+// Llave izquierda (col B del Excel): 1a,8b,4b,5a,2b,7a,3a,6b
+// Llave derecha  (col E del Excel):  1b,8a,4a,5b,2a,7b,3b,6a
+// Cruces R1: 1a vs 8b | 4b vs 5a | 2b vs 7a | 3a vs 6b (lado izq)
+//            1b vs 8a | 4a vs 5b | 2a vs 7b | 3b vs 6a (lado der)
+
+const BRACKET_LEFT = [
+  { z1:'a', p1:1, z2:'b', p2:8 },
+  { z1:'b', p1:4, z2:'a', p2:5 },
+  { z1:'b', p1:2, z2:'a', p2:7 },
+  { z1:'a', p1:3, z2:'b', p2:6 },
+];
+const BRACKET_RIGHT = [
+  { z1:'b', p1:1, z2:'a', p2:8 },
+  { z1:'a', p1:4, z2:'b', p2:5 },
+  { z1:'a', p1:2, z2:'b', p2:7 },
+  { z1:'b', p1:3, z2:'a', p2:6 },
 ];
 
-function getTeamFromZona(zona, pos){
-  // pos es 1-based
-  const entry = zona[pos-1];
-  if(!entry) return null;
-  const team = entry.team || {};
-  const stats = entry.stats || [];
+function getT(zona, pos){
+  const z = zona==='a' ? _zonaASorted : _zonaBSorted;
+  const e = z[pos-1];
+  if(!e) return null;
+  const team = e.team||{};
+  const stats = e.stats||[];
   return {
-    name: team.displayName || team.shortDisplayName || '?',
-    abbr: team.abbreviation || '?',
-    logo: team.logos?.[0]?.href || '',
-    pts:  getStat(stats,['points','PTS']).num,
-    dif:  getStat(stats,['pointDifferential','differential','GD']).num,
-    gf:   getStat(stats,['pointsFor','goalsFor','GF']).num,
+    name: team.displayName||team.shortDisplayName||'?',
+    abbr: (team.abbreviation||'?').substring(0,3),
+    logo: team.logos?.[0]?.href||'',
+    zona: zona.toUpperCase(),
+    pos,
   };
 }
 
-function buildPlayoffTeamRow(team, isLocal){
-  if(!team) return `<div class="playoff-team"><span class="playoff-seed">?</span><div class="playoff-logo-fb">?</div><span class="playoff-tname" style="color:var(--muted2)">Por definir</span></div>`;
-  const logo = team.logo
-    ? `<img class="playoff-logo" src="${team.logo}" onerror="this.style.display='none'">`
-    : `<div class="playoff-logo-fb">${team.abbr.substring(0,3)}</div>`;
-  return `<div class="playoff-team">
-    <span class="playoff-seed">${isLocal?'L':'V'}</span>
+function buildBracketTeam(t, wins=null, isWinner=false, isLoser=false){
+  if(!t) return `<div class="bracket-team"><span class="bracket-seed">?</span><div class="bracket-logo-fb">?</div><span class="bracket-tname" style="color:var(--muted)">Por definir</span></div>`;
+  const logo = t.logo
+    ? `<img class="bracket-logo" src="${t.logo}" onerror="this.style.display='none'">`
+    : `<div class="bracket-logo-fb">${t.abbr}</div>`;
+  const sc = wins!==null ? `<span class="bracket-score">${wins}</span>` : '';
+  return `<div class="bracket-team ${isWinner?'winner':''} ${isLoser?'loser':''}">
+    <span class="bracket-seed">${t.pos}${t.zona}</span>
     ${logo}
-    <span class="playoff-tname">${team.name}</span>
-    <span class="playoff-wins" style="color:var(--muted2)">-</span>
+    <span class="bracket-tname">${t.name}</span>
+    ${sc}
+  </div>`;
+}
+
+function buildBracketMatch(t1, t2, active=true, done=false, w1=null, w2=null){
+  const escaped1 = (t1?.name||'').replace(/'/g,"\'");
+  const escaped2 = (t2?.name||'').replace(/'/g,"\'");
+  const logo1 = t1?.logo||''; const logo2 = t2?.logo||'';
+  const isWin1 = done && w1!==null && w2!==null && w1>w2;
+  const isWin2 = done && w1!==null && w2!==null && w2>w1;
+  const status = done ? 'Finalizado' : active ? 'Por jugar' : 'Por definir';
+  return `<div class="bracket-match ${done?'done':active?'active':''}">
+    ${buildBracketTeam(t1, done&&w1!==null?w1:null, isWin1, done&&!isWin1&&w1!==null)}
+    ${buildBracketTeam(t2, done&&w2!==null?w2:null, isWin2, done&&!isWin2&&w2!==null)}
+    <div class="bracket-match-status">${status}</div>
+    ${active&&t1&&t2?`<button class="bracket-pred-btn" onclick="openPlayoffPred('${escaped1}','${escaped2}','${logo1}','${logo2}')">⚡ Predicción</button>`:''}
+  </div>`;
+}
+
+function buildTBD(){
+  return `<div class="bracket-tbd">
+    <div class="bracket-tbd-team"></div>
+    <div class="bracket-tbd-team"></div>
+  </div>`;
+}
+
+function buildBracketSide(matchDefs, label){
+  // R1: 4 partidos → R2: 2 TBD → R3: 1 TBD (Final de lado)
+  const r1 = matchDefs.map(m => {
+    const t1 = getT(m.z1, m.p1);
+    const t2 = getT(m.z2, m.p2);
+    return buildBracketMatch(t1, t2, true);
+  });
+  const r2 = [buildTBD(), buildTBD()];
+  const r3 = [buildTBD()];
+
+  return `<div class="bracket-side">
+    <div class="bracket-side-title">${label}</div>
+    <div style="display:flex;gap:6px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:6px">${r1.join('')}</div>
+      <div style="display:flex;flex-direction:column;gap:18px;padding-top:18px">${r2.join('')}</div>
+      <div style="display:flex;flex-direction:column;justify-content:center;flex:1;padding-top:52px">${r3.join('')}</div>
+    </div>
   </div>`;
 }
 
@@ -1382,45 +1441,31 @@ function renderPlayoff(){
     return;
   }
 
-  let html = `<div class="playoff-bracket">
-    <div style="font-size:12px;color:var(--muted2);margin-bottom:4px;padding:0 2px">
-      🏆 <strong style="color:var(--txt)">Playoff Liga Profesional 2026</strong> — Primera Ronda
+  const leftSide  = buildBracketSide(BRACKET_LEFT,  '🔵 Llave Izquierda');
+  const rightSide = buildBracketSide(BRACKET_RIGHT, '🔴 Llave Derecha');
+
+  cont.innerHTML = `
+    <div style="font-size:12px;color:var(--muted2);margin-bottom:10px;padding:0 2px">
+      🏆 <strong style="color:var(--txt)">Playoff Liga Profesional 2026</strong>
       <span style="float:right;font-size:10px;color:var(--muted)">Top 8 de cada zona</span>
     </div>
-    <div class="playoff-round-title">Primera Ronda — 8vos de Final</div>
-    <div class="playoff-grid">`;
-
-  PLAYOFF_CRUCES.forEach((cruce, idx) => {
-    const localTeam = cruce.local==='a'
-      ? getTeamFromZona(_zonaASorted, cruce.pos_local)
-      : getTeamFromZona(_zonaBSorted, cruce.pos_local);
-    const visitTeam = cruce.visit==='a'
-      ? getTeamFromZona(_zonaASorted, cruce.pos_visit)
-      : getTeamFromZona(_zonaBSorted, cruce.pos_visit);
-
-    const hName = localTeam?.name || '?';
-    const aName = visitTeam?.name || '?';
-    const lName = cruce.local.toUpperCase();
-    const vName = cruce.visit.toUpperCase();
-
-    html += `<div class="playoff-serie active" id="pserie-${idx}">
-      <div class="playoff-match-num">${cruce.lbl} · ${cruce.pos_local}°Z${lName} vs ${cruce.pos_visit}°Z${vName}</div>
-      ${buildPlayoffTeamRow(localTeam, true)}
-      ${buildPlayoffTeamRow(visitTeam, false)}
-      <div class="playoff-status">Por jugar</div>
-      <button class="playoff-pred-btn" onclick="openPlayoffPred('${hName}','${aName}','${localTeam?.logo||''}','${visitTeam?.logo||''}')">
-        ⚡ Ver predicción
-      </button>
-    </div>`;
-  });
-
-  html += `</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:12px;text-align:center">
-      * Cruces según reglamento AFA. Resultados se actualizarán cuando estén disponibles.
+    <div class="bracket-wrap">
+      <div style="display:flex;gap:10px;min-width:700px;align-items:flex-start">
+        ${leftSide}
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 6px 0;gap:8px;flex-shrink:0">
+          <div style="font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.5px">🏆 Final</div>
+          <div style="width:60px;border:1px dashed rgba(255,214,0,0.3);border-radius:8px;padding:8px 4px;text-align:center">
+            <div style="font-size:9px;color:var(--muted2)">TBD</div>
+            <div style="font-size:9px;color:var(--muted2)">vs</div>
+            <div style="font-size:9px;color:var(--muted2)">TBD</div>
+          </div>
+        </div>
+        ${rightSide}
+      </div>
     </div>
-  </div>`;
-
-  cont.innerHTML = html;
+    <div style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center">
+      Cruces según reglamento AFA · Resultados se actualizan cuando estén disponibles
+    </div>`;
 }
 
 // ── MODAL PREDICCION PLAYOFF ──────────────────────────
@@ -1428,7 +1473,6 @@ async function openPlayoffPred(hName, aName, hLogo, aLogo){
   const modal = document.getElementById('playoffPredModal');
   modal.classList.add('open');
 
-  // Teams row
   const hLogoHtml = hLogo ? `<img class="playoff-pred-logo" src="${hLogo}" onerror="this.style.display='none'">` : `<div class="playoff-pred-logo" style="background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted2)">${hName.substring(0,3)}</div>`;
   const aLogoHtml = aLogo ? `<img class="playoff-pred-logo" src="${aLogo}" onerror="this.style.display='none'">` : `<div class="playoff-pred-logo" style="background:var(--card3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted2)">${aName.substring(0,3)}</div>`;
 
@@ -1441,63 +1485,50 @@ async function openPlayoffPred(hName, aName, hLogo, aLogo){
   document.getElementById('ppResultBox').innerHTML = '';
   document.getElementById('ppStatsBox').innerHTML = '';
 
-  // Intentar Odds-API
   const realOdds = await getOddsForTeams(hName, aName);
-
   let pHome, pDraw, pAway, oddsHome, oddsDraw, oddsAway, sourceLabel;
 
   if(realOdds){
-    const rawH = 1/realOdds.oHome, rawD = 1/realOdds.oDraw, rawA = 1/realOdds.oAway;
-    const total = rawH+rawD+rawA;
-    pHome = Math.round(rawH/total*100);
-    pDraw = Math.round(rawD/total*100);
-    pAway = 100-pHome-pDraw;
-    oddsHome = realOdds.oHome.toFixed(2);
-    oddsDraw = realOdds.oDraw.toFixed(2);
-    oddsAway = realOdds.oAway.toFixed(2);
-    sourceLabel = `📊 ${realOdds.bookmaker}`;
+    const rawH=1/realOdds.oHome, rawD=1/realOdds.oDraw, rawA=1/realOdds.oAway;
+    const total=rawH+rawD+rawA;
+    pHome=Math.round(rawH/total*100); pDraw=Math.round(rawD/total*100); pAway=100-pHome-pDraw;
+    oddsHome=realOdds.oHome.toFixed(2); oddsDraw=realOdds.oDraw.toFixed(2); oddsAway=realOdds.oAway.toFixed(2);
+    sourceLabel=`📊 ${realOdds.bookmaker}`;
   } else {
-    // Fallback con datos de tabla
-    const hEntry = _zonaASorted.concat(_zonaBSorted).find(e => normN(e.team?.displayName||'').includes(normN(hName).split(' ')[0]));
-    const aEntry = _zonaASorted.concat(_zonaBSorted).find(e => normN(e.team?.displayName||'').includes(normN(aName).split(' ')[0]));
-    const hPts = hEntry ? getStat(hEntry.stats||[],['points','PTS']).num : 0;
-    const aPts = aEntry ? getStat(aEntry.stats||[],['points','PTS']).num : 0;
-    const hDif = hEntry ? getStat(hEntry.stats||[],['pointDifferential','differential','GD']).num : 0;
-    const aDif = aEntry ? getStat(aEntry.stats||[],['pointDifferential','differential','GD']).num : 0;
-    const total = hPts+aPts||1;
-    let bH = Math.round(28+(hPts/total)*28);
-    let bA = Math.round(22+(aPts/total)*24);
-    const difAdj = Math.min(8, Math.abs(hDif-aDif)*1.5);
-    if(hDif>aDif){ bH=Math.min(62,bH+difAdj); bA=Math.max(12,bA-difAdj/2); }
-    else if(aDif>hDif){ bA=Math.min(55,bA+difAdj); bH=Math.max(18,bH-difAdj/2); }
-    let bD = Math.max(16, 100-bH-bA);
-    bH = Math.min(62,bH); bA = Math.min(52,bA); bD = 100-bH-bA;
+    const allE = _zonaASorted.concat(_zonaBSorted);
+    const findE = (n) => allE.find(e => normN(e.team?.displayName||'').includes(normN(n).split(' ')[0]));
+    const hE=findE(hName), aE=findE(aName);
+    const hPts=hE?getStat(hE.stats||[],['points','PTS']).num:0;
+    const aPts=aE?getStat(aE.stats||[],['points','PTS']).num:0;
+    const hDif=hE?getStat(hE.stats||[],['pointDifferential','differential','GD']).num:0;
+    const aDif=aE?getStat(aE.stats||[],['pointDifferential','differential','GD']).num:0;
+    const tot=hPts+aPts||1;
+    let bH=Math.round(28+(hPts/tot)*28), bA=Math.round(22+(aPts/tot)*24);
+    const dAdj=Math.min(8,Math.abs(hDif-aDif)*1.5);
+    if(hDif>aDif){bH=Math.min(62,bH+dAdj);bA=Math.max(12,bA-dAdj/2);}
+    else if(aDif>hDif){bA=Math.min(55,bA+dAdj);bH=Math.max(18,bH-dAdj/2);}
+    let bD=Math.max(16,100-bH-bA); bH=Math.min(62,bH); bA=Math.min(52,bA); bD=100-bH-bA;
     pHome=bH; pDraw=bD; pAway=bA;
-    oddsHome=(100/pHome*0.9).toFixed(2);
-    oddsDraw=(100/pDraw*0.9).toFixed(2);
-    oddsAway=(100/pAway*0.9).toFixed(2);
+    oddsHome=(100/pHome*0.9).toFixed(2); oddsDraw=(100/pDraw*0.9).toFixed(2); oddsAway=(100/pAway*0.9).toFixed(2);
     sourceLabel='🔢 Análisis estadístico';
   }
 
-  const maxP = Math.max(pHome,pDraw,pAway);
-  const resultLabel = maxP===pHome?'Victoria Local':maxP===pAway?'Victoria Visitante':'Empate';
-  const resultCode  = maxP===pHome?'1':maxP===pAway?'2':'X';
+  const maxP=Math.max(pHome,pDraw,pAway);
+  const resultLabel=maxP===pHome?'Victoria Local':maxP===pAway?'Victoria Visitante':'Empate';
+  const resultCode=maxP===pHome?'1':maxP===pAway?'2':'X';
 
   document.getElementById('ppBarsRow').innerHTML = `
     <div class="playoff-pred-bar-col">
       <div class="playoff-pred-bar-track"><div class="playoff-pred-bar-fill" style="height:${pHome}%;background:var(--green)"></div></div>
-      <div class="playoff-pred-pct" style="color:var(--green)">${pHome}%</div>
-      <div class="playoff-pred-lbl">Local</div>
+      <div class="playoff-pred-pct" style="color:var(--green)">${pHome}%</div><div class="playoff-pred-lbl">Local</div>
     </div>
     <div class="playoff-pred-bar-col">
       <div class="playoff-pred-bar-track"><div class="playoff-pred-bar-fill" style="height:${pDraw}%;background:var(--gold)"></div></div>
-      <div class="playoff-pred-pct" style="color:var(--gold)">${pDraw}%</div>
-      <div class="playoff-pred-lbl">Empate</div>
+      <div class="playoff-pred-pct" style="color:var(--gold)">${pDraw}%</div><div class="playoff-pred-lbl">Empate</div>
     </div>
     <div class="playoff-pred-bar-col">
       <div class="playoff-pred-bar-track"><div class="playoff-pred-bar-fill" style="height:${pAway}%;background:var(--blue)"></div></div>
-      <div class="playoff-pred-pct" style="color:var(--blue)">${pAway}%</div>
-      <div class="playoff-pred-lbl">Visita</div>
+      <div class="playoff-pred-pct" style="color:var(--blue)">${pAway}%</div><div class="playoff-pred-lbl">Visita</div>
     </div>`;
 
   document.getElementById('ppResultBox').innerHTML = `
@@ -1507,23 +1538,20 @@ async function openPlayoffPred(hName, aName, hLogo, aLogo){
     </div>
     <div style="display:flex;gap:4px">
       <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
-        <div style="font-size:9px;color:var(--muted2)">Local</div>
-        <div style="font-size:14px;font-weight:700;color:var(--green)">${oddsHome}</div>
+        <div style="font-size:9px;color:var(--muted2)">Local</div><div style="font-size:14px;font-weight:700;color:var(--green)">${oddsHome}</div>
       </div>
       <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
-        <div style="font-size:9px;color:var(--muted2)">Empate</div>
-        <div style="font-size:14px;font-weight:700;color:var(--gold)">${oddsDraw}</div>
+        <div style="font-size:9px;color:var(--muted2)">Empate</div><div style="font-size:14px;font-weight:700;color:var(--gold)">${oddsDraw}</div>
       </div>
       <div style="flex:1;text-align:center;background:var(--bg3);border-radius:6px;padding:6px 4px">
-        <div style="font-size:9px;color:var(--muted2)">Visita</div>
-        <div style="font-size:14px;font-weight:700;color:var(--blue)">${oddsAway}</div>
+        <div style="font-size:9px;color:var(--muted2)">Visita</div><div style="font-size:14px;font-weight:700;color:var(--blue)">${oddsAway}</div>
       </div>
     </div>`;
 
   document.getElementById('ppStatsBox').innerHTML = `
     <div style="margin-top:10px;font-size:11px;color:var(--muted2)">
       <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>Fuente</span><span style="color:var(--txt)">${sourceLabel}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Liga</span><span style="color:var(--txt)">Liga Profesional Argentina 2026</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span>Competencia</span><span style="color:var(--txt)">Playoff Liga Profesional 2026</span></div>
     </div>
     <div style="font-size:9px;color:var(--muted);margin-top:10px;text-align:center">⚠️ Solo informativo. No es asesoramiento de apuestas.</div>`;
 }
