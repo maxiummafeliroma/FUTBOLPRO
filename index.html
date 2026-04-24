@@ -3708,20 +3708,30 @@ async function loadNBAPlayoffs() {
   const container = document.getElementById('nbaPlayoffBracket');
   container.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><br>Cargando playoffs...</div>';
 
+  // Intentar múltiples endpoints ESPN para playoffs
+  const endpoints = [
+    '/basketball/nba/playoffs',
+    '/basketball/nba/tournaments/playoffs',
+  ];
+
   const cacheKey = 'fp_espn_nba_playoffs_' + today();
-  let data = cacheGet(cacheKey, 60*60*1000); // 1h cache
+  let data = cacheGet(cacheKey, 30*60*1000); // 30min cache
 
   if(!data) {
-    try {
-      const r = await espnFetch('/basketball/nba/playoffs');
-      if(r) { data = r; cacheSet(cacheKey, r); }
-    } catch(e) { console.warn('[NBA Playoffs ESPN]', e.message); }
+    for(const ep of endpoints) {
+      try {
+        const r = await espnFetch(ep);
+        if(r && (r.bracketGroups || r.groups || r.children || r.bracket)) {
+          data = r; cacheSet(cacheKey, r); break;
+        }
+      } catch(e) { console.warn('[NBA Playoffs ESPN]', ep, e.message); }
+    }
   }
 
-  if(data && (data.bracketGroups || data.groups || data.children)) {
+  if(data) {
     renderNBABracketESPN(data, container);
   } else {
-    renderNBABracketStatic(container);
+    container.innerHTML = `<div class="error-msg"><span class="err-ico">⚠️</span>No se pudo cargar el bracket.<br><button class="retry-btn" onclick="loadNBAPlayoffs()">Reintentar</button></div>`;
   }
 }
 
@@ -3798,81 +3808,6 @@ function renderNBABracketESPN(data, container) {
     </div>`;
 }
 
-function renderNBABracketStatic(container) {
-  const LOGOS = {
-    det:'https://a.espncdn.com/i/teamlogos/nba/500/det.png',
-    orl:'https://a.espncdn.com/i/teamlogos/nba/500/orl.png',
-    bos:'https://a.espncdn.com/i/teamlogos/nba/500/bos.png',
-    phi:'https://a.espncdn.com/i/teamlogos/nba/500/phi.png',
-    ny: 'https://a.espncdn.com/i/teamlogos/nba/500/ny.png',
-    atl:'https://a.espncdn.com/i/teamlogos/nba/500/atl.png',
-    cle:'https://a.espncdn.com/i/teamlogos/nba/500/cle.png',
-    tor:'https://a.espncdn.com/i/teamlogos/nba/500/tor.png',
-    okc:'https://a.espncdn.com/i/teamlogos/nba/500/okc.png',
-    phx:'https://a.espncdn.com/i/teamlogos/nba/500/phx.png',
-    sa: 'https://a.espncdn.com/i/teamlogos/nba/500/sa.png',
-    por:'https://a.espncdn.com/i/teamlogos/nba/500/por.png',
-    den:'https://a.espncdn.com/i/teamlogos/nba/500/den.png',
-    min:'https://a.espncdn.com/i/teamlogos/nba/500/min.png',
-    lal:'https://a.espncdn.com/i/teamlogos/nba/500/lal.png',
-    hou:'https://a.espncdn.com/i/teamlogos/nba/500/hou.png',
-  };
-  // Resultados actualizados al 24/04/2026
-  const bracket = {
-    east:[
-      [{seed:1,name:'Pistons',abbr:'det',wins:0},{seed:8,name:'Magic',abbr:'orl',wins:3}],
-      [{seed:2,name:'Celtics',abbr:'bos',wins:3},{seed:7,name:'76ers',abbr:'phi',wins:1}],
-      [{seed:3,name:'Knicks',abbr:'ny',wins:3},{seed:6,name:'Hawks',abbr:'atl',wins:1}],
-      [{seed:4,name:'Cavaliers',abbr:'cle',wins:3},{seed:5,name:'Raptors',abbr:'tor',wins:0}],
-    ],
-    west:[
-      [{seed:1,name:'Thunder',abbr:'okc',wins:3},{seed:8,name:'Suns',abbr:'phx',wins:1}],
-      [{seed:2,name:'Spurs',abbr:'sa',wins:3},{seed:7,name:'T.Blazers',abbr:'por',wins:1}],
-      [{seed:3,name:'Nuggets',abbr:'den',wins:2},{seed:6,name:'T.Wolves',abbr:'min',wins:2}],
-      [{seed:4,name:'Lakers',abbr:'lal',wins:3},{seed:5,name:'Rockets',abbr:'hou',wins:1}],
-    ]
-  };
-  const buildTeam = (t,oW) => {
-    const done = t.wins===4||oW===4;
-    const iW=done&&t.wins>oW, iL=done&&t.wins<oW;
-    return `<div class="nba-bracket-team ${iW?'winner':''} ${iL?'loser':''}">
-      <span class="bracket-seed">${t.seed}</span>
-      <img class="nba-bracket-logo" src="${LOGOS[t.abbr]||''}" onerror="this.style.display='none'">
-      <span class="bracket-name">${t.name}</span>
-      <span class="bracket-score">${t.wins}</span>
-    </div>`;
-  };
-  const buildSeries = (pair) => {
-    if(!pair) return `<div class="bracket-series"><div class="nba-bracket-team" style="justify-content:center;color:var(--muted2);font-size:11px;padding:8px">TBD</div></div>`;
-    const [t1,t2]=pair;
-    const done=t1.wins===4||t2.wins===4;
-    const active=!done&&(t1.wins+t2.wins)>0;
-    const statusTxt=done?`${t1.wins>t2.wins?t1.name:t2.name} gana 4-${Math.min(t1.wins,t2.wins)}`:active?`Serie ${t1.wins}-${t2.wins}`:'Por jugar';
-    return `<div class="bracket-series ${done?'done':''} ${active?'active':''}">
-      ${buildTeam(t1,t2.wins)}${buildTeam(t2,t1.wins)}
-      <div class="bracket-status">${statusTxt}</div>
-    </div>`;
-  };
-  const buildConf = (series,label) => {
-    const rounds = [
-      series.map(s=>buildSeries(s)),
-      [buildSeries(null),buildSeries(null)],
-      [buildSeries(null)],
-      [buildSeries(null)],
-    ];
-    return `<div class="bracket-conf">
-      <div class="bracket-conf-title">${label}</div>
-      <div class="bracket-rounds">${rounds.map((cards,ri)=>`<div class="bracket-round"><div class="bracket-round-label">${['1ra Ronda','Semis Conf.','Final Conf.','Finales NBA'][ri]}</div>${cards.join('')}</div>`).join('')}</div>
-    </div>`;
-  };
-  container.innerHTML = `
-    <div style="font-size:11px;color:var(--muted2);margin-bottom:12px;text-align:center">🏀 Playoffs NBA 2026 · Actualizado 24/04</div>
-    <div class="bracket-wrap nba-bracket">
-      ${buildConf(bracket.east,'🏆 Conferencia Este')}
-      <div class="bracket-divider"></div>
-      ${buildConf(bracket.west,'🏆 Conferencia Oeste')}
-    </div>`;
-}
 
 // ── PREDICCION NBA ────────────────────────────────────
 async function openNBAPred(hName, aName, hLogo, aLogo) {
