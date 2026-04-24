@@ -1387,11 +1387,9 @@ function bkTeam(t, isW=false, isL=false, score=null){
 
 function bkMatch(t1, t2, done=false, w1=null, w2=null){
   const iW1=done&&w1>w2, iW2=done&&w2>w1;
-  const status = done ? 'Final' : 'Por jugar';
   return `<div class="bk-match ${done?'done':'active'}">
     ${bkTeam(t1,iW1,done&&!iW1,done?w1:null)}
     ${bkTeam(t2,iW2,done&&!iW2,done?w2:null)}
-    <div class="bk-status">${status}</div>
   </div>`;
 }
 
