@@ -1022,7 +1022,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-share{background:var(--gold);color:#1a1400}
 .sim-btn-img{background:#1877f2;color:#fff}
 
-@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}#prode-tab-pronosticar,#prode-tab-mispronosticos{overflow-y:auto;max-height:calc(100vh - 336px);-webkit-overflow-scrolling:touch}}
 .mobile-nav{display:none}
 @media(max-width:750px){
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:9999;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 8px));min-height:60px;box-shadow:0 -2px 12px rgba(0,0,0,0.4)}
@@ -3516,22 +3516,7 @@ async function loadMisPronosticos() {
     }, 30 * 60 * 1000);
   }
 
-  // Traer pronósticos de la fecha activa desde prode_fixtures
-  // Usar todos los fixture_id de Supabase para esta fecha (no solo los que están en prodeMatches)
-  let fixtureIds = [];
-  try {
-    const fechaRows = await supaFetch('/rest/v1/prode_fixtures?order=match_date.asc&limit=100&select=fixture_id,fecha');
-    if(Array.isArray(fechaRows) && fechaRows.length) {
-      const fechaActiva = fechaRows[0].fecha;
-      fixtureIds = fechaRows.filter(r => r.fecha === fechaActiva).map(r => String(r.fixture_id));
-    }
-  } catch(e) {}
-  // Fallback a prodeMatches si no hay datos de Supabase
-  if(!fixtureIds.length) fixtureIds = prodeMatches.map(m => String(m.fixture.id));
-  const query = fixtureIds.length
-    ? `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&fixture_id=in.(${fixtureIds.join(',')})&order=created_at.desc&select=fixture_id,pronostico,resultado,puntos,created_at`
-    : `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=15&select=fixture_id,pronostico,resultado,puntos,created_at`;
-  const data = await supaFetch(query);
+  const data = await supaFetch(`/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=30&select=fixture_id,pronostico,resultado,puntos,created_at`);
   if(!data || !data.length) {
     container.innerHTML = '<div class="empty-state">Todavía no tenés pronósticos guardados.</div>';
     return;
