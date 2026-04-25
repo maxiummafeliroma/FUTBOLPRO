@@ -3780,8 +3780,8 @@ function renderNBABracketFromGames(games, container) {
 
   // Seeds conocidos NBA 2026
   const SEEDS = {
-    NYK:1,BOS:2,DET:3,CLE:4,TOR:5,ORL:6,PHI:7,ATL:8,
-    OKC:1,SAS:2,DEN:3,LAL:4,HOU:5,POR:6,MIN:7,PHX:8,
+    DET:1,CLE:4,NYK:3,BOS:2,TOR:5,ORL:8,PHI:7,ATL:6,
+    OKC:1,SAS:2,DEN:3,LAL:4,HOU:5,POR:7,MIN:6,PHX:8,
   };
 
   // Agrupar juegos por serie
@@ -3802,15 +3802,9 @@ function renderNBABracketFromGames(games, container) {
 
   const allSeries = Object.values(seriesMap);
 
-  // Detectar ronda por lógica de matchups:
-  // R1: equipos cuyos seeds son pares conocidos (1v8, 2v7, 3v6, 4v5)
-  // R2: equipos que ganaron en R1
-  // R3: equipos que ganaron en R2
-  // R4: ganadores de R3
-
   const R1_PAIRS = [
-    ['NYK','ATL'],['BOS','PHI'],['DET','ORL'],['CLE','TOR'],  // Este
-    ['OKC','PHX'],['SAS','POR'],['DEN','MIN'],['LAL','HOU'],  // Oeste
+    ['DET','ORL'],['CLE','TOR'],['NYK','ATL'],['BOS','PHI'],  // Este
+    ['OKC','PHX'],['LAL','HOU'],['DEN','MIN'],['SAS','POR'],  // Oeste
   ];
 
   const isR1Pair = (a1, a2) => R1_PAIRS.some(p =>
