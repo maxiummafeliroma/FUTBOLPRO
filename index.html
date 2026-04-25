@@ -3189,6 +3189,7 @@ async function loadProdeFixtures() {
     } catch(e) { console.warn('[ESPN prode]', e.message); }
   }
 
+  window.allProdeMatches = fixtures.slice(0, 30); // todos para buscar nombres
   prodeMatches = fixtures
     .filter(m => !['FT','AET','PEN'].includes(m.fixture.status.short))
     .slice(0, 15);
@@ -3516,7 +3517,10 @@ async function loadMisPronosticos() {
     }, 30 * 60 * 1000);
   }
 
-  const data = await supaFetch(`/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=30&select=fixture_id,pronostico,resultado,puntos,created_at`);
+  const fixtureIds = prodeMatches.map(m => String(m.fixture.id));
+  const data = await supaFetch(fixtureIds.length
+    ? `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&fixture_id=in.(${fixtureIds.join(',')})&order=created_at.desc&select=fixture_id,pronostico,resultado,puntos,created_at`
+    : `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=15&select=fixture_id,pronostico,resultado,puntos,created_at`);
   if(!data || !data.length) {
     container.innerHTML = '<div class="empty-state">Todavía no tenés pronósticos guardados.</div>';
     return;
@@ -3541,13 +3545,13 @@ async function loadMisPronosticos() {
       </div>
     </div>
     ${data.map(p => {
-      const match = prodeMatches.find(m => m.fixture.id == p.fixture_id);
+      const match = (window.allProdeMatches||prodeMatches).find(m => String(m.fixture.id) === String(p.fixture_id));
       const label = p.pronostico || '—';
       const resultClass = p.resultado ? (p.puntos>0?'prode-result-ok':'prode-result-fail') : '';
       const resultTxt   = p.resultado ? (p.puntos>0?'✅ Acertaste':'❌ Fallaste') : '⏳ Pendiente';
       return `<div class="ranking-row">
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600">${match?match.teams.home.name+' vs '+match.teams.away.name:'Partido #'+p.fixture_id}</div>
+          <div style="font-size:12px;font-weight:600">${match?match.teams.home.name+' vs '+match.teams.away.name:'—'}</div>
           <div style="font-size:11px;color:var(--muted2)">Tu pronóstico: <strong>${label}</strong></div>
         </div>
         <div class="prode-result-badge ${resultClass}" style="font-size:11px;padding:3px 8px;border-radius:6px">${resultTxt}</div>
