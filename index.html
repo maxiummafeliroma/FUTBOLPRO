@@ -3517,7 +3517,7 @@ async function loadMisPronosticos() {
     }, 30 * 60 * 1000);
   }
 
-  const fixtureIds = prodeMatches.map(m => String(m.fixture.id));
+  const fixtureIds = (window.allProdeMatches||prodeMatches).map(m => String(m.fixture.id));
   const data = await supaFetch(fixtureIds.length
     ? `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&fixture_id=in.(${fixtureIds.join(',')})&order=created_at.desc&select=fixture_id,pronostico,resultado,puntos,created_at`
     : `/rest/v1/pronosticos?user_id=eq.${prodeUser.id}&order=created_at.desc&limit=15&select=fixture_id,pronostico,resultado,puntos,created_at`);
