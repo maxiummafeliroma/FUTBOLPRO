@@ -2116,14 +2116,47 @@ function extractESPNGoals(comp) {
 // Fetch detalle de un evento ESPN (trae details/goles cuando el scoreboard no los incluye)
 async function fetchESPNEventGoals(slug, eventId) {
   const cacheKey = 'fp_espn_event_' + eventId;
-  const cached = cacheGet(cacheKey, 2 * 60 * 1000); // caché 2 minutos (en vivo)
+  const cached = cacheGet(cacheKey, 2 * 60 * 1000);
   if(cached) return cached;
   try {
+    // ESPN summary endpoint devuelve estructura distinta al scoreboard
     const data = await espnFetch('/soccer/' + slug + '/summary?event=' + eventId);
-    const comp = data?.gamepackageJSON?.header?.competitions?.[0]
-               || data?.header?.competitions?.[0]
-               || data?.competition;
-    const goals = extractESPNGoals(comp);
+    console.log('[ESPN summary] slug:', slug, 'eventId:', eventId, 'keys:', data ? Object.keys(data) : 'null');
+    if(!data) return [];
+
+    // Intentar extraer de diferentes estructuras que devuelve ESPN
+    let goals = [];
+
+    // Opción 1: scoringPlays directo
+    if(data.scoringPlays?.length) {
+      goals = data.scoringPlays.map(p => ({
+        min: p.clock?.displayValue || p.period?.displayValue || '?',
+        player: p.participants?.[0]?.athlete?.shortName || p.participants?.[0]?.athlete?.displayName || p.text || '?',
+        teamId: String(p.team?.id || ''),
+        og: p.scoringPlay?.ownGoal || false,
+        pen: p.scoringPlay?.penaltyKick || false,
+      }));
+    }
+
+    // Opción 2: header > competitions > details
+    if(!goals.length) {
+      const comp = data?.header?.competitions?.[0]
+                || data?.gamepackageJSON?.header?.competitions?.[0];
+      if(comp) goals = extractESPNGoals(comp);
+    }
+
+    // Opción 3: keyPlays filtrados por scoring
+    if(!goals.length && data.keyPlays?.length) {
+      goals = data.keyPlays
+        .filter(p => p.scoringPlay)
+        .map(p => ({
+          min: p.clock?.displayValue || '?',
+          player: p.participants?.[0]?.athlete?.shortName || p.text || '?',
+          teamId: String(p.team?.id || ''),
+          og: false, pen: false,
+        }));
+    }
+
     if(goals.length) cacheSet(cacheKey, goals);
     return goals;
   } catch(e) {
