@@ -14,6 +14,8 @@
 <meta name="description" content="Resultados de fútbol en vivo, prode gratuito, NBA y F1 en un solo lugar.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2982557410383848" crossorigin="anonymous"></script>
 <style>
 /* ===================================================
    FUTBOLPRO.COM.AR — ESTILOS GLOBALES
@@ -1180,6 +1182,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
   <div id="drawerInner"></div>
 </div>
 
+<!-- AdSense — Banner superior -->
+<div style="text-align:center;padding:8px 20px;background:var(--bg2);border-bottom:1px solid var(--border)">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-2982557410383848"
+       data-ad-slot="auto"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
 <div class="main-wrap">
 <div class="layout">
 
@@ -1687,6 +1700,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     <button class="ad-btn" style="background:var(--orange);color:#fff">CONSULTANOS →</button>
   </div>
 
+  <div class="widget" style="padding:14px">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-2982557410383848"
+         data-ad-slot="auto"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
   <div class="widget">
     <div class="wh"><div class="wh-title">🏀 NBA · Hoy</div></div>
     <div class="wb" id="sidebarNba">
@@ -1713,6 +1736,17 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 </div>
 
 </div><!-- /main-wrap -->
+
+<!-- AdSense — Banner inferior -->
+<div style="text-align:center;padding:8px 20px;background:var(--bg2);border-top:1px solid var(--border)">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-2982557410383848"
+       data-ad-slot="auto"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
 
 <script>
 // ===================================================
@@ -3725,7 +3759,44 @@ async function loadNBAGames() {
     const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '?';
     const homeLogo = home?.team?.logo || '';
     const awayLogo = away?.team?.logo || '';
-    const statusTxt = isLive ? (e.status?.displayClock || 'EN VIVO') : isFin ? 'Final' : (e.date ? new Date(e.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '—');
+    // Period / quarter info
+    const period = e.status?.period || 0;
+    const periodNames = ['','1er Q','2do Q','3er Q','4to Q','OT','2OT','3OT'];
+    const periodLabel = period > 0 ? (periodNames[period] || `Q${period}`) : '';
+    const clock = e.status?.displayClock || '';
+    let statusTxt;
+    if(isLive) {
+      statusTxt = periodLabel ? `${periodLabel}${clock ? ' · ' + clock : ''}` : (clock || 'EN VIVO');
+    } else if(isFin) {
+      statusTxt = 'Final';
+    } else {
+      statusTxt = e.date ? new Date(e.date).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '—';
+    }
+
+    // Quarter scores (linescores)
+    const linescores = comp?.linescores || [];
+    let quarterRow = '';
+    if((isLive || isFin) && linescores.length >= 2) {
+      // ESPN linescores: alternating away/home per period, or grouped by team
+      // Try to get per-team scores by period
+      const homeLS = home?.linescores || [];
+      const awayLS = away?.linescores || [];
+      const maxQ = Math.max(homeLS.length, awayLS.length);
+      if(maxQ > 0) {
+        const qHeaders = Array.from({length:maxQ},(_,i)=>periodNames[i+1]||`Q${i+1}`).map(q=>`<th>${q}</th>`).join('');
+        const homeQs = homeLS.map(q=>`<td>${q.displayValue||q.value||'—'}</td>`).join('');
+        const awayQs = awayLS.map(q=>`<td>${q.displayValue||q.value||'—'}</td>`).join('');
+        quarterRow = `<div style="overflow-x:auto;margin-top:8px">
+          <table style="width:100%;border-collapse:collapse;font-size:10px">
+            <thead><tr style="color:var(--muted2)"><th style="text-align:left;padding:2px 4px">Equipo</th>${qHeaders}<th style="color:var(--txt)">T</th></tr></thead>
+            <tbody>
+              <tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px;font-weight:600">${homeName}</td>${homeQs}<td style="font-weight:700;color:var(--txt)">${homeScore}</td></tr>
+              <tr style="border-top:1px solid var(--border)"><td style="padding:2px 4px;font-weight:600">${awayName}</td>${awayQs}<td style="font-weight:700;color:var(--txt)">${awayScore}</td></tr>
+            </tbody>
+          </table>
+        </div>`;
+      }
+    }
 
     const esc_h = homeName.replace(/'/g,"\\'");
     const esc_a = awayName.replace(/'/g,"\\'");
@@ -3744,6 +3815,7 @@ async function loadNBAGames() {
           ${awayLogo ? `<img class="nba-logo" src="${awayLogo}" onerror="this.style.display='none'">` : `<div class="nba-logo-fb">${awayName.substring(0,3)}</div>`}
         </div>
       </div>
+      ${quarterRow}
       ${!isFin ? `<button onclick="openNBAPred('${esc_h}','${esc_a}','${homeLogo}','${awayLogo}')" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:5px;background:rgba(0,176,255,0.07);border:none;border-top:1px solid var(--border);color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:background .2s;letter-spacing:.3px" onmouseover="this.style.background='rgba(0,176,255,0.15)'" onmouseout="this.style.background='rgba(0,176,255,0.07)'">⚡ Predicción</button>` : ''}
     </div>`;
   }).join('');
@@ -6240,6 +6312,40 @@ async function togglePollActiva(id, nuevoEstado) {
 
 // Inicializar encuesta al cargar
 loadPoll();
+
+// ===================================================
+// AUTO-REFRESH PRODE — ranking y mis pronósticos
+// ===================================================
+(function startProdeAutoRefresh() {
+  const INTERVAL_RANKING = 2 * 60 * 1000;   // cada 2 minutos
+  const INTERVAL_MISPRON = 3 * 60 * 1000;   // cada 3 minutos
+
+  // Ranking: se actualiza si la tab ranking está visible
+  setInterval(() => {
+    if(prodeCurrentTab === 'ranking') {
+      loadRanking();
+    }
+  }, INTERVAL_RANKING);
+
+  // Mis pronósticos: se actualiza si la tab está visible y hay sesión
+  setInterval(() => {
+    if(prodeCurrentTab === 'mispronosticos' && prodeSession) {
+      calcularPuntosAutomatico().then(() => loadMisPronosticos());
+    }
+  }, INTERVAL_MISPRON);
+
+  // También cuando la pestaña vuelve a quedar visible (el usuario vuelve al browser)
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') {
+      const sect = document.getElementById('sect-futbol');
+      if(!sect || sect.style.display === 'none') return;
+      if(prodeCurrentTab === 'ranking') loadRanking();
+      if(prodeCurrentTab === 'mispronosticos' && prodeSession) {
+        calcularPuntosAutomatico().then(() => loadMisPronosticos());
+      }
+    }
+  });
+})();
 
 // ===================================================
 // MOBILE NAV
