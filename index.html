@@ -2113,6 +2113,52 @@ function extractESPNGoals(comp) {
     }));
 }
 
+// Fetch detalle de un evento ESPN (trae details/goles cuando el scoreboard no los incluye)
+async function fetchESPNEventGoals(slug, eventId) {
+  const cacheKey = 'fp_espn_event_' + eventId;
+  const cached = cacheGet(cacheKey, 2 * 60 * 1000); // caché 2 minutos (en vivo)
+  if(cached) return cached;
+  try {
+    const data = await espnFetch('/soccer/' + slug + '/summary?event=' + eventId);
+    const comp = data?.gamepackageJSON?.header?.competitions?.[0]
+               || data?.header?.competitions?.[0]
+               || data?.competition;
+    const goals = extractESPNGoals(comp);
+    if(goals.length) cacheSet(cacheKey, goals);
+    return goals;
+  } catch(e) {
+    console.warn('[ESPN event goals]', eventId, e.message);
+    return [];
+  }
+}
+
+// Slug ESPN por leagueId interno
+const ESPN_SLUG_BY_LEAGUE = {
+  '2':'uefa.champions', '529':'uefa.champions',
+  '3':'uefa.europa', '848':'uefa.europa.conf',
+  '39':'eng.1','140':'esp.1','135':'ita.1','78':'ger.1','61':'fra.1',
+  '1':'fifa.world','35':'fifa.worldq.conmebol','34':'fifa.worldq.uefa',
+  '9':'uefa.nations','13':'conmebol.libertadores','11':'conmebol.sudamericana',
+  '128':'arg.1'
+};
+
+// Parchar goles faltantes en partidos en vivo/terminados sin details
+async function patchMissingGoals(matches) {
+  const needsPatch = matches.filter(m => {
+    const hasGoals = (m.goals?.home || 0) + (m.goals?.away || 0) > 0;
+    return hasGoals && (!m.events || !m.events.length);
+  });
+  if(!needsPatch.length) return;
+  await Promise.all(needsPatch.map(async m => {
+    const slug = ESPN_SLUG_BY_LEAGUE[String(m.league.id)];
+    if(!slug) return;
+    const eventId = String(m.fixture.id).replace('espn_','').replace(/.*_/,'');
+    if(!eventId || isNaN(Number(eventId))) return;
+    const goals = await fetchESPNEventGoals(slug, eventId);
+    if(goals.length) m.events = goals;
+  }));
+}
+
 // ── Extraer resultado global (aggregate) de ESPN notes ────────────
 function extractESPNAggregate(comp) {
   const note = comp?.notes?.find(n => n.text?.toLowerCase().includes('aggregate') || n.text?.toLowerCase().includes('leg'));
@@ -2349,7 +2395,8 @@ async function loadMatches() {
     });
 
     updateLeftPanel(liveMatches);
-    renderMatches();
+    // Parchar goles faltantes (UEFA y otros sin details en scoreboard)
+    patchMissingGoals(allMatches).then(() => renderMatches());
     loadSidebarScorers();
     loadF1SidebarOnly();
     loadNBASidebarOnly();
