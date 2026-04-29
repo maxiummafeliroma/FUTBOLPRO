@@ -1024,7 +1024,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 .sim-btn-share{background:var(--gold);color:#1a1400}
 .sim-btn-img{background:#1877f2;color:#fff}
 
-@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}#prode-tab-pronosticar,#prode-tab-mispronosticos{overflow-y:auto;max-height:calc(100vh - 336px);-webkit-overflow-scrolling:touch}#mobileSidebarContent{display:flex!important}}
+@media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.sidebar{display:none}}@media(max-width:750px){.layout{grid-template-columns:1fr}.left-panel{display:none}.conference-grid{grid-template-columns:1fr}.prode-grid{grid-template-columns:1fr 1fr}.prode-submit-bar{}.sport-tab span:not(.sport-icon){display:none}.main-wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom, 0px))}#prode-tab-pronosticar,#prode-tab-mispronosticos{overflow-y:auto;max-height:calc(100vh - 336px);-webkit-overflow-scrolling:touch}}
 .mobile-nav{display:none}
 @media(max-width:750px){
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid rgba(0,230,118,0.15);z-index:9999;align-items:center;justify-content:space-around;padding:6px 4px;padding-bottom:calc(6px + env(safe-area-inset-bottom, 8px));min-height:60px;box-shadow:0 -2px 12px rgba(0,0,0,0.4)}
@@ -1408,6 +1408,18 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
             </div>
           </div>
         </a>
+        <div class="ad-card" style="background:linear-gradient(135deg,#1a0a1a,#2a0a2a);border-color:rgba(255,100,200,0.4);cursor:pointer" onclick="window.open('https://www.instagram.com/_.hechocon.amor_/','_blank')">
+          <div class="ad-tag" style="color:#c47ab0">Sublimado · Regalos · Mendoza</div>
+          <div class="ad-brand" style="color:#ff80cc">_.hechocon.amor_</div>
+          <div class="ad-promo">Gorras · Remeras · Tazas · Mates · Llaveros</div>
+          <button class="ad-btn" style="background:#ff80cc;color:#fff">CONSULTANOS →</button>
+        </div>
+        <div class="ad-card" style="background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border-color:rgba(170,0,255,0.3);cursor:pointer" onclick="window.open('https://www.instagram.com/futbolpro.com.ar','_blank')">
+          <div class="ad-tag">Seguinos en Instagram</div>
+          <div class="ad-brand" style="color:#e040fb;font-size:22px">📸 FutbolPro</div>
+          <div class="ad-promo" style="color:var(--muted2)">@futbolpro.com.ar · Resultados, análisis y más</div>
+          <button class="ad-btn" style="background:linear-gradient(135deg,#e040fb,#aa00ff)">SEGUIR EN IG →</button>
+        </div>
       </div>
     </div>
 
@@ -1764,39 +1776,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 </div><!-- /layout -->
 
 <!-- SIDEBAR MOBILE — banners ML e IG -->
-<div id="mobileSidebarContent" style="display:none;flex-direction:column;gap:12px;margin-top:16px">
-  <a href="https://meli.la/2AwzRsi" target="_blank" rel="noopener" style="text-decoration:none;display:block">
-    <div class="ad-card" style="background:linear-gradient(135deg,#0d2a0d,#0a1f0a);border-color:rgba(0,180,60,0.4);cursor:pointer;padding:0;overflow:hidden">
-      <img src="https://http2.mlstatic.com/D_NQ_NP_2X_859810-MLA108322113046_032026-F.webp" alt="Camiseta Selección Argentina" style="width:100%;height:150px;object-fit:cover;object-position:center top;display:block" onerror="this.style.display='none'">
-      <div style="padding:12px">
-        <div class="ad-tag" style="color:#5c9c5c">⚽ MercadoLibre · Envío gratis</div>
-        <div class="ad-brand" style="color:#00e676;font-size:15px">🇦🇷 Camiseta Selección Argentina</div>
-        <div class="ad-promo">Adidas oficial · 6 cuotas sin interés</div>
-        <div style="font-size:18px;font-weight:700;color:#00e676;margin:6px 0" id="precio-arg-mob"></div>
-        <button class="ad-btn" style="background:#00b33c;color:#fff;border:none;width:100%">VER EN ML →</button>
-      </div>
-    </div>
-  </a>
-  <a href="https://meli.la/2pbdj7b" target="_blank" rel="noopener" style="text-decoration:none;display:block">
-    <div class="ad-card" style="background:linear-gradient(135deg,#0a0a2a,#001a4d);border-color:rgba(255,214,0,0.4);cursor:pointer;padding:0;overflow:hidden">
-      <img src="https://http2.mlstatic.com/D_NQ_NP_2X_631173-MLA87318084998_072025-F.webp" alt="Camiseta Boca Juniors" style="width:100%;height:150px;object-fit:cover;object-position:center top;display:block" onerror="this.style.display='none'">
-      <div style="padding:12px">
-        <div class="ad-tag" style="color:#b8a000">⚽ MercadoLibre · Envío gratis</div>
-        <div class="ad-brand" style="color:#ffd600;font-size:15px">💛 Camiseta Boca Juniors</div>
-        <div class="ad-promo">Oficial · 6 cuotas sin interés</div>
-        <div style="font-size:18px;font-weight:700;color:#ffd600;margin:6px 0" id="precio-boca-mob"></div>
-        <button class="ad-btn" style="background:#ffd600;color:#000;border:none;width:100%;font-weight:700">VER EN ML →</button>
-      </div>
-    </div>
-  </a>
-  <div class="ad-card" style="background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border-color:rgba(170,0,255,0.3);cursor:pointer" onclick="window.open('https://www.instagram.com/futbolpro.com.ar','_blank')">
-    <div class="ad-tag">Seguinos en Instagram</div>
-    <div class="ad-brand" style="color:#e040fb;font-size:28px">📸 FutbolPro</div>
-    <div class="ad-promo" style="color:var(--muted2)">@futbolpro.com.ar · Resultados, análisis y más</div>
-    <button class="ad-btn" style="background:linear-gradient(135deg,#e040fb,#aa00ff)">SEGUIR EN IG →</button>
-  </div>
-</div>
-
 </div><!-- /main-wrap -->
 
 <!-- AdSense — Banner inferior -->
