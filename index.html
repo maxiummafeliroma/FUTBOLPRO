@@ -107,6 +107,26 @@
 [data-theme="light"] .ad-card{background:linear-gradient(135deg,#f0eaff,#e8e0ff);border-color:rgba(123,31,162,0.2)}
 [data-theme="light"] .sponsor-section{background:linear-gradient(135deg,var(--card2),var(--card3));border-color:rgba(230,168,23,0.3)}
 
+/* ── DATE NAV ── */
+.date-nav{display:flex;align-items:center;gap:3px}
+.date-nav-btn{
+  padding:5px 10px;border-radius:50px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--muted2);font-family:'Barlow',sans-serif;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+  letter-spacing:.3px;
+}
+.date-nav-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--txt)}
+.date-nav-btn.active{background:rgba(0,230,118,0.12);border-color:var(--green);color:var(--green)}
+[data-theme="light"] .date-nav-btn{color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.25)}
+[data-theme="light"] .date-nav-btn:hover{border-color:rgba(255,255,255,0.5);color:#fff}
+[data-theme="light"] .date-nav-btn.active{background:rgba(255,255,255,0.2);border-color:#fff;color:#fff}
+@media(max-width:600px){
+  .date-nav-btn{padding:5px 8px;font-size:11px}
+  .date-badge{display:none}
+}
+
 /* Toggle button */
 .theme-toggle{
   display:flex;align-items:center;gap:6px;
@@ -1139,6 +1159,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     </div>
 
     <div class="header-right">
+      <div class="date-nav">
+        <button class="date-nav-btn" id="btn-ayer" onclick="setDateOffset(-1)">◀ Ayer</button>
+        <button class="date-nav-btn active" id="btn-hoy" onclick="setDateOffset(0)">Hoy</button>
+        <button class="date-nav-btn" id="btn-manana" onclick="setDateOffset(1)">Mañana ▶</button>
+      </div>
       <div class="date-badge" id="dateBadge">📅 —</div>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">
         <span class="theme-toggle-icon" id="themeIcon">☀️</span>
@@ -1866,6 +1891,28 @@ const FOOTBALL_BASE = ''; // migrado a football-data.org — mantener para compa
 let oddsOn = localStorage.getItem('fp_odds') === '1';
 let allMatches = [];
 let currentLeague = 'all';
+let dateOffset = 0; // -1=ayer, 0=hoy, 1=mañana
+
+function getSelectedDate() {
+  if(dateOffset === 0) return today();
+  const d = new Date();
+  d.setDate(d.getDate() + dateOffset);
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+}
+
+function setDateOffset(offset) {
+  dateOffset = offset;
+  // Actualizar botones activos
+  ['ayer','hoy','manana'].forEach((id, i) => {
+    const btn = document.getElementById('btn-' + id);
+    if(btn) btn.classList.toggle('active', (i - 1) === offset);
+  });
+  // Actualizar badge
+  document.getElementById('dateBadge').textContent = '📅 ' + fmtDate(getSelectedDate());
+  // Limpiar partidos actuales y recargar
+  allMatches = [];
+  loadMatches();
+}
 let currentSport = 'futbol';
 let currentInnerTab = 'fut-resultados';
 let currentNbaView = 'games';
@@ -1962,7 +2009,7 @@ function miniLogo(url, name) {
 // ===================================================
 // HEADER SETUP
 // ===================================================
-document.getElementById('dateBadge').textContent = '📅 ' + fmtDate(today());
+document.getElementById('dateBadge').textContent = '📅 ' + fmtDate(getSelectedDate());
 
 // ===================================================
 // SPORT TABS
@@ -2123,16 +2170,22 @@ async function loadArgentinaScorers() {
 
 // ── Argentina vía ESPN API (gratis, sin límite) ───────────────────
 async function loadArgentinaESPN() {
-  const ck = 'fp_espn_arg_' + today();
+  const ck = 'fp_espn_arg_' + getSelectedDate();
   const cached = cacheGet(ck, CACHE_TTL.fixtures);
   if(cached) return cached;
   try {
-    const dateStr = today().replace(/-/g,'');
+    const dateStr = getSelectedDate().replace(/-/g,'');
+    const selDate = getSelectedDate();
     const data = await espnFetch('/soccer/arg.1/scoreboard?dates=' + dateStr);
     if(!data || !data.events || !data.events.length) return [];
-    const matches = data.events.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
+    const todayEvts = data.events.filter(e => {
+      if(!e.date) return false;
+      const d = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
+      return d === selDate;
+    });
+    const matches = todayEvts.map(e => normalizeESPNMatch(e, '128', 'Liga Profesional'));
     // No cachear si hay partidos en vivo o terminados (score puede estar desactualizado en ESPN)
-    const hasActive = data.events.some(e => ['in','post'].includes(e.status?.type?.state));
+    const hasActive = todayEvts.some(e => ['in','post'].includes(e.status?.type?.state));
     if(!hasActive) cacheSet(ck, matches);
     return matches;
   } catch(e) { console.warn('[ESPN ARG]', e.message); return []; }
@@ -2247,7 +2300,7 @@ function normalizeESPNMatch(e, leagueId, leagueName) {
   const isFin  = status?.state === 'post' || status?.completed === true || e.status?.type?.completed === true;
 
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
-  const isStale = matchDateAR && matchDateAR < today();
+  const isStale = matchDateAR && matchDateAR < getSelectedDate();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
 
@@ -2391,7 +2444,7 @@ async function loadMatches() {
   ];
 
   try {
-    const todayStr = today();
+    const todayStr = getSelectedDate();
     const dateStr = todayStr.replace(/-/g,'');
     const cacheKey = 'fp_espn_main_' + todayStr;
     const cached = cacheGet(cacheKey, CACHE_TTL.fixtures);
@@ -2483,9 +2536,10 @@ async function loadMatches() {
     if(liveMatches.length > 0) {
       if(window.liveRefreshTimer) clearTimeout(window.liveRefreshTimer);
       window.liveRefreshTimer = setTimeout(() => {
-        cacheSet('fp_fd_matches_' + today(), null); // invalidar cache
-        cacheSet('fp_espn_13_' + today(), null);    // invalidar Libertadores
-        cacheSet('fp_espn_11_' + today(), null);    // invalidar Sudamericana
+        const sel = getSelectedDate();
+        cacheSet('fp_fd_matches_' + sel, null); // invalidar cache
+        cacheSet('fp_espn_13_' + sel, null);    // invalidar Libertadores
+        cacheSet('fp_espn_11_' + sel, null);    // invalidar Sudamericana
         loadMatches();
       }, 60000);
     }
@@ -2504,7 +2558,7 @@ function renderMatches() {
   else filtered = allMatches.filter(m => String(m.league.id) === currentLeague);
 
   if(filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state">No hay partidos de esta liga hoy.</div>`;
+    container.innerHTML = `<div class="empty-state">No hay partidos de esta liga ${dateOffset === -1 ? 'ayer' : dateOffset === 1 ? 'mañana' : 'hoy'}.</div>`;
     return;
   }
 
@@ -5903,18 +5957,8 @@ const ESPN_EXTRA_LEAGUES = {
 // ===================================================
 async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
   try {
-    const dateStr = today().replace(/-/g,'');
-
-    // Limpiar cualquier caché de días anteriores para esta liga
-    const todayStr = today();
-    for(let i = 1; i <= 3; i++){
-      const pastDate = new Date(Date.now() - i*24*60*60*1000).toISOString().slice(0,10);
-      for(let h = 0; h < 24; h++){
-        localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate + '_h' + h);
-      }
-      localStorage.removeItem('fp_espn_' + leagueId + '_' + pastDate);
-    }
-
+    const todayStr = getSelectedDate();
+    const dateStr = todayStr.replace(/-/g,'');
     // Caché por hora — expira en 55 minutos
     const hora = new Date().getHours();
     const ck = 'fp_espn_' + leagueId + '_' + todayStr + '_h' + hora;
@@ -5926,11 +5970,10 @@ async function loadESPNConmebol(espnSlug, leagueId, leagueName) {
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       if(data && data.events && data.events.length) {
-        const todayAR = today();
         const todayEvents = data.events.filter(e => {
           if(!e.date) return false;
           const matchDateAR = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-          return matchDateAR === todayAR;
+          return matchDateAR === todayStr;
         });
         if(!todayEvents.length) {
           // ESPN no tiene partidos hoy para esta liga — limpiar caché y salir
@@ -5981,7 +6024,7 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
   const isFin  = status?.state === 'post';
 
   const matchDateAR = e.date ? new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
-  const isStale = matchDateAR && matchDateAR < today();
+  const isStale = matchDateAR && matchDateAR < getSelectedDate();
   const matchStartMs = e.date ? new Date(e.date).getTime() : 0;
   const minsElapsed = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
 
@@ -6026,21 +6069,21 @@ function normalizeESPNConmebolMatch(e, leagueId, leagueName) {
 }
 
 async function loadESPNExtraLeagues() {
-  const dateStr = today().replace(/-/g,'');
+  const selDate = getSelectedDate();
+  const dateStr = selDate.replace(/-/g,'');
   await Promise.all(Object.entries(ESPN_EXTRA_LEAGUES).map(async ([espnId, meta]) => {
     try {
       const leagueId = meta.internalId || espnId;
-      const ck = 'fp_espn_' + leagueId + '_' + today();
+      const ck = 'fp_espn_' + leagueId + '_' + selDate;
       const cached = cacheGet(ck, CACHE_TTL.fixtures);
       let matches = cached;
       if(!matches) {
         const data = await espnFetch('/soccer/' + espnId + '/scoreboard?dates=' + dateStr);
         if(data && data.events && data.events.length) {
-          const todayAR = today();
           const todayEvts = data.events.filter(e => {
             if(!e.date) return false;
             const d = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' });
-            return d === todayAR;
+            return d === selDate;
           });
           if(!todayEvts.length) return;
           matches = todayEvts.map(e => normalizeESPNMatch(e, leagueId, meta.name));
