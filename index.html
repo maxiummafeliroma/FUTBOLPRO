@@ -108,9 +108,9 @@
 [data-theme="light"] .sponsor-section{background:linear-gradient(135deg,var(--card2),var(--card3));border-color:rgba(230,168,23,0.3)}
 
 /* ── DATE NAV ── */
-.date-nav{display:flex;align-items:center;gap:3px}
+.date-nav{display:flex;align-items:center;gap:3px;justify-content:flex-end;margin-bottom:8px}
 .date-nav-btn{
-  padding:5px 10px;border-radius:50px;
+  padding:5px 14px;border-radius:50px;
   border:1px solid var(--border);background:transparent;
   color:var(--muted2);font-family:'Barlow',sans-serif;
   font-size:12px;font-weight:700;cursor:pointer;
@@ -119,12 +119,12 @@
 }
 .date-nav-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--txt)}
 .date-nav-btn.active{background:rgba(0,230,118,0.12);border-color:var(--green);color:var(--green)}
-[data-theme="light"] .date-nav-btn{color:rgba(255,255,255,0.7);border-color:rgba(255,255,255,0.25)}
-[data-theme="light"] .date-nav-btn:hover{border-color:rgba(255,255,255,0.5);color:#fff}
-[data-theme="light"] .date-nav-btn.active{background:rgba(255,255,255,0.2);border-color:#fff;color:#fff}
+[data-theme="light"] .date-nav-btn{color:var(--muted2);border-color:var(--border)}
+[data-theme="light"] .date-nav-btn:hover{border-color:rgba(0,80,160,0.3);color:var(--txt)}
+[data-theme="light"] .date-nav-btn.active{background:rgba(0,102,204,0.1);border-color:var(--green);color:var(--green)}
 @media(max-width:600px){
-  .date-nav-btn{padding:5px 8px;font-size:11px}
-  .date-badge{display:none}
+  .date-nav{justify-content:center}
+  .date-nav-btn{padding:5px 16px;font-size:12px;flex:1;text-align:center}
 }
 
 /* Toggle button */
@@ -1159,11 +1159,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
     </div>
 
     <div class="header-right">
-      <div class="date-nav">
-        <button class="date-nav-btn" id="btn-ayer" onclick="setDateOffset(-1)">◀ Ayer</button>
-        <button class="date-nav-btn active" id="btn-hoy" onclick="setDateOffset(0)">Hoy</button>
-        <button class="date-nav-btn" id="btn-manana" onclick="setDateOffset(1)">Mañana ▶</button>
-      </div>
       <div class="date-badge" id="dateBadge">📅 —</div>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambiar tema">
         <span class="theme-toggle-icon" id="themeIcon">☀️</span>
@@ -1398,6 +1393,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
   <!-- ========== FUTBOL ========== -->
   <div id="sec-futbol" class="sport-section active">
+    <div class="date-nav" id="dateNavFut">
+      <button class="date-nav-btn" id="btn-ayer" onclick="setDateOffset(-1)">◀ Ayer</button>
+      <button class="date-nav-btn active" id="btn-hoy" onclick="setDateOffset(0)">Hoy</button>
+      <button class="date-nav-btn" id="btn-manana" onclick="setDateOffset(1)">Mañana ▶</button>
+    </div>
     <div class="inner-tabs">
       <button class="inner-tab active" onclick="setInnerTab('fut-resultados',this)">Partidos</button>
       <button class="inner-tab" onclick="setInnerTab('fut-prode',this)">🏆 Prode</button>
