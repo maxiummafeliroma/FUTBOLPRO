@@ -1480,6 +1480,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <button class="prode-tab active" onclick="setProdeTab('pronosticar',this)">📋 Pronosticar</button>
         <button class="prode-tab" onclick="setProdeTab('mispronosticos',this)">📊 Mis pronósticos</button>
         <button class="prode-tab" onclick="setProdeTab('ranking',this)">🏅 Ranking</button>
+        <button class="prode-tab" onclick="setProdeTab('historial',this)">🏆 Historial</button>
       </div>
 
       <!-- TAB: PRONOSTICAR -->
@@ -1505,6 +1506,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
         <div id="prodeRanking">
           <div class="loading-state"><div class="loading-spinner"></div><br>Cargando ranking...</div>
         </div>
+      </div>
+
+      <!-- TAB: HISTORIAL -->
+      <div id="prode-tab-historial" style="display:none">
+        <div id="prodeHistorial"></div>
       </div>
 
     </div>
@@ -3244,12 +3250,85 @@ function setProdeTab(tab, el) {
   prodeCurrentTab = tab;
   document.querySelectorAll('.prode-tab').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
-  ['pronosticar','mispronosticos','ranking'].forEach(t => {
+  ['pronosticar','mispronosticos','ranking','historial'].forEach(t => {
     const el2 = document.getElementById('prode-tab-' + t);
     if(el2) el2.style.display = t === tab ? 'block' : 'none';
   });
   if(tab === 'ranking') loadRanking();
   if(tab === 'mispronosticos') loadMisPronosticos();
+  if(tab === 'historial') loadHistorialProde();
+}
+
+// ===================================================
+// HISTORIAL PRODE
+// ===================================================
+function loadHistorialProde() {
+  const container = document.getElementById('prodeHistorial');
+  if(!container) return;
+
+  const temporadas = [
+    {
+      nombre: 'Temporada 2026',
+      fecha: 'Mayo 2026',
+      jugadores: [
+        { pos:1, username:'maxiumma',           puntos:34, aciertos:17 },
+        { pos:2, username:'marcos12guzman',      puntos:28, aciertos:20 },
+        { pos:3, username:'cristiandalmasso1224',puntos:27, aciertos:13 },
+        { pos:4, username:'nicopalacios488',     puntos:22, aciertos:11 },
+        { pos:5, username:'ummafeli88',          puntos:18, aciertos:10 },
+        { pos:6, username:'raulmvidela18',       puntos:15, aciertos:9  },
+        { pos:7, username:'davidstella36',       puntos:15, aciertos:9  },
+      ]
+    }
+  ];
+
+  container.innerHTML = temporadas.map(t => {
+    const ganador = t.jugadores[0];
+    return `
+      <div style="margin-bottom:20px">
+        <div style="background:linear-gradient(135deg,rgba(255,214,0,0.12),rgba(255,214,0,0.04));border:1px solid rgba(255,214,0,0.3);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted2);margin-bottom:4px">PRODE FINALIZADO</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--gold)">🏆 ${t.nombre}</div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:2px">${t.fecha}</div>
+        </div>
+
+        <!-- Ganador -->
+        <div style="background:linear-gradient(135deg,rgba(255,214,0,0.18),rgba(255,180,0,0.08));border:2px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+          <div style="font-size:32px">🥇</div>
+          <div style="flex:1">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gold);margin-bottom:2px">CAMPEÓN</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--gold)">${ganador.username}</div>
+            <div style="font-size:11px;color:var(--muted2)">${ganador.aciertos} aciertos</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--gold)">${ganador.puntos}</div>
+            <div style="font-size:10px;color:var(--muted2);font-weight:600">PUNTOS</div>
+          </div>
+        </div>
+
+        <!-- Tabla -->
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${t.jugadores.map((u,i) => {
+            const isMe = prodeUser && u.username === prodeUser.username;
+            const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+            const posColor = i===0?'var(--gold)':i===1?'#90a4ae':i===2?'#b87333':'var(--muted2)';
+            const rowBg = isMe
+              ? 'background:rgba(0,230,118,0.08);border-color:rgba(0,230,118,0.3)'
+              : i===0
+              ? 'background:rgba(255,214,0,0.06);border-color:rgba(255,214,0,0.2)'
+              : 'background:var(--card2);border-color:var(--border)';
+            return `<div style="${rowBg};border:1px solid;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:${posColor};min-width:26px;text-align:center">${medal||u.pos}</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:${isMe?'var(--green)':i===0?'var(--gold)':'var(--txt)'}">${u.username}${isMe?' <span style="font-size:10px;color:var(--green)">(vos)</span>':''}</div>
+                <div style="font-size:11px;color:var(--muted2)">${u.aciertos} aciertos</div>
+              </div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:${isMe?'var(--green)':i===0?'var(--gold)':'var(--txt)'}">${u.puntos}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ===================================================
