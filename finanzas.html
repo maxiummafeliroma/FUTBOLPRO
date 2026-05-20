@@ -430,17 +430,26 @@
 
 <!-- PANTALLA FINAL -->
 <div id="pantalla-final">
-  <div class="diploma">
+  <div class="diploma" id="diploma-card">
     <div class="diploma-emoji">🏆</div>
     <div class="diploma-titulo">¡Curso Completado!</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Felicitamos a</div>
+    <div style="font-size:12px;color:var(--muted);letter-spacing:1px;font-weight:700;margin-bottom:6px">CERTIFICA QUE</div>
     <div class="diploma-nombre" id="diploma-nombre">—</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px" id="diploma-nivel">Nivel 14 años</div>
     <div class="stars" id="diploma-stars">⭐⭐⭐</div>
-    <div class="diploma-puntaje" id="diploma-puntaje">0 pts</div>
-    <div class="diploma-subtxt" id="diploma-subtxt">de 105 puntos posibles</div>
+    <div style="margin:16px 0;padding:16px;background:rgba(255,255,255,0.04);border-radius:14px;border:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:8px">NOTA FINAL</div>
+      <div class="diploma-puntaje" id="diploma-nota">10.0</div>
+      <div style="font-size:13px;font-weight:700;margin-top:4px" id="diploma-categoria">Sobresaliente 🌟</div>
+      <div class="diploma-subtxt" id="diploma-subtxt">0 pts de 105 posibles</div>
+    </div>
     <div class="diploma-msg" id="diploma-msg">¡Excelente trabajo!</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:16px" id="diploma-fecha">—</div>
   </div>
-  <button class="btn-reiniciar" onclick="reiniciar()">🔄 Volver a empezar</button>
+  <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center">
+    <button class="btn-reiniciar" id="btn-descargar" onclick="descargarDiploma()">📥 Descargar diploma</button>
+    <button class="btn-reiniciar" onclick="reiniciar()">🔄 Volver a empezar</button>
+  </div>
 </div>
 
 <script>
@@ -936,17 +945,62 @@ async function mostrarFinal() {
   final.style.display = 'flex';
 
   const max = modulos.length * modulos[0].preguntas.length * 5;
+  const nota = Math.round((puntosTotal / max) * 100) / 10;
   const pct = puntosTotal / max;
+
   let stars = '⭐';
-  let msg = 'Seguí practicando, vas por buen camino.';
-  if(pct >= 0.8) { stars = '⭐⭐⭐'; msg = '¡Excelente! Tenés un futuro financiero brillante por delante. 🚀'; }
-  else if(pct >= 0.6) { stars = '⭐⭐'; msg = '¡Muy bien! Ya tenés las bases para manejar bien tu dinero. 💪'; }
+  let categoria = 'Seguí practicando 📚';
+  let msg = 'Cada intento te hace más sabio. ¡Volvé a intentarlo!';
+
+  if(nota >= 9) { stars = '⭐⭐⭐'; categoria = 'Sobresaliente 🌟'; msg = '¡Excelente! Tenés un futuro financiero brillante. 🚀'; }
+  else if(nota >= 7) { stars = '⭐⭐⭐'; categoria = 'Muy Bueno 💪'; msg = '¡Muy bien! Ya tenés las bases para manejar tu dinero.'; }
+  else if(nota >= 5) { stars = '⭐⭐'; categoria = 'Bueno 👍'; msg = 'Buen trabajo. Repasá los módulos donde fallaste.'; }
+
+  const fecha = new Date().toLocaleDateString('es-AR', { day:'numeric', month:'long', year:'numeric' });
 
   document.getElementById('diploma-nombre').textContent = nombreAlumno;
+  document.getElementById('diploma-nivel').textContent = `Nivel ${nivelSeleccionado} años`;
   document.getElementById('diploma-stars').textContent = stars;
-  document.getElementById('diploma-puntaje').textContent = puntosTotal + ' pts';
-  document.getElementById('diploma-subtxt').textContent = `de ${max} puntos posibles`;
+  document.getElementById('diploma-nota').textContent = nota.toFixed(1);
+  document.getElementById('diploma-categoria').textContent = categoria;
+  document.getElementById('diploma-subtxt').textContent = `${puntosTotal} pts de ${max} posibles`;
   document.getElementById('diploma-msg').textContent = msg;
+  document.getElementById('diploma-fecha').textContent = `📅 ${fecha}`;
+}
+
+async function descargarDiploma() {
+  const btn = document.getElementById('btn-descargar');
+  btn.textContent = '⏳ Generando...';
+  btn.disabled = true;
+
+  // Cargar html2canvas dinámicamente
+  if(!window.html2canvas) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const diploma = document.getElementById('diploma-card');
+  try {
+    const canvas = await html2canvas(diploma, {
+      backgroundColor: '#1a1a2e',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = `diploma-finanzas-${nombreAlumno.toLowerCase().replace(/\s+/g,'-')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('No se pudo generar la imagen. Intentá desde Chrome.');
+  }
+
+  btn.textContent = '📥 Descargar diploma';
+  btn.disabled = false;
 }
 
 function reiniciar() {
