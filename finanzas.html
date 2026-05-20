@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💰 Curso de Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #00c9a7;
+    --azul: #4facfe;
+    --amarillo: #ffd700;
+    --naranja: #ff6b35;
+    --rojo: #ff4757;
+    --morado: #a29bfe;
+    --bg: #0f0e17;
+    --card: #1a1a2e;
+    --card2: #16213e;
+    --txt: #fffffe;
+    --muted: #a7a9be;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--txt);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ===== PANTALLA INICIO ===== */
+  #pantalla-inicio {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #0f0e17 0%, #1a1a2e 50%, #16213e 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #pantalla-inicio::before {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(0,201,167,0.15) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    border-radius: 50%;
+  }
+
+  #pantalla-inicio::after {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(79,172,254,0.12) 0%, transparent 70%);
+    bottom: -50px; left: -50px;
+    border-radius: 50%;
+  }
+
+  .logo-curso {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(36px, 8vw, 64px);
+    background: linear-gradient(135deg, var(--verde), var(--azul));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .subtitulo-curso {
+    font-size: clamp(14px, 3vw, 18px);
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .input-nombre {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    font-size: 18px;
+    font-family: 'Nunito', sans-serif;
+    color: var(--txt);
+    width: 100%;
+    max-width: 340px;
+    margin-bottom: 24px;
+    outline: none;
+    transition: border-color 0.3s;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .input-nombre:focus { border-color: var(--verde); }
+  .input-nombre::placeholder { color: var(--muted); }
+
+  .label-nivel {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nivel-cards {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .nivel-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 28px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    min-width: 150px;
+  }
+
+  .nivel-card:hover { transform: translateY(-4px); }
+
+  .nivel-card.selected-9 {
+    border-color: var(--amarillo);
+    background: rgba(255,215,0,0.1);
+    transform: translateY(-4px);
+  }
+
+  .nivel-card.selected-14 {
+    border-color: var(--azul);
+    background: rgba(79,172,254,0.1);
+    transform: translateY(-4px);
+  }
+
+  .nivel-emoji { font-size: 40px; margin-bottom: 8px; }
+  .nivel-titulo { font-family: 'Fredoka One', cursive; font-size: 22px; margin-bottom: 4px; }
+  .nivel-desc { font-size: 12px; color: var(--muted); }
+
+  .btn-empezar {
+    background: linear-gradient(135deg, var(--verde), var(--azul));
+    border: none;
+    border-radius: 50px;
+    padding: 16px 48px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 8px 32px rgba(0,201,167,0.3);
+  }
+
+  .btn-empezar:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,201,167,0.4); }
+  .btn-empezar:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ===== PANTALLA CURSO ===== */
+  #pantalla-curso { display: none; padding: 20px; max-width: 700px; margin: 0 auto; }
+
+  .header-curso {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .saludo-alumno { font-size: 14px; color: var(--muted); }
+  .nombre-alumno { font-family: 'Fredoka One', cursive; font-size: 20px; color: var(--verde); }
+
+  .progreso-wrap { flex: 1; margin: 0 20px; }
+  .progreso-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-align: center; }
+  .progreso-bar { background: rgba(255,255,255,0.1); border-radius: 50px; height: 8px; overflow: hidden; }
+  .progreso-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg, var(--verde), var(--azul)); transition: width 0.5s ease; }
+
+  .puntos-display {
+    text-align: right;
+  }
+  .puntos-label { font-size: 11px; color: var(--muted); }
+  .puntos-valor { font-family: 'Fredoka One', cursive; font-size: 22px; color: var(--amarillo); }
+
+  /* Módulo */
+  .modulo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+
+  .modulo-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .modulo-icono {
+    font-size: 40px;
+    width: 60px; height: 60px;
+    background: var(--card2);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .modulo-num { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+  .modulo-titulo { font-family: 'Fredoka One', cursive; font-size: 24px; }
+
+  .modulo-contenido {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #d4d4e8;
+    margin-bottom: 24px;
+  }
+
+  .modulo-contenido h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--txt);
+    margin: 20px 0 8px;
+  }
+
+  .modulo-contenido .ejemplo {
+    background: var(--card2);
+    border-left: 3px solid var(--verde);
+    border-radius: 0 12px 12px 0;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+
+  .modulo-contenido .dato {
+    background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+
+  /* Quiz */
+  .quiz-titulo {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: var(--amarillo);
+  }
+
+  .pregunta-card {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .pregunta-texto { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+
+  .opciones { display: flex; flex-direction: column; gap: 8px; }
+
+  .opcion {
+    background: rgba(255,255,255,0.04);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'Nunito', sans-serif;
+    color: var(--txt);
+    text-align: left;
+    transition: all 0.2s;
+  }
+
+  .opcion:hover:not(:disabled) { border-color: var(--azul); background: rgba(79,172,254,0.08); }
+  .opcion.correcta { border-color: var(--verde); background: rgba(0,201,167,0.15); color: var(--verde); }
+  .opcion.incorrecta { border-color: var(--rojo); background: rgba(255,71,87,0.1); color: var(--rojo); }
+  .opcion.mostrar-correcta { border-color: var(--verde); background: rgba(0,201,167,0.08); }
+  .opcion:disabled { cursor: default; }
+
+  .feedback {
+    font-size: 13px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    display: none;
+  }
+  .feedback.ok { background: rgba(0,201,167,0.1); color: var(--verde); display: block; }
+  .feedback.fail { background: rgba(255,71,87,0.1); color: var(--rojo); display: block; }
+
+  .btn-siguiente {
+    background: linear-gradient(135deg, var(--verde), var(--azul));
+    border: none;
+    border-radius: 50px;
+    padding: 14px 36px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,201,167,0.25);
+  }
+  .btn-siguiente:hover { transform: translateY(-2px); }
+  .btn-siguiente.visible { display: block; }
+
+  /* Pantalla final */
+  #pantalla-final {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #0f0e17 0%, #1a1a2e 100%);
+  }
+
+  .diploma {
+    background: linear-gradient(135deg, var(--card), var(--card2));
+    border: 2px solid var(--amarillo);
+    border-radius: 28px;
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(255,215,0,0.15);
+    animation: fadeIn 0.6s ease;
+  }
+
+  .diploma-emoji { font-size: 64px; margin-bottom: 12px; }
+  .diploma-titulo { font-family: 'Fredoka One', cursive; font-size: 28px; color: var(--amarillo); margin-bottom: 8px; }
+  .diploma-nombre { font-family: 'Fredoka One', cursive; font-size: 36px; color: var(--verde); margin-bottom: 16px; }
+  .diploma-puntaje { font-family: 'Fredoka One', cursive; font-size: 48px; color: var(--amarillo); }
+  .diploma-subtxt { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .diploma-msg { font-size: 16px; color: var(--txt); margin-top: 20px; line-height: 1.6; }
+
+  .btn-reiniciar {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    padding: 12px 32px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: var(--txt);
+    cursor: pointer;
+    margin-top: 24px;
+    transition: all 0.3s;
+  }
+  .btn-reiniciar:hover { border-color: var(--verde); color: var(--verde); }
+
+  .stars { font-size: 32px; margin: 12px 0; }
+
+  @media (max-width: 480px) {
+    .header-curso { flex-wrap: wrap; gap: 10px; }
+    .progreso-wrap { order: 3; flex: 100%; margin: 0; }
+    .modulo-card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PANTALLA INICIO -->
+<div id="pantalla-inicio">
+  <div class="logo-curso">💰 FinanzasKids</div>
+  <div class="subtitulo-curso">Aprendé a manejar tu dinero desde chico</div>
+
+  <input type="text" class="input-nombre" id="input-nombre" placeholder="¿Cómo te llamás?" maxlength="20">
+
+  <div class="label-nivel">¿Cuántos años tenés?</div>
+  <div class="nivel-cards">
+    <div class="nivel-card" id="card-9" onclick="seleccionarNivel(9)">
+      <div class="nivel-emoji">🌟</div>
+      <div class="nivel-titulo" style="color:#ffd700">9 años</div>
+      <div class="nivel-desc">Nivel Explorador</div>
+    </div>
+    <div class="nivel-card" id="card-14" onclick="seleccionarNivel(14)">
+      <div class="nivel-emoji">🚀</div>
+      <div class="nivel-titulo" style="color:#4facfe">14 años</div>
+      <div class="nivel-desc">Nivel Avanzado</div>
+    </div>
+  </div>
+
+  <button class="btn-empezar" id="btn-empezar" onclick="empezarCurso()" disabled>¡Empezar curso! 🎯</button>
+</div>
+
+<!-- PANTALLA CURSO -->
+<div id="pantalla-curso">
+  <div class="header-curso">
+    <div>
+      <div class="saludo-alumno">Hola,</div>
+      <div class="nombre-alumno" id="display-nombre">—</div>
+    </div>
+    <div class="progreso-wrap">
+      <div class="progreso-label" id="progreso-label">Módulo 1 de 7</div>
+      <div class="progreso-bar"><div class="progreso-fill" id="progreso-fill" style="width:0%"></div></div>
+    </div>
+    <div class="puntos-display">
+      <div class="puntos-label">Puntos</div>
+      <div class="puntos-valor" id="puntos-display">0</div>
+    </div>
+  </div>
+
+  <div id="contenido-modulo"></div>
+</div>
+
+<!-- PANTALLA FINAL -->
+<div id="pantalla-final">
+  <div class="diploma">
+    <div class="diploma-emoji">🏆</div>
+    <div class="diploma-titulo">¡Curso Completado!</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Felicitamos a</div>
+    <div class="diploma-nombre" id="diploma-nombre">—</div>
+    <div class="stars" id="diploma-stars">⭐⭐⭐</div>
+    <div class="diploma-puntaje" id="diploma-puntaje">0 pts</div>
+    <div class="diploma-subtxt" id="diploma-subtxt">de 105 puntos posibles</div>
+    <div class="diploma-msg" id="diploma-msg">¡Excelente trabajo!</div>
+  </div>
+  <button class="btn-reiniciar" onclick="reiniciar()">🔄 Volver a empezar</button>
+</div>
+
+<script>
+let nivelSeleccionado = null;
+let nombreAlumno = '';
+let moduloActual = 0;
+let puntosTotal = 0;
+let preguntasRespondidas = 0;
+let preguntasCorrectas = 0;
+
+const modulos9 = [
+  {
+    icono: '💵',
+    titulo: '¿Qué es el dinero?',
+    contenido: `
+      <p>El dinero es algo que usamos para comprar cosas que necesitamos o queremos. Pero, ¿sabías que antes no existía el dinero?</p>
+      <h3>El trueque 🔄</h3>
+      <p>Hace mucho tiempo, si querías pan, tenías que dar algo a cambio, como manzanas o leche. Esto se llamaba <strong>trueque</strong>. El problema era que no siempre la otra persona quería lo que vos tenías.</p>
+      <div class="ejemplo">💡 Ejemplo: Si vos tenías manzanas pero necesitabas zapatos, tenías que encontrar a alguien que tuviera zapatos y quisiera manzanas. ¡Muy difícil!</div>
+      <h3>El dinero como solución 💡</h3>
+      <p>Por eso se inventó el dinero. Con dinero podés comprar cualquier cosa, sin importar lo que tengas para ofrecer.</p>
+      <div class="dato">🌍 Dato curioso: En el pasado se usaban conchas de mar, sal y hasta piedras gigantes como dinero. ¡Hoy usamos billetes, monedas y tarjetas!</div>
+      <h3>¿De dónde viene el dinero? 🏦</h3>
+      <p>El dinero lo genera el Banco Central de cada país. En Argentina lo hace el <strong>Banco Central de la República Argentina</strong>. Los papeles que usamos tienen valor porque todos acordamos que lo tienen.</p>
+    `,
+    preguntas: [
+      { texto: '¿Qué es el trueque?', opciones: ['Intercambiar cosas sin usar dinero', 'Un tipo de moneda', 'Un banco antiguo', 'Una forma de ahorro'], correcta: 0, explicacion: '¡Exacto! El trueque es intercambiar cosas directamente, sin dinero.' },
+      { texto: '¿Quién genera el dinero en Argentina?', opciones: ['El presidente', 'El Banco Central', 'Los supermercados', 'Los maestros'], correcta: 1, explicacion: 'El Banco Central de la República Argentina es quien emite los billetes y monedas.' },
+      { texto: '¿Por qué se inventó el dinero?', opciones: ['Para hacer colecciones', 'Para que los reyes fueran ricos', 'Para facilitar el intercambio de cosas', 'Para llenar los bancos'], correcta: 2, explicacion: '¡Muy bien! El dinero facilita comprar y vender sin necesitar que la otra persona quiera exactamente lo que vos tenés.' }
+    ]
+  },
+  {
+    icono: '🐷',
+    titulo: 'El ahorro',
+    contenido: `
+      <p>Ahorrar es guardar una parte del dinero que recibís para usarlo después. Es como la hormiga del cuento que guardaba comida para el invierno.</p>
+      <h3>¿Por qué ahorrar? 🤔</h3>
+      <p>Hay muchas razones para ahorrar:</p>
+      <p>✅ Para comprar algo que querés mucho pero es caro<br>✅ Para cuando pase algo inesperado<br>✅ Para cuando seas grande tener dinero propio</p>
+      <div class="ejemplo">💡 Ejemplo: Si recibís $1.000 de cumpleaños y guardás $500, en dos cumpleaños tendrías $1.000 ahorrados para comprar algo más grande que te guste.</div>
+      <h3>La regla del 30% 📏</h3>
+      <p>Una regla fácil es ahorrar al menos <strong>30 de cada 100 pesos</strong> que recibís. Si guardás eso cada vez, vas a ver cómo crece tu dinero.</p>
+      <div class="dato">🐷 La alcancía es la forma más simple de ahorrar. ¡Pero los bancos te dan más seguridad y a veces te pagan intereses por guardar tu dinero ahí!</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué significa ahorrar?', opciones: ['Gastar todo el dinero', 'Guardar dinero para usar después', 'Pedir prestado', 'Regalar dinero'], correcta: 1, explicacion: '¡Correcto! Ahorrar es guardar una parte para el futuro.' },
+      { texto: 'Siguiendo la regla del 30%, si recibís $200, ¿cuánto deberías ahorrar?', opciones: ['$100', '$50', '$60', '$20'], correcta: 2, explicacion: '30% de $200 = $60. ¡Muy bien calculado!' },
+      { texto: '¿Cuál de estas NO es una razón para ahorrar?', opciones: ['Para una emergencia', 'Para comprar algo caro', 'Para gastar todo hoy', 'Para el futuro'], correcta: 2, explicacion: 'Gastar todo hoy es lo opuesto al ahorro. El ahorro es pensar en el futuro.' }
+    ]
+  },
+  {
+    icono: '📊',
+    titulo: 'El presupuesto',
+    contenido: `
+      <p>Un presupuesto es un plan que hacés para saber cuánto dinero entra y cuánto sale. ¡Es como un mapa de tu dinero!</p>
+      <h3>Ingresos y gastos 💸</h3>
+      <p><strong>Ingresos</strong> = el dinero que recibís (propina, regalo de cumpleaños, mesada)<br><strong>Gastos</strong> = el dinero que gastás (golosinas, juguetes, paseos)</p>
+      <div class="ejemplo">💡 Ejemplo de presupuesto semanal:<br>🟢 Ingresos: $500 de propina<br>🔴 Gastos: $200 en golosinas + $100 en figuritas = $300<br>💰 Lo que te queda: $200 para ahorrar</div>
+      <h3>La regla de oro 🥇</h3>
+      <p>Los gastos nunca deben ser más que los ingresos. Si gastás más de lo que tenés, eso se llama <strong>déficit</strong> y es un problema.</p>
+      <div class="dato">📝 Truco: Anotá en un papel o en el celu todo lo que gastás durante una semana. ¡Te vas a sorprender de cuánto gastás en cosas pequeñas!</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué son los ingresos?', opciones: ['El dinero que gastás', 'El dinero que recibís', 'Las deudas', 'Los ahorros que perdiste'], correcta: 1, explicacion: '¡Exacto! Los ingresos son todo el dinero que entra.' },
+      { texto: 'Si recibís $400 y gastás $450, ¿qué pasó?', opciones: ['Ahorraste $50', 'Gastaste más de lo que tenías', 'Todo estuvo perfecto', 'Ganaste $50'], correcta: 1, explicacion: 'Gastaste $50 más de lo que tenías. ¡Eso es un problema que hay que evitar!' },
+      { texto: '¿Cómo se llama cuando los gastos son mayores que los ingresos?', opciones: ['Superávit', 'Ahorro', 'Déficit', 'Inversión'], correcta: 2, explicacion: 'Déficit es cuando gastás más de lo que ganás. ¡Hay que evitarlo!' }
+    ]
+  },
+  {
+    icono: '⚠️',
+    titulo: 'La deuda',
+    contenido: `
+      <p>Una deuda es cuando le pedís dinero prestado a alguien y prometés devolverlo. A veces hay que pagar un poco más de lo que pediste: eso se llama <strong>interés</strong>.</p>
+      <h3>¿Cuándo está bien pedir prestado? ✅</h3>
+      <p>Está bien cuando es para algo importante y sabés que vas a poder devolver el dinero. Por ejemplo, si necesitás un libro para el colegio.</p>
+      <h3>¿Cuándo NO está bien? ❌</h3>
+      <p>No está bien cuando pedís para comprar cosas que no necesitás, o cuando no vas a poder devolver el dinero.</p>
+      <div class="ejemplo">💡 Ejemplo: Si pedís $100 prestados y te cobran 10% de interés, tenés que devolver $110. El dinero extra ($10) es el interés.</div>
+      <div class="dato">⚠️ Regla importante: Nunca pidas prestado más de lo que podés devolver. Las deudas que no se pagan crecen con el tiempo y se hacen más difíciles de pagar.</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué es el interés en una deuda?', opciones: ['Un descuento', 'El dinero extra que pagás por pedir prestado', 'El dinero que ahorrás', 'Un regalo del banco'], correcta: 1, explicacion: '¡Correcto! El interés es el "costo" de pedir dinero prestado.' },
+      { texto: '¿Cuál es una buena razón para pedir prestado?', opciones: ['Para comprar muchas golosinas', 'Para un videojuego que no necesitás', 'Para un libro obligatorio del colegio', 'Para gastar más de lo normal'], correcta: 2, explicacion: 'Pedir para algo necesario, cuando podés devolver, está bien. ¡Buen criterio!' },
+      { texto: '¿Qué pasa si no pagás una deuda?', opciones: ['Desaparece sola', 'Crece con el tiempo y se hace más difícil', 'El banco te la regala', 'No pasa nada'], correcta: 1, explicacion: 'Las deudas sin pagar crecen por los intereses. ¡Siempre hay que pagarlas!' }
+    ]
+  },
+  {
+    icono: '📈',
+    titulo: 'Las inversiones',
+    contenido: `
+      <p>Invertir es poner tu dinero a trabajar para que crezca. En vez de tenerlo guardado, lo usás para ganar más dinero.</p>
+      <h3>Tipos de inversiones 💼</h3>
+      <p>🏦 <strong>Caja de ahorro / Plazo fijo</strong>: Guardás el dinero en el banco y te pagan un poco más. Muy seguro pero crece poco.</p>
+      <p>📊 <strong>Acciones</strong>: Comprás una parte de una empresa. Puede ganar mucho, pero también perder.</p>
+      <p>💻 <strong>Criptomonedas</strong>: Dinero digital como Bitcoin. Puede subir o bajar muchísimo de valor muy rápido.</p>
+      <div class="dato">⚖️ Regla importante: A más ganancia posible, más riesgo. No existe inversión que garantice ganancias sin ningún riesgo.</div>
+      <div class="ejemplo">💡 Ejemplo: Si ponés $1.000 en un plazo fijo al 5%, después de un tiempo tenés $1.050. Poco, pero seguro.</div>
+      <h3>¿Qué son las criptomonedas? 🪙</h3>
+      <p>Son monedas que existen solo en internet, no son billetes físicos. Bitcoin es la más conocida. Su precio puede cambiar muchísimo en un solo día, por eso son de alto riesgo.</p>
+    `,
+    preguntas: [
+      { texto: '¿Qué significa invertir?', opciones: ['Gastar todo el dinero', 'Poner el dinero a trabajar para que crezca', 'Pedir prestado', 'Esconder el dinero'], correcta: 1, explicacion: '¡Exacto! Invertir es hacer que tu dinero genere más dinero.' },
+      { texto: '¿Cuál inversión es más segura pero crece menos?', opciones: ['Criptomonedas', 'Acciones de empresas', 'Plazo fijo en el banco', 'Apostar en juegos'], correcta: 2, explicacion: 'El plazo fijo es muy seguro pero da pocas ganancias. ¡Bien!' },
+      { texto: '¿Qué caracteriza a las criptomonedas como Bitcoin?', opciones: ['Son muy seguras', 'El gobierno las controla', 'Su precio cambia mucho y son de alto riesgo', 'Siempre suben de valor'], correcta: 2, explicacion: 'Las criptomonedas son volátiles: pueden subir o bajar mucho muy rápido.' }
+    ]
+  },
+  {
+    icono: '💡',
+    titulo: 'El emprendimiento',
+    contenido: `
+      <p>Emprender es crear tu propio negocio o proyecto para ganar dinero haciendo algo que sabés hacer o que te gusta.</p>
+      <h3>¿Qué es un emprendedor? 🦁</h3>
+      <p>Es alguien que ve una oportunidad y crea algo nuevo para aprovecharla. No espera que le den trabajo, ¡lo crea!</p>
+      <div class="ejemplo">💡 Ejemplos de emprendimientos para chicos:<br>🍋 Vender limonadas en verano<br>🎨 Hacer y vender manualidades<br>🐕 Pasear perros del barrio<br>💻 Enseñar a usar tecnología a adultos mayores</div>
+      <h3>Lo básico de un negocio 📋</h3>
+      <p><strong>Costo</strong>: lo que gastás para hacer el producto<br><strong>Precio de venta</strong>: lo que cobrás<br><strong>Ganancia</strong>: precio de venta menos costo</p>
+      <div class="dato">🚀 Los emprendedores más exitosos del mundo, como los creadores de Apple o Google, empezaron con ideas simples. ¡La creatividad vale más que el dinero inicial!</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué es un emprendedor?', opciones: ['Alguien que solo trabaja para otros', 'Alguien que crea su propio negocio', 'Un tipo de banco', 'Un empleado del gobierno'], correcta: 1, explicacion: '¡Correcto! El emprendedor crea su propio negocio o proyecto.' },
+      { texto: 'Si hacés limonadas con $100 de costo y las vendés por $200, ¿cuánto ganás?', opciones: ['$200', '$100', '$300', '$50'], correcta: 1, explicacion: 'Ganancia = Precio de venta ($200) - Costo ($100) = $100. ¡Bien calculado!' },
+      { texto: '¿Qué es más importante para emprender?', opciones: ['Tener mucho dinero para empezar', 'Conocer al presidente', 'Una buena idea y ganas de trabajar', 'Tener una empresa grande'], correcta: 2, explicacion: '¡Exacto! Muchos grandes negocios empezaron con poco dinero pero mucha creatividad.' }
+    ]
+  },
+  {
+    icono: '🎓',
+    titulo: 'Finanzas en la vida real',
+    contenido: `
+      <p>Todo lo que aprendiste en este curso te va a servir toda la vida. Las personas que manejan bien su dinero viven más tranquilas y pueden cumplir sus sueños.</p>
+      <h3>Los 5 mandamientos del dinero 📜</h3>
+      <p>1️⃣ <strong>Siempre ahorrá</strong> una parte de lo que recibís<br>2️⃣ <strong>Gastá menos</strong> de lo que ganás<br>3️⃣ <strong>Pensá antes</strong> de pedir prestado<br>4️⃣ <strong>Hacé crecer</strong> tu dinero con buenas inversiones<br>5️⃣ <strong>Creá valor</strong> con tus ideas y trabajo</p>
+      <div class="ejemplo">💡 El secreto de los ricos no es ganar mucho, sino gastar bien y hacer crecer lo que tienen. ¡Vos podés aprender eso desde chico!</div>
+      <h3>Tu desafío 🎯</h3>
+      <p>Esta semana, anotá todo lo que gastás. Al final, mirá si podías ahorrar algo. ¡Ese primer paso es el más importante!</p>
+      <div class="dato">🌟 Los niños que aprenden sobre dinero de chicos tienen más chances de ser exitosos cuando crecen. ¡Ya tenés ventaja!</div>
+    `,
+    preguntas: [
+      { texto: '¿Cuál es la regla más importante del dinero?', opciones: ['Gastar todo lo que tenés', 'Gastá menos de lo que ganás', 'Pedir prestado siempre', 'Esconder el dinero'], correcta: 1, explicacion: '¡La regla de oro! Nunca gastés más de lo que ganás.' },
+      { texto: '¿Qué deberías hacer con una parte de cada dinero que recibís?', opciones: ['Gastarlo en golosinas', 'Dárselo a un amigo', 'Ahorrarlo', 'Tirarlo'], correcta: 2, explicacion: 'Siempre ahorrá una parte. ¡Es el hábito más importante!' },
+      { texto: '¿Por qué es importante aprender de finanzas de chico?', opciones: ['No es importante', 'Para poder trabajar en un banco', 'Para tomar mejores decisiones con el dinero toda la vida', 'Solo para cuando seas adulto'], correcta: 2, explicacion: '¡Exacto! Los hábitos que formás de chico te acompañan toda la vida. ¡Gran ventaja!' }
+    ]
+  }
+];
+
+const modulos14 = [
+  {
+    icono: '💵',
+    titulo: '¿Qué es el dinero y cómo funciona?',
+    contenido: `
+      <p>El dinero es un medio de intercambio aceptado socialmente. Tiene tres funciones fundamentales en la economía moderna.</p>
+      <h3>Las 3 funciones del dinero 🏛️</h3>
+      <p>💱 <strong>Medio de intercambio</strong>: Facilita la compra y venta sin necesitar trueque<br>📏 <strong>Unidad de medida</strong>: Permite comparar el valor de cosas distintas<br>🗄️ <strong>Reserva de valor</strong>: Permite guardar poder adquisitivo para el futuro</p>
+      <h3>Inflación: el enemigo del dinero 🔥</h3>
+      <p>La inflación es cuando los precios suben con el tiempo, haciendo que tu dinero valga menos. En Argentina este es un fenómeno muy relevante.</p>
+      <div class="ejemplo">💡 Si hoy con $1.000 comprás 10 facturas, y el año que viene cuestan $1.200 cada una, con los mismos $1.000 solo comprás 8. Tu dinero perdió poder adquisitivo.</div>
+      <div class="dato">📊 Argentina tuvo una de las inflaciones más altas del mundo en los últimos años. Por eso es crucial entender cómo proteger el valor de tu dinero.</div>
+      <h3>Política monetaria 🏦</h3>
+      <p>El Banco Central regula la cantidad de dinero en circulación. Cuando hay demasiado dinero circulando sin respaldo productivo, hay inflación.</p>
+    `,
+    preguntas: [
+      { texto: '¿Cuál NO es una función del dinero?', opciones: ['Medio de intercambio', 'Unidad de medida', 'Reserva de valor', 'Fuente de felicidad garantizada'], correcta: 3, explicacion: 'El dinero tiene 3 funciones: medio de intercambio, unidad de medida y reserva de valor. La felicidad no es una función económica.' },
+      { texto: '¿Qué es la inflación?', opciones: ['Cuando los precios bajan', 'Cuando el dinero vale más', 'Cuando los precios suben y el dinero vale menos', 'Cuando hay muchos empleos'], correcta: 2, explicacion: '¡Exacto! La inflación erosiona el poder adquisitivo del dinero.' },
+      { texto: '¿Qué organismo regula la cantidad de dinero en Argentina?', opciones: ['El Ministerio de Educación', 'El Banco Central', 'La Bolsa de Valores', 'El FMI'], correcta: 1, explicacion: 'El Banco Central de la República Argentina (BCRA) controla la política monetaria.' }
+    ]
+  },
+  {
+    icono: '🐷',
+    titulo: 'Ahorro e interés compuesto',
+    contenido: `
+      <p>El ahorro no es solo guardar dinero: es la base de toda estrategia financiera sólida. Pero la forma en que ahorrás importa tanto como cuánto ahorrás.</p>
+      <h3>El interés compuesto: la 8va maravilla 🌍</h3>
+      <p>Albert Einstein supuestamente llamó al interés compuesto "la octava maravilla del mundo". ¿Por qué? Porque tu dinero genera intereses, y esos intereses generan más intereses.</p>
+      <div class="ejemplo">💡 Si ponés $10.000 al 10% anual:<br>Año 1: $10.000 → $11.000 (+$1.000)<br>Año 2: $11.000 → $12.100 (+$1.100)<br>Año 3: $12.100 → $13.310 (+$1.210)<br>¡El dinero crece cada vez más rápido!</div>
+      <h3>La regla del 72 ⚡</h3>
+      <p>Para saber en cuántos años se duplica tu dinero, dividí 72 por la tasa de interés. Al 8% anual: 72÷8 = 9 años para duplicar.</p>
+      <div class="dato">⏰ El tiempo es tu mejor aliado. Empezar a ahorrar a los 15 años vs a los 25 puede significar el doble de dinero al jubilarte, aunque ahorres lo mismo.</div>
+      <h3>Ahorro real vs nominal 📊</h3>
+      <p>En un contexto inflacionario como Argentina, ahorrar en pesos puede ser una trampa: si la inflación es 100% anual y tu banco te da 50%, en realidad estás perdiendo poder adquisitivo.</p>
+    `,
+    preguntas: [
+      { texto: '¿Qué es el interés compuesto?', opciones: ['Pagar intereses por una deuda', 'Los intereses que generan más intereses sobre el capital', 'Un tipo de impuesto', 'El costo de una tarjeta de crédito'], correcta: 1, explicacion: '¡Correcto! En el interés compuesto, los intereses generados se suman al capital y a su vez generan más intereses.' },
+      { texto: 'Usando la regla del 72, ¿en cuántos años se duplica el dinero al 9% anual?', opciones: ['5 años', '8 años', '9 años', '12 años'], correcta: 1, explicacion: '72 ÷ 9 = 8 años. ¡La regla del 72 es una herramienta muy útil!' },
+      { texto: 'Si la inflación es 80% y el banco paga 50%, ¿qué pasa con tu ahorro en pesos?', opciones: ['Crece en términos reales', 'Se mantiene igual', 'Pierde poder adquisitivo', 'Se duplica'], correcta: 2, explicacion: 'Si la inflación supera la tasa de interés, tu dinero vale menos en términos reales.' }
+    ]
+  },
+  {
+    icono: '📊',
+    titulo: 'Presupuesto personal',
+    contenido: `
+      <p>El presupuesto es la herramienta más poderosa de las finanzas personales. Las personas que lo usan sistemáticamente acumulan más riqueza que las que no lo hacen.</p>
+      <h3>El método 50/30/20 📐</h3>
+      <p>Una regla muy usada para distribuir los ingresos:</p>
+      <p>🏠 <strong>50%</strong> para necesidades (comida, transporte, servicios)<br>🎮 <strong>30%</strong> para deseos (salidas, entretenimiento)<br>💰 <strong>20%</strong> para ahorro e inversión</p>
+      <div class="ejemplo">💡 Si ganás $100.000 al mes:<br>$50.000 → gastos necesarios<br>$30.000 → gastos personales<br>$20.000 → ahorro/inversión</div>
+      <h3>Gastos fijos vs variables 🔄</h3>
+      <p><strong>Gastos fijos</strong>: siempre son los mismos (alquiler, internet)<br><strong>Gastos variables</strong>: cambian cada mes (comida, ropa, salidas)</p>
+      <div class="dato">📱 Hoy existen apps como Wallet o Money Manager para trackear tus gastos desde el celular. ¡La tecnología puede ser tu aliada financiera!</div>
+      <h3>El costo de oportunidad 💭</h3>
+      <p>Cada vez que gastás dinero en algo, renunciás a gastarlo en otra cosa. Eso se llama <strong>costo de oportunidad</strong>. Antes de comprar algo, preguntate: ¿hay algo mejor en lo que podría usar este dinero?</p>
+    `,
+    preguntas: [
+      { texto: 'Según el método 50/30/20, ¿qué porcentaje va a ahorro e inversión?', opciones: ['50%', '30%', '20%', '10%'], correcta: 2, explicacion: '¡Correcto! El 20% del ingreso debería destinarse a ahorro e inversión.' },
+      { texto: '¿Cuál es un gasto fijo?', opciones: ['Salir a comer', 'La cuota del gimnasio mensual', 'Comprar ropa', 'Una entrada al cine'], correcta: 1, explicacion: 'Los gastos fijos se repiten siempre por el mismo monto, como una cuota mensual.' },
+      { texto: '¿Qué es el costo de oportunidad?', opciones: ['El precio de una oportunidad de negocio', 'Lo que renunciás al elegir una opción en lugar de otra', 'Un descuento especial', 'El costo de estudiar'], correcta: 1, explicacion: '¡Exacto! Cada decisión implica renunciar a algo. Eso es el costo de oportunidad.' }
+    ]
+  },
+  {
+    icono: '⚠️',
+    titulo: 'Deuda y crédito',
+    contenido: `
+      <p>El crédito puede ser una herramienta poderosa o una trampa. La diferencia está en cómo lo usás.</p>
+      <h3>Deuda buena vs deuda mala 🎯</h3>
+      <p>✅ <strong>Deuda buena</strong>: te permite generar más ingresos o adquirir activos que valen más. Ejemplo: un préstamo para estudiar o para un negocio.</p>
+      <p>❌ <strong>Deuda mala</strong>: para consumo que no genera valor. Ejemplo: financiar vacaciones o ropa con tarjeta de crédito.</p>
+      <div class="ejemplo">💡 La tarjeta de crédito puede cobrar 100-200% anual en Argentina. Si no pagás el total, la deuda crece muy rápido.</div>
+      <h3>El scoring crediticio 📋</h3>
+      <p>Los bancos te califican según tu historial de pagos. Si pagás siempre a tiempo, tenés buen "score" y accedés a mejores préstamos. Si no pagás, quedás en el <strong>Veraz</strong> (base de datos de deudores) y es muy difícil conseguir crédito.</p>
+      <div class="dato">💳 La tarjeta de crédito bien usada es un gran aliado: te da 30-50 días sin interés y suma puntos. Mal usada, es de las deudas más caras que existen.</div>
+      <h3>Tasa de interés nominal vs real 📐</h3>
+      <p>La <strong>tasa nominal</strong> es la que anuncia el banco. La <strong>tasa real</strong> considera la inflación. En Argentina, a veces las tasas son altísimas en lo nominal pero negativas en lo real.</p>
+    `,
+    preguntas: [
+      { texto: '¿Cuál es un ejemplo de deuda buena?', opciones: ['Financiar un viaje de vacaciones', 'Comprar ropa de marca a cuotas', 'Un préstamo para estudiar una carrera', 'Sacar crédito para golosinas'], correcta: 2, explicacion: '¡Correcto! Invertir en educación es deuda que genera más valor en el futuro.' },
+      { texto: '¿Qué pasa si no pagás tus deudas y quedás en el Veraz?', opciones: ['Nada, no importa', 'Te dan más crédito', 'Se te dificulta acceder a préstamos en el futuro', 'Te descuentan del sueldo automáticamente'], correcta: 2, explicacion: 'El Veraz es el registro de deudores y dificulta acceder a créditos futuros.' },
+      { texto: '¿Cómo se calcula la tasa real de interés?', opciones: ['Es la misma que la nominal', 'Tasa nominal menos inflación', 'Tasa nominal más inflación', 'La define el banco libremente'], correcta: 1, explicacion: 'La tasa real = tasa nominal - inflación. Si la inflación supera la tasa, la tasa real es negativa.' }
+    ]
+  },
+  {
+    icono: '📈',
+    titulo: 'Inversiones y mercados',
+    contenido: `
+      <p>Invertir es asignar capital esperando obtener rendimientos futuros. La clave está en entender la relación riesgo-retorno.</p>
+      <h3>Tipos de inversiones por riesgo 📊</h3>
+      <p>🟢 <strong>Bajo riesgo</strong>: Plazo fijo, bonos del Estado. Retorno predecible pero bajo.</p>
+      <p>🟡 <strong>Riesgo medio</strong>: Fondos comunes de inversión, CEDEARs (acciones de empresas extranjeras). Balance entre riesgo y retorno.</p>
+      <p>🔴 <strong>Alto riesgo</strong>: Acciones individuales, criptomonedas. Posibilidad de grandes ganancias o pérdidas.</p>
+      <h3>¿Qué son las criptomonedas? 🪙</h3>
+      <p>Son activos digitales descentralizados que usan tecnología blockchain. Bitcoin fue la primera (2009). No están respaldadas por ningún gobierno ni banco central, lo que las hace muy volátiles.</p>
+      <div class="dato">📉 Bitcoin llegó a caer 80% de su valor en menos de un año. También subió 10x en otros períodos. Son inversiones de muy alto riesgo especulativo.</div>
+      <h3>Diversificación 🌐</h3>
+      <p>"No pongas todos los huevos en la misma canasta". Distribuir inversiones en diferentes activos reduce el riesgo total de tu cartera.</p>
+      <div class="ejemplo">💡 En Argentina se usan CEDEARs para invertir en empresas como Apple, Google o Amazon desde pesos, protegiéndose también de la devaluación.</div>
+    `,
+    preguntas: [
+      { texto: '¿Cuál inversión tiene mayor riesgo pero mayor potencial de ganancia?', opciones: ['Plazo fijo', 'Bonos del Estado', 'Criptomonedas', 'Caja de ahorro'], correcta: 2, explicacion: '¡Correcto! Las criptomonedas son el activo de mayor volatilidad y riesgo.' },
+      { texto: '¿Qué son los CEDEARs?', opciones: ['Un tipo de criptomoneda', 'Acciones de empresas extranjeras que cotizan en Argentina', 'Bonos del gobierno', 'Un fondo de pensión'], correcta: 1, explicacion: 'Los CEDEARs permiten invertir en empresas como Apple o Google desde Argentina, en pesos.' },
+      { texto: '¿Qué significa diversificar una cartera de inversiones?', opciones: ['Invertir todo en un solo activo', 'Distribuir inversiones en diferentes activos para reducir riesgo', 'Solo invertir en criptomonedas', 'Mantener todo en efectivo'], correcta: 1, explicacion: '¡Exacto! Diversificar reduce el riesgo: si un activo baja, otros pueden compensar.' }
+    ]
+  },
+  {
+    icono: '💡',
+    titulo: 'Emprendimiento y valor',
+    contenido: `
+      <p>El emprendimiento es la capacidad de crear valor donde antes no existía. Los emprendedores son el motor de la economía.</p>
+      <h3>Modelo de negocio 🗺️</h3>
+      <p>Todo negocio exitoso responde estas preguntas:<br>❓ ¿Qué problema resuelvo?<br>👥 ¿A quién le resuelvo el problema?<br>💰 ¿Cómo gano dinero con eso?<br>🔑 ¿Por qué van a elegirme a mí?</p>
+      <h3>Propuesta de valor 🎯</h3>
+      <p>Es lo que te hace diferente de la competencia. No es suficiente tener un producto, hay que tener uno que sea mejor, más barato o más conveniente que los demás.</p>
+      <div class="ejemplo">💡 Caso real: Mercado Libre identificó que en Argentina había millones de personas que querían comprar y vender, pero no había una plataforma confiable. Ese fue su problema a resolver. Hoy vale miles de millones de dólares.</div>
+      <h3>Finanzas del negocio 📋</h3>
+      <p><strong>Ingresos</strong> - <strong>Costos variables</strong> = <strong>Margen bruto</strong><br>Margen bruto - <strong>Costos fijos</strong> = <strong>Ganancia neta</strong></p>
+      <div class="dato">🦄 Las startups que cambian el mundo no empezaron con millones: Google empezó en un garage, Apple en otro garage, y Mercado Libre en un pequeño departamento.</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué es la propuesta de valor de un negocio?', opciones: ['El precio del producto', 'Lo que hace diferente al negocio de la competencia', 'Las ganancias del primer año', 'El nombre de la empresa'], correcta: 1, explicacion: '¡Correcto! La propuesta de valor es por qué los clientes te van a elegir a vos.' },
+      { texto: 'Si un negocio tiene ingresos de $100.000, costos variables de $40.000 y costos fijos de $30.000, ¿cuál es la ganancia neta?', opciones: ['$60.000', '$30.000', '$70.000', '$100.000'], correcta: 1, explicacion: '$100.000 - $40.000 = $60.000 (margen bruto) - $30.000 = $30.000 de ganancia neta.' },
+      { texto: '¿Cuál es la primera pregunta que debe responder un emprendimiento?', opciones: ['¿Cuánto voy a ganar?', '¿Qué problema resuelvo?', '¿Dónde pongo la oficina?', '¿Qué nombre le pongo?'], correcta: 1, explicacion: 'Todo negocio exitoso nace de resolver un problema real de personas reales.' }
+    ]
+  },
+  {
+    icono: '🎓',
+    titulo: 'Estrategia financiera personal',
+    contenido: `
+      <p>Con todo lo que aprendiste, podés diseñar tu propia estrategia financiera. El objetivo es la <strong>libertad financiera</strong>: que tu dinero trabaje para vos, no al revés.</p>
+      <h3>El camino hacia la libertad financiera 🗺️</h3>
+      <p>1️⃣ <strong>Controlá tus gastos</strong>: presupuesto, registro, análisis<br>2️⃣ <strong>Eliminá deudas malas</strong>: empezando por las de mayor interés<br>3️⃣ <strong>Construí un fondo de emergencia</strong>: 3-6 meses de gastos<br>4️⃣ <strong>Invertí el excedente</strong>: diversificado, según tu perfil de riesgo<br>5️⃣ <strong>Generá ingresos extra</strong>: emprendimientos, habilidades</p>
+      <h3>Activos vs Pasivos 💎</h3>
+      <p>Robert Kiyosaki (autor de "Padre Rico, Padre Pobre") definió:<br><strong>Activo</strong>: algo que pone dinero en tu bolsillo (negocio, inversión)<br><strong>Pasivo</strong>: algo que saca dinero de tu bolsillo (auto, ropa cara)</p>
+      <div class="dato">📚 Los libros recomendados para tu edad: "El hombre más rico de Babilonia" (Clason), "Padre Rico Padre Pobre" (Kiyosaki), "El inversor inteligente" (Graham)</div>
+      <div class="ejemplo">💡 Objetivo a los 20 años: sin deudas malas, fondo de emergencia, primeras inversiones. A los 30: activos que generen ingresos pasivos. ¡El tiempo es tu mayor ventaja!</div>
+    `,
+    preguntas: [
+      { texto: '¿Qué es un activo según Kiyosaki?', opciones: ['Cualquier cosa que comprás', 'Algo que pone dinero en tu bolsillo', 'Tu ropa y accesorios', 'Tu auto'], correcta: 1, explicacion: '¡Exacto! Un activo genera ingresos o se valoriza. Un pasivo genera gastos.' },
+      { texto: '¿Cuánto debería tener un fondo de emergencia?', opciones: ['1 semana de gastos', '1 mes de gastos', '3 a 6 meses de gastos', '2 años de gastos'], correcta: 2, explicacion: 'El consenso financiero es tener entre 3 y 6 meses de gastos como fondo de emergencia.' },
+      { texto: '¿Cuál es la mayor ventaja financiera de empezar a invertir joven?', opciones: ['Tenés más tiempo libre', 'El tiempo permite que el interés compuesto trabaje más', 'Los bancos dan mejores tasas a los jóvenes', 'No hay ventaja real'], correcta: 1, explicacion: '¡La clave! El tiempo amplifica el interés compuesto. Empezar a los 15 vs 25 puede duplicar el resultado final.' }
+    ]
+  }
+];
+
+let modulos = [];
+
+// ===== SUPABASE =====
+const SUPA_URL = 'https://pglmteswkjqiruliyfhx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbG10ZXN3a2pxaXJ1bGl5Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjcyNzEsImV4cCI6MjA5MDY0MzI3MX0.o1jD0tI9N9y1uOZKzHsfxckHRpYnn_LzS_MuW3vfgpw';
+
+let progresoId = null; // ID del registro en Supabase
+
+async function cargarProgreso(nombre, nivel) {
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/curso_progreso?nombre=eq.${encodeURIComponent(nombre)}&nivel=eq.${nivel}&completado=eq.false&order=updated_at.desc&limit=1`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return data[0];
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+async function crearProgreso(nombre, nivel) {
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/curso_progreso`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ nombre, nivel, modulo_actual: 0, puntos_total: 0, completado: false })
+    });
+    const data = await res.json();
+    return data && data[0] ? data[0].id : null;
+  } catch(e) { return null; }
+}
+
+async function guardarProgreso() {
+  if (!progresoId) return;
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/curso_progreso?id=eq.${progresoId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        modulo_actual: moduloActual,
+        puntos_total: puntosTotal,
+        updated_at: new Date().toISOString()
+      })
+    });
+  } catch(e) {}
+}
+
+async function marcarCompletado() {
+  if (!progresoId) return;
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/curso_progreso?id=eq.${progresoId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ completado: true, updated_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+}
+
+function seleccionarNivel(nivel) {
+  nivelSeleccionado = nivel;
+  document.getElementById('card-9').className = 'nivel-card' + (nivel===9?' selected-9':'');
+  document.getElementById('card-14').className = 'nivel-card' + (nivel===14?' selected-14':'');
+  verificarFormulario();
+}
+
+document.getElementById('input-nombre').addEventListener('input', verificarFormulario);
+
+function verificarFormulario() {
+  const nombre = document.getElementById('input-nombre').value.trim();
+  document.getElementById('btn-empezar').disabled = !(nombre && nivelSeleccionado);
+}
+
+async function empezarCurso() {
+  const btn = document.getElementById('btn-empezar');
+  btn.disabled = true;
+  btn.textContent = 'Cargando... ⏳';
+
+  nombreAlumno = document.getElementById('input-nombre').value.trim();
+  modulos = nivelSeleccionado === 9 ? modulos9 : modulos14;
+  document.getElementById('display-nombre').textContent = nombreAlumno;
+
+  // Buscar progreso existente
+  const progreso = await cargarProgreso(nombreAlumno, nivelSeleccionado);
+  if (progreso) {
+    progresoId = progreso.id;
+    moduloActual = progreso.modulo_actual || 0;
+    puntosTotal = progreso.puntos_total || 0;
+  } else {
+    moduloActual = 0;
+    puntosTotal = 0;
+    progresoId = await crearProgreso(nombreAlumno, nivelSeleccionado);
+  }
+
+  document.getElementById('pantalla-inicio').style.display = 'none';
+  document.getElementById('pantalla-curso').style.display = 'block';
+  renderModulo();
+}
+
+function renderModulo() {
+  const m = modulos[moduloActual];
+  const progreso = ((moduloActual) / modulos.length) * 100;
+  document.getElementById('progreso-fill').style.width = progreso + '%';
+  document.getElementById('progreso-label').textContent = `Módulo ${moduloActual+1} de ${modulos.length}`;
+  document.getElementById('puntos-display').textContent = puntosTotal;
+
+  let preguntasHTML = m.preguntas.map((p, pi) => `
+    <div class="pregunta-card" id="pregunta-${pi}">
+      <div class="pregunta-texto">❓ ${p.texto}</div>
+      <div class="opciones">
+        ${p.opciones.map((op, oi) => `
+          <button class="opcion" onclick="responder(${pi}, ${oi})" id="op-${pi}-${oi}">${op}</button>
+        `).join('')}
+      </div>
+      <div class="feedback" id="feedback-${pi}"></div>
+    </div>
+  `).join('');
+
+  document.getElementById('contenido-modulo').innerHTML = `
+    <div class="modulo-card">
+      <div class="modulo-header">
+        <div class="modulo-icono">${m.icono}</div>
+        <div>
+          <div class="modulo-num">MÓDULO ${moduloActual+1}</div>
+          <div class="modulo-titulo">${m.titulo}</div>
+        </div>
+      </div>
+      <div class="modulo-contenido">${m.contenido}</div>
+    </div>
+    <div class="modulo-card">
+      <div class="quiz-titulo">🎯 Evaluación del módulo</div>
+      ${preguntasHTML}
+      <button class="btn-siguiente" id="btn-siguiente" onclick="siguienteModulo()">
+        ${moduloActual < modulos.length-1 ? 'Siguiente módulo ➡️' : '¡Terminar curso! 🏆'}
+      </button>
+    </div>
+  `;
+
+  window.respuestasModulo = new Array(m.preguntas.length).fill(false);
+  window.respondidas = 0;
+  window.scrollTo(0,0);
+}
+
+function responder(pi, oi) {
+  const m = modulos[moduloActual];
+  const p = m.preguntas[pi];
+  const correcta = p.correcta;
+  const esCorrecta = oi === correcta;
+
+  // Deshabilitar todas las opciones de esta pregunta
+  for(let i=0; i<p.opciones.length; i++) {
+    const btn = document.getElementById(`op-${pi}-${i}`);
+    btn.disabled = true;
+    if(i === correcta) btn.classList.add('mostrar-correcta');
+  }
+
+  const btnElegido = document.getElementById(`op-${pi}-${oi}`);
+  btnElegido.classList.add(esCorrecta ? 'correcta' : 'incorrecta');
+
+  const feedback = document.getElementById(`feedback-${pi}`);
+  feedback.className = `feedback ${esCorrecta ? 'ok' : 'fail'}`;
+  feedback.textContent = (esCorrecta ? '✅ ¡Correcto! ' : '❌ Incorrecto. ') + p.explicacion;
+
+  if(esCorrecta && !respuestasModulo[pi]) {
+    puntosTotal += 5;
+    document.getElementById('puntos-display').textContent = puntosTotal;
+    respuestasModulo[pi] = true;
+  }
+
+  respondidas++;
+  if(respondidas >= m.preguntas.length) {
+    document.getElementById('btn-siguiente').classList.add('visible');
+    document.getElementById('btn-siguiente').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+async function siguienteModulo() {
+  moduloActual++;
+  await guardarProgreso();
+  if(moduloActual >= modulos.length) {
+    mostrarFinal();
+  } else {
+    renderModulo();
+  }
+}
+
+async function mostrarFinal() {
+  await marcarCompletado();
+  document.getElementById('pantalla-curso').style.display = 'none';
+  const final = document.getElementById('pantalla-final');
+  final.style.display = 'flex';
+
+  const max = modulos.length * modulos[0].preguntas.length * 5;
+  const pct = puntosTotal / max;
+  let stars = '⭐';
+  let msg = 'Seguí practicando, vas por buen camino.';
+  if(pct >= 0.8) { stars = '⭐⭐⭐'; msg = '¡Excelente! Tenés un futuro financiero brillante por delante. 🚀'; }
+  else if(pct >= 0.6) { stars = '⭐⭐'; msg = '¡Muy bien! Ya tenés las bases para manejar bien tu dinero. 💪'; }
+
+  document.getElementById('diploma-nombre').textContent = nombreAlumno;
+  document.getElementById('diploma-stars').textContent = stars;
+  document.getElementById('diploma-puntaje').textContent = puntosTotal + ' pts';
+  document.getElementById('diploma-subtxt').textContent = `de ${max} puntos posibles`;
+  document.getElementById('diploma-msg').textContent = msg;
+}
+
+function reiniciar() {
+  nivelSeleccionado = null;
+  nombreAlumno = '';
+  moduloActual = 0;
+  puntosTotal = 0;
+  document.getElementById('pantalla-final').style.display = 'none';
+  document.getElementById('pantalla-inicio').style.display = 'flex';
+  document.getElementById('input-nombre').value = '';
+  document.getElementById('card-9').className = 'nivel-card';
+  document.getElementById('card-14').className = 'nivel-card';
+  document.getElementById('btn-empezar').disabled = true;
+}
+</script>
+</body>
+</html>
