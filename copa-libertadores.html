@@ -162,7 +162,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 
 /* STANDINGS */
 .standings-wrap{background:var(--card);border-radius:10px;overflow:hidden;border:1px solid var(--border)}
-.standings-wrap table{width:100%;border-collapse:collapse}
+.standings-wrap table{width:100%;border-collapse:collapse;display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .standings-wrap th{
   font-size:10px;font-weight:700;color:var(--muted);
   text-transform:uppercase;letter-spacing:.8px;
@@ -292,8 +292,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 }
 @media(max-width:600px){
   .hero-stats{gap:12px}
-  .standings-wrap th:nth-child(n+8){display:none}
-  .standings-wrap td:nth-child(n+8){display:none}
   .form-badges{display:none}
   .fx-name{max-width:80px}
 }
@@ -446,14 +444,13 @@ const COMP = 'CONMEBOL.LIBERTADORES';
 const SITE_ESPN = '/api/espn?path=/soccer';
 // Helper para armar URLs contra el proxy de Vercel (evita CORS con ESPN)
 function espnUrl(path, qs){
-  // path: '/conmebol.libertadores/scoreboard', qs: 'dates=20260416&limit=100' opcional
   const full = '/soccer' + path + (qs ? '?' + qs : '');
   return '/api/espn?path=' + encodeURIComponent(full);
 }
 
 let scorersLoaded = false;
 let fixtureLoaded = false;
-let allGroups = []; // guardamos los grupos de ESPN para reusar
+let allGroups = [];
 
 // ── COLORES AVATAR ─────────────────────────────────────
 const avatarColors = [
@@ -467,7 +464,7 @@ function initials(name){
   return name.substring(0,2).toUpperCase();
 }
 
-// ── STANDINGS — ESPN standings arg.1 ─────────────────
+// ── STANDINGS ─────────────────────────────────────────
 async function loadStandings(){
   const container = document.getElementById('zonaAContainer');
   if(!container) return;
@@ -485,16 +482,13 @@ async function loadStandings(){
       const entries = group?.standings?.entries || group?.entries || [];
       if(!entries.length) return;
 
-      // Contenedor del grupo
       const groupWrap = document.createElement('div');
       groupWrap.style.marginBottom = '20px';
 
-      // Título del grupo
       const title = document.createElement('div');
       title.style.cssText = 'font-family:Barlow Condensed,sans-serif;font-size:15px;font-weight:700;color:var(--green);padding:6px 0 6px 4px;margin-bottom:4px;border-bottom:1px solid rgba(0,230,118,0.2)';
       title.textContent = group.name || ('Grupo ' + (idx+1));
 
-      // Tabla del grupo
       const tableWrap = document.createElement('div');
       tableWrap.id = 'grp' + idx;
 
@@ -505,7 +499,6 @@ async function loadStandings(){
       renderZona(entries, 'grp' + idx, false);
     });
 
-    // Sidebar stats con el primer grupo
     const firstEntries = children[0]?.standings?.entries || children[0]?.entries || [];
     if(firstEntries.length) renderSidebarStats(firstEntries);
 
@@ -523,17 +516,16 @@ function getStat(stats, names){
   return { val:'—', num:0 };
 }
 
-// ── TABLA GENÉRICA (zona A o B) ───────────────────────
+// ── TABLA GENÉRICA ────────────────────────────────────
 function renderZona(entries, containerId, esAnual){
   if(!entries.length){
     document.getElementById(containerId).innerHTML = `<div class="error-msg"><span class="err-ico">📭</span>Sin datos.</div>`;
     return;
   }
 
-  // Ordenar por puntos desc
   const sorted = [...entries].sort((a,b)=>{
-    const pa = getStat(a.stats||[],['points','PTS']).num;
-    const pb = getStat(b.stats||[],['points','PTS']).num;
+    const pa = getStat(a.stats||[],['points','PTS','pts']).num;
+    const pb = getStat(b.stats||[],['points','PTS','pts']).num;
     return pb-pa;
   });
 
@@ -561,7 +553,11 @@ function renderZona(entries, containerId, esAnual){
     const gf  = getStat(stats,['pointsFor','goalsFor','GF']).val;
     const gc  = getStat(stats,['pointsAgainst','goalsAgainst','GA']).val;
     const difN= getStat(stats,['pointDifferential','differential','GD']).num;
-    const pts = getStat(stats,['points','PTS']).val;
+    const ptsObj = getStat(stats,['points','PTS','pts','Points']);
+    // Fallback: calcular puntos si ESPN no los devuelve
+    const gNum = getStat(stats,['wins','W','gamesWon']).num;
+    const eNum = getStat(stats,['ties','D','draws','gamesDrawn']).num;
+    const pts  = ptsObj.val !== '—' ? ptsObj.val : String(gNum*3 + eNum);
     const difStr = difN >= 0 ? '+'+difN : String(difN);
 
     const logoUrl = team.logos?.[0]?.href || '';
@@ -569,13 +565,11 @@ function renderZona(entries, containerId, esAnual){
       ? `<img class="mini-logo" src="${logoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="mini-logo-fb" style="display:none">${(team.abbreviation||'?').substring(0,3)}</div>`
       : `<div class="mini-logo-fb">${(team.abbreviation||team.displayName||'?').substring(0,3)}</div>`;
 
-    // Colores posición
     let posClass = 'pos-n';
     if(!esAnual){
-      // Copa Libertadores fase de grupos: 1° y 2° → Octavos, 3° → Sudamericana, 4° → Eliminado
-      if(pos===1 || pos===2) posClass='pos-cl';    // clasifica a Octavos
-      else if(pos===3)       posClass='pos-eur';   // baja a Sudamericana
-      else if(pos===4)       posClass='pos-rel';   // eliminado
+      if(pos===1 || pos===2) posClass='pos-cl';
+      else if(pos===3)       posClass='pos-eur';
+      else if(pos===4)       posClass='pos-rel';
     } else {
       if(pos<=6)  posClass='pos-cl';
       if(pos>=sorted.length-2) posClass='pos-rel';
@@ -609,9 +603,8 @@ function renderZona(entries, containerId, esAnual){
   document.getElementById(containerId).innerHTML = html;
 }
 
-// ── TABLA ANUAL (suma de las 2 zonas) ─────────────────
+// ── TABLA ANUAL ───────────────────────────────────────
 function renderAnual(allEntries){
-  // Agrupar por equipo y sumar stats
   const mapa = {};
   allEntries.forEach(entry=>{
     const id = entry.team?.id || entry.team?.displayName;
@@ -625,7 +618,7 @@ function renderAnual(allEntries){
     mapa[id].p   += getStat(s,['losses','L','gamesLost']).num;
     mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
     mapa[id].gc  += getStat(s,['pointsAgainst','goalsAgainst','GA']).num;
-    mapa[id].pts += getStat(s,['points','PTS']).num;
+    mapa[id].pts += getStat(s,['points','PTS','pts']).num;
   });
 
   const rows = Object.values(mapa).sort((a,b)=>b.pts-a.pts);
@@ -648,7 +641,7 @@ function renderAnual(allEntries){
 
     let posClass='pos-n';
     if(pos<=6) posClass='pos-cl';
-    else if(pos===rows.length) posClass='pos-rel'; // solo el último desciende por tabla anual
+    else if(pos===rows.length) posClass='pos-rel';
 
     html += `<tr>
       <td><span class="${posClass}">${pos}</span></td>
@@ -668,87 +661,6 @@ function renderAnual(allEntries){
   document.getElementById('anualContainer').innerHTML = html;
 }
 
-// ── PROMEDIOS — datos reales 2024/2025/2026 (fuente: TyC Sports) ──
-function renderPromedios(){
-  const PROMEDIOS = [
-    {pos:1,  nombre:'Boca Juniors',          p2024:67, p2025:62, p2026:21, total:150, pj:86, prom:1.744},
-    {pos:2,  nombre:'River Plate',           p2024:70, p2025:53, p2026:26, total:149, pj:86, prom:1.733},
-    {pos:3,  nombre:'Racing Club',           p2024:70, p2025:53, p2026:18, total:141, pj:86, prom:1.640},
-    {pos:4,  nombre:'Vélez',                 p2024:76, p2025:40, p2026:22, total:138, pj:85, prom:1.624},
-    {pos:5,  nombre:'Argentinos Juniors',    p2024:56, p2025:57, p2026:23, total:136, pj:86, prom:1.581},
-    {pos:6,  nombre:'Rosario Central',       p2024:47, p2025:66, p2026:21, total:134, pj:86, prom:1.558},
-    {pos:7,  nombre:'Lanús',                 p2024:59, p2025:50, p2026:19, total:128, pj:85, prom:1.506},
-    {pos:8,  nombre:'Estudiantes',           p2024:63, p2025:42, p2026:24, total:129, pj:86, prom:1.500},
-    {pos:9,  nombre:'Huracán',               p2024:62, p2025:47, p2026:20, total:129, pj:86, prom:1.500},
-    {pos:10, nombre:'Independiente',         p2024:63, p2025:47, p2026:18, total:128, pj:86, prom:1.488},
-    {pos:11, nombre:'Talleres',              p2024:72, p2025:34, p2026:18, total:124, pj:85, prom:1.459},
-    {pos:12, nombre:'Ind. Rivadavia (M)',    p2024:46, p2025:43, p2026:29, total:118, pj:86, prom:1.372},
-    {pos:13, nombre:'Unión',                 p2024:60, p2025:39, p2026:19, total:118, pj:86, prom:1.372},
-    {pos:14, nombre:'Barracas Central',      p2024:49, p2025:49, p2026:19, total:117, pj:86, prom:1.360},
-    {pos:15, nombre:'Defensa y Justicia',    p2024:58, p2025:38, p2026:19, total:115, pj:85, prom:1.353},
-    {pos:16, nombre:'San Lorenzo',           p2024:45, p2025:51, p2026:18, total:114, pj:86, prom:1.326},
-    {pos:17, nombre:'Belgrano',              p2024:49, p2025:37, p2026:22, total:108, pj:86, prom:1.256},
-    {pos:18, nombre:'Platense',              p2024:57, p2025:35, p2026:16, total:108, pj:86, prom:1.256},
-    {pos:19, nombre:'Dep. Riestra',          p2024:48, p2025:52, p2026:7,  total:107, pj:86, prom:1.244},
-    {pos:20, nombre:'Tigre',                 p2024:39, p2025:49, p2026:18, total:106, pj:86, prom:1.233},
-    {pos:21, nombre:'Instituto',             p2024:53, p2025:34, p2026:17, total:104, pj:86, prom:1.209},
-    {pos:22, nombre:'Gimnasia (LP)',         p2024:48, p2025:38, p2026:14, total:100, pj:85, prom:1.176},
-    {pos:23, nombre:'Central Córdoba (SE)',  p2024:42, p2025:42, p2026:12, total:96,  pj:85, prom:1.129},
-    {pos:24, nombre:'Atlético Tucumán',      p2024:50, p2025:34, p2026:10, total:94,  pj:86, prom:1.093},
-    {pos:25, nombre:'Newell\'s',             p2024:49, p2025:33, p2026:10, total:92,  pj:86, prom:1.070},
-    {pos:26, nombre:'Banfield',              p2024:41, p2025:35, p2026:13, total:89,  pj:85, prom:1.047},
-    {pos:27, nombre:'Sarmiento',             p2024:35, p2025:35, p2026:16, total:86,  pj:85, prom:1.012},
-    {pos:28, nombre:'Gimnasia (Mendoza)',    p2024:0,  p2025:0,  p2026:13, total:13,  pj:13, prom:1.000},
-    {pos:29, nombre:'Aldosivi',              p2024:0,  p2025:33, p2026:6,  total:39,  pj:45, prom:0.867},
-    {pos:30, nombre:'Estudiantes (RC)',      p2024:0,  p2025:0,  p2026:5,  total:5,   pj:13, prom:0.385},
-  ];
-
-  let html = `
-    <div style="font-size:11px;color:var(--muted2);padding:8px 12px;margin-bottom:8px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">
-      📊 Fuente: TyC Sports · Data Factory · Actualizado al inicio de la fecha 14
-    </div>
-    <div class="standings-wrap"><table>
-    <thead><tr>
-      <th>#</th><th>Equipo</th>
-      <th title="Puntos 2024">2024</th>
-      <th title="Puntos 2025">2025</th>
-      <th title="Puntos 2026">2026</th>
-      <th title="Total puntos">Total</th>
-      <th title="Partidos Jugados">PJ</th>
-      <th title="Promedio">Prom.</th>
-    </tr></thead><tbody>`;
-
-  PROMEDIOS.forEach(t=>{
-    const enPeligro = t.pos >= PROMEDIOS.length - 0; // último desciende
-    const ultimo = t.pos === PROMEDIOS.length;
-    const penultimo = t.pos === PROMEDIOS.length - 1;
-
-    let posClass = 'pos-n';
-    if(ultimo) posClass = 'pos-rel';
-    else if(penultimo) posClass = 'pos-rel';
-
-    const promColor = ultimo ? 'var(--red)' : penultimo ? 'var(--orange)' : t.pos<=3 ? 'var(--green)' : 'var(--txt)';
-
-    html += `<tr>
-      <td><span class="${posClass}">${t.pos}</span></td>
-      <td style="text-align:left;padding-left:14px;font-size:12px;font-weight:500">${t.nombre}</td>
-      <td style="color:var(--muted2)">${t.p2024||'—'}</td>
-      <td style="color:var(--muted2)">${t.p2025||'—'}</td>
-      <td style="color:var(--txt);font-weight:600">${t.p2026}</td>
-      <td style="font-weight:600">${t.total}</td>
-      <td style="color:var(--muted2)">${t.pj}</td>
-      <td><strong style="color:${promColor};font-family:'Barlow Condensed',sans-serif;font-size:16px">${t.prom.toFixed(3)}</strong></td>
-    </tr>`;
-  });
-
-  html += `</tbody></table>
-    <div class="standings-legend">
-      <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Desciende a Primera Nacional (peor promedio)</div>
-    </div>
-  </div>`;
-  document.getElementById('promediosContainer').innerHTML = html;
-}
-
 // ── SIDEBAR STATS ─────────────────────────────────────
 function renderSidebarStats(entries){
   if(!entries.length){ document.getElementById('statsWidget').innerHTML=''; return; }
@@ -759,7 +671,7 @@ function renderSidebarStats(entries){
     const s = entry.stats||[];
     mapa[id].pj  += getStat(s,['gamesPlayed','GP']).num;
     mapa[id].gf  += getStat(s,['pointsFor','goalsFor','GF']).num;
-    mapa[id].pts += getStat(s,['points','PTS']).num;
+    mapa[id].pts += getStat(s,['points','PTS','pts']).num;
   });
   const rows = Object.values(mapa);
   const totalGf = rows.reduce((a,t)=>a+t.gf,0);
@@ -781,7 +693,7 @@ function renderSidebarStats(entries){
     </div>`;
 }
 
-// ── SCORERS — via proxy ESPN (/api/espn) ─────────────
+// ── SCORERS ───────────────────────────────────────────
 async function loadScorers(){
   if(scorersLoaded) return;
   scorersLoaded = true;
@@ -832,10 +744,10 @@ function renderScorers(players){
   document.getElementById('scorersContainer').innerHTML = html;
 }
 
-// ── FIXTURE CON SELECTOR DE FECHAS ───────────────────
-let allFixtureEvents = []; // todos los partidos del torneo
+// ── FIXTURE ───────────────────────────────────────────
+let allFixtureEvents = [];
 let fechaActual = 1;
-let totalFechas = 14; // se actualiza con los datos reales
+let totalFechas = 14;
 
 async function loadFixture(){
   if(fixtureLoaded) return;
@@ -844,7 +756,6 @@ async function loadFixture(){
   container.innerHTML = `<div class="load-msg"><span class="spin"></span>Cargando fixture...</div>`;
 
   try{
-    // Paso 1: obtener el calendario de la liga para saber las jornadas
     const calUrl = espnUrl('/' + COMP.toLowerCase() + '/calendar/ondays', 'seasontype=2');
     const calR = await fetch(calUrl);
     let eventDates = [];
@@ -853,7 +764,6 @@ async function loadFixture(){
       eventDates = calData.eventDate?.dates || [];
     }
 
-    // Si no hay calendar, generar fechas semanales de la temporada
     if(!eventDates.length){
       const s = new Date('2025-08-01');
       const e = new Date('2026-06-30');
@@ -864,11 +774,9 @@ async function loadFixture(){
       }
     }
 
-    const fechas = {}; // { jornada: [eventos] }
+    const fechas = {};
     const now = Date.now();
 
-    // Paso 2: cargar en lotes de 6 fechas por request (usando ranges de 7 días)
-    // Agrupar eventDates de a 7 días
     const ranges = [];
     for(let i = 0; i < eventDates.length; i++){
       const d = eventDates[i].toString().replace(/-/g,'');
@@ -878,10 +786,8 @@ async function loadFixture(){
       }
     }
 
-    // Deduplicar rangos
     const uniqueRanges = [...new Set(ranges)];
 
-    // Cargar en lotes de 6
     const BATCH = 6;
     let allEvents = [];
     for(let i = 0; i < uniqueRanges.length; i += BATCH){
@@ -896,17 +802,12 @@ async function loadFixture(){
       results.forEach(data => {
         allEvents = allEvents.concat(data.events || []);
       });
-      // Si ya pasamos de hoy y tenemos suficientes datos, parar
       const lastRange = batch[batch.length-1];
       const lastDate = parseInt(lastRange.split('-')[1] || lastRange);
       const nowStr = parseInt(new Date().toISOString().slice(0,10).replace(/-/g,''));
-      if(lastDate > nowStr && Object.keys(fechas).length > 3) {
-        // Procesar lo que tenemos y seguir cargando en background
-        break;
-      }
+      if(lastDate > nowStr && Object.keys(fechas).length > 3) break;
     }
 
-    // Deduplicar eventos
     const seen = new Set();
     const uniqueEvents = allEvents.filter(ev => {
       if(seen.has(ev.id)) return false;
@@ -914,16 +815,13 @@ async function loadFixture(){
       return true;
     });
 
-    // Agrupar por jornada — usar season.slug, name, o week number
     uniqueEvents.forEach(ev => {
-      // ESPN a veces tiene el número de jornada en season.displayName o competitions[0].series
       let jornada = ev.week?.number
         || ev.competitions?.[0]?.week?.number
         || ev.season?.week
         || 0;
 
       if(!jornada){
-        // Fallback: agrupar por semana de la temporada
         const evDate = new Date(ev.date);
         const seasonStart = new Date('2025-08-01');
         jornada = Math.ceil((evDate - seasonStart) / (7 * 24 * 60 * 60 * 1000));
@@ -934,7 +832,6 @@ async function loadFixture(){
       if(!fechas[jornada].find(e => e.id === ev.id)) fechas[jornada].push(ev);
     });
 
-    // Si aún no hay fechas, usar scoreboard actual (fallback final)
     if(Object.keys(fechas).length === 0){
       const r = await fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard'));
       if(r.ok){
@@ -951,18 +848,16 @@ async function loadFixture(){
 
     allFixtureEvents = Object.values(fechas).flat();
 
-    // Detectar jornada actual: primera con partidos futuros o en curso
     fechaActual = fechasOrdenadas[0];
     for(const f of fechasOrdenadas){
       const hayActivos = (fechas[f]||[]).some(ev => {
         const t = new Date(ev.date).getTime();
-        return t >= now - 4*60*60*1000; // desde hace 4 horas
+        return t >= now - 4*60*60*1000;
       });
       if(hayActivos){ fechaActual = f; break; }
-      fechaActual = f; // última jornada pasada
+      fechaActual = f;
     }
 
-    // Widget próximo partido
     const proximos = allFixtureEvents
       .filter(ev => new Date(ev.date).getTime() > now)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -974,9 +869,9 @@ async function loadFixture(){
     container.innerHTML = errorHTML('No se pudo cargar el fixture.', ()=>{fixtureLoaded=false;loadFixture()});
   }
 }
+
 async function cargarFechasPasadas(fechas){
   try{
-    // Cargar scoreboard de la semana pasada
     const hace7 = new Date(Date.now() - 7*24*60*60*1000);
     const dateStr = hace7.toISOString().slice(0,10).replace(/-/g,'');
     const r = await fetch(espnUrl('/conmebol.libertadores/scoreboard','dates='+dateStr));
@@ -1015,7 +910,6 @@ function renderSelectorFechas(fechasArr, fechasMap){
 
   cont.innerHTML = selectorHtml;
 
-  // Guardar fechasMap globalmente
   window._fechasMap = fechasMap;
   window._fechasArr = fechasArr;
 
@@ -1025,7 +919,6 @@ function renderSelectorFechas(fechasArr, fechasMap){
 function seleccionarFecha(f){
   fechaActual = f;
   document.getElementById('fechaTitulo').textContent = `Fecha ${f}`;
-  // Actualizar botones
   document.querySelectorAll('[id^="fbtn-"]').forEach(btn=>{
     const num = parseInt(btn.id.replace('fbtn-',''));
     const activo = num === f;
@@ -1048,14 +941,12 @@ function renderFecha(events, fechaNum){
   if(!cont) return;
 
   if(!events.length){
-    // Intentar cargar fecha específica de ESPN
     cargarFechaESPN(fechaNum);
     return;
   }
 
   const sorted = [...events].sort((a,b)=>new Date(a.date)-new Date(b.date));
 
-  // Agrupar por día
   const byDate = {};
   sorted.forEach(ev=>{
     const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}) : 'Sin fecha';
@@ -1097,7 +988,6 @@ function buildFixtureCard(ev){
   const home = comps2.find(c=>c.homeAway==='home') || comps2[0] || {};
   const away = comps2.find(c=>c.homeAway==='away') || comps2[1] || {};
 
-  // Parser de score a prueba de balas: soporta string, number y objeto {value}
   const parseScore = (c)=>{
     if(!c) return '';
     const s = c.score;
@@ -1109,11 +999,10 @@ function buildFixtureCard(ev){
   };
 
   const rawStatus = comps?.status?.type?.name || '';
-  const rawState  = comps?.status?.type?.state || ''; // 'in' | 'post' | 'pre'
+  const rawState  = comps?.status?.type?.state || '';
   let   isLive    = rawStatus==='STATUS_IN_PROGRESS' || rawState==='in';
   let   isFt      = rawStatus==='STATUS_FINAL'       || rawState==='post';
 
-  // Anti partido-viejo: si dice "en vivo" pero arrancó hace más de 150 min → lo tratamos como FT
   const matchStartMs = ev.date ? new Date(ev.date).getTime() : 0;
   const minsElapsed  = matchStartMs ? (Date.now() - matchStartMs) / 60000 : 0;
   if(isLive && minsElapsed > 150){ isLive = false; isFt = true; }
@@ -1140,7 +1029,6 @@ function buildFixtureCard(ev){
   const hLogoHtml = hLogo ? `<img class="mini-logo" src="${hLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${hName.substring(0,3)}</div>`;
   const aLogoHtml = aLogo ? `<img class="mini-logo" src="${aLogo}" alt="" style="width:24px;height:24px">` : `<div class="mini-logo-fb">${aName.substring(0,3)}</div>`;
 
-  // Cuotas simuladas (sin NaN)
   const _n1 = hName.replace(/[^a-zA-Z]/g,'') || 'AAA';
   const _n2 = aName.replace(/[^a-zA-Z]/g,'') || 'BBB';
   const seed = (_n1.charCodeAt(0) + _n2.charCodeAt(0) + (parseInt(ev.id||0) % 1000)) % 100;
@@ -1148,7 +1036,6 @@ function buildFixtureCard(ev){
   let pA = Math.min(45, 20 + (seed % 14));
   let pD = Math.max(15, 100 - pH - pA);
 
-  // Ajustar cuotas en vivo según marcador
   if(isLive && hScore !== '' && aScore !== ''){
     const diff = parseInt(hScore) - parseInt(aScore);
     if(diff > 0){ pH = Math.min(82, pH + diff*8); pA = Math.max(6, pA - diff*6); }
@@ -1160,7 +1047,6 @@ function buildFixtureCard(ev){
   const oD = (100/pD*0.9).toFixed(2);
   const oA = (100/pA*0.9).toFixed(2);
 
-  // Cuotas solo si no terminó
   const cuotasHtml = !isFt ? `
     <div style="display:flex;gap:3px;padding:6px 8px;background:var(--bg3);border-top:1px solid var(--border)">
       <div style="flex:1;text-align:center;background:var(--card2);border-radius:5px;padding:4px 2px">
@@ -1189,7 +1075,6 @@ function buildFixtureCard(ev){
 }
 
 function renderFixture(data){
-  // Mantener compatibilidad con llamada desde preload
   allFixtureEvents = data.events || [];
   fixtureLoaded = false;
   loadFixture();
@@ -1234,14 +1119,12 @@ function loadNextMatchWidget(events){
   </div>`;
 }
 
-
 // ── HELPERS ───────────────────────────────────────────
 function shortName(name){
   const parts = name.split(' ');
   return parts.length>2 ? parts[0] : name;
 }
 function errorHTML(msg, retryFn){
-  const fnName = retryFn.name;
   return `<div class="error-msg">
     <span class="err-ico">⚠️</span>${msg}
     <br><button class="retry-btn" onclick="(${retryFn.toString()})()">Reintentar</button>
@@ -1250,8 +1133,6 @@ function errorHTML(msg, retryFn){
 
 // ── INIT ──────────────────────────────────────────────
 loadStandings();
-// Fixture se carga lazy al hacer clic en la tab
-// Pero también lo precargamos en background
 setTimeout(()=>{ if(!fixtureLoaded){ fixtureLoaded=true; fetch(espnUrl('/' + COMP.toLowerCase() + '/scoreboard')).then(r=>r.ok?r.json():{events:[]}).then(d=>{ fixtureLoaded=false; renderFixture(d); }).catch(()=>{ fixtureLoaded=false; }); } }, 1500);
 </script>
 </body>
