@@ -1076,6 +1076,24 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 #drawerInner .lp-sub-btn{font-size:11px;padding:4px 10px}
 @media(max-width:750px){.hamburger-btn{display:flex}}
 @media(max-width:600px){.header-top{padding:8px 12px}.logo{font-size:20px}.main-wrap{padding:10px 12px}.match-card{grid-template-columns:1fr 80px 1fr}}
+/* ── BANNER JUEGO SÚPER PENAL BROS ── */
+@keyframes spbShine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes spbPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes spbRun{0%{transform:translateX(0)}50%{transform:translateX(6px)}100%{transform:translateX(0)}}
+@keyframes spbGlow{0%,100%{box-shadow:0 0 0 0 rgba(0,230,118,0.35)}50%{box-shadow:0 0 22px 2px rgba(0,230,118,0.30)}}
+.spb-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,#0d1f15,#10261a);border:1px solid rgba(0,230,118,0.35);border-radius:12px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;cursor:pointer;text-decoration:none;animation:spbGlow 2.4s ease-in-out infinite}
+.spb-banner::before{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(0,230,118,0.12) 50%,transparent 70%);background-size:200% 100%;animation:spbShine 3s linear infinite;pointer-events:none}
+.spb-emoji{font-size:40px;animation:spbRun .6s ease-in-out infinite;flex-shrink:0}
+.spb-txt{flex:1;min-width:0}
+.spb-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#00e676;letter-spacing:-0.5px;line-height:1}
+.spb-sub{font-size:13px;color:#9fb3c8;margin-top:3px}
+.spb-btn{background:#00e676;color:#07090f;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;padding:11px 22px;border-radius:8px;letter-spacing:.5px;white-space:nowrap;animation:spbPulse 1.4s ease-in-out infinite;flex-shrink:0}
+.spb-badge{position:absolute;top:10px;right:12px;background:#ff6d00;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px}
+[data-theme="light"] .spb-banner{background:linear-gradient(135deg,#d6f5e3,#c0eed2);border-color:rgba(0,102,204,0.25)}
+[data-theme="light"] .spb-title{color:#0066cc}
+[data-theme="light"] .spb-sub{color:#4a6a8a}
+[data-theme="light"] .spb-btn{background:#0066cc;color:#fff}
+@media(max-width:600px){.spb-title{font-size:21px}.spb-sub{font-size:11px}.spb-emoji{font-size:32px}.spb-btn{font-size:14px;padding:9px 16px}}
 </style>
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-SKCGH3092P"></script>
@@ -1214,6 +1232,15 @@ body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-h
 </div>
 
 <div class="main-wrap">
+<a class="spb-banner" href="/superpenal.html">
+  <span class="spb-badge">NUEVO</span>
+  <div class="spb-emoji">⚽🎮</div>
+  <div class="spb-txt">
+    <div class="spb-title">SÚPER PENAL BROS</div>
+    <div class="spb-sub">El juego de FutbolPro · Corré, esquivá árbitros y ganale al VAR</div>
+  </div>
+  <div class="spb-btn">JUGAR ▶</div>
+</a>
 <div class="layout">
 
 <!-- ========== LEFT PANEL ========== -->

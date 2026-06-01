@@ -75,6 +75,11 @@
     <button class="btn" onclick="Game.start()">¡A JUGAR!</button>
   </div>
 
+  <div class="ov" id="phaseScreen" style="display:none;">
+    <h1 id="phaseTitle" style="font-size:clamp(30px,8vw,56px)">FASE COMPLETA</h1>
+    <h2 id="phaseSub">¡Seguí al próximo nivel!</h2>
+  </div>
+
   <div class="ov" id="gameoverScreen" style="display:none;">
     <h1 id="goTitle">GAME OVER</h1>
     <h2 id="goScore">Puntaje: 0</h2>
@@ -187,7 +192,7 @@ function buildLevel(idx){
   // ZONA DE JEFE: arena con suelo sólido (sin pozos) donde aparece el VAR
   lv.bossX = lastPlat + 500;
   lv.width = lv.bossX + 760;
-  lv.bossHP = [2,2,3][idx];   // el nivel 3 es el duro
+  lv.bossHP = [4,5,7][idx];   // el nivel 3 es el duro
   return lv;
 }
 
@@ -207,7 +212,7 @@ const Game={
   loadLevel(i){
     this.levelIdx=i;this.level=buildLevel(i);
     this.player={x:60,y:groundY-58,w:40,h:58,vx:0,vy:0,onGround:false,face:1,inv:0};
-    this.balls=[];this.cam=0;this.big=false;this.boss=null;
+    this.balls=[];this.cam=0;this.big=false;this.boss=null;this._warned=false;this.warnTimer=0;this.badBottles=[];this.rainTimer=0;
     showHint(`NIVEL ${i+1} — ${LEVELS[i].name} · Vidas: ${this.lives}`);
   },
   hurt(){
@@ -283,18 +288,32 @@ const Game={
   },
   bossDefeated(){
     this.score+=3000; this.boss=null;
-    showHint('🏆 ¡VAR DERROTADO! +3000');
     if(this.levelIdx<LEVELS.length-1){
-      setTimeout(()=>{ this.loadLevel(this.levelIdx+1); this.state='play'; },300);
+      this.state='phasedone'; this.phaseMsg='FASE '+(this.levelIdx+1)+' COMPLETA';
+      this.phaseTimer=130;
+      this.draw(); // congela el último frame de fondo
+      this.showPhaseScreen(this.phaseMsg, '¡Seguí al próximo nivel!', ()=>{
+        this.loadLevel(this.levelIdx+1); this.state='play'; requestAnimationFrame(()=>this.frame());
+      });
     } else {
-      this.state='over'; setTimeout(()=>this.gameOver(true),400);
+      this.state='over';
+      this.showPhaseScreen('🏆 ¡FELICIDADES!', 'Ya estás listo para el Mundial', ()=>{
+        this.gameOver(true);
+      });
     }
+  },
+  showPhaseScreen(title, sub, cb){
+    const ov=document.getElementById('phaseScreen');
+    document.getElementById('phaseTitle').textContent=title;
+    document.getElementById('phaseSub').textContent=sub;
+    ov.style.display='flex';
+    setTimeout(()=>{ ov.style.display='none'; cb&&cb(); }, 2200);
   },
   gameOver(win){
     this.state='over';
-    document.getElementById('goTitle').textContent=win?'🏆 ¡CAMPEÓN!':'GAME OVER';
+    document.getElementById('goTitle').textContent=win?'🏆 ¡CAMPEÓN DEL MUNDO!':'GAME OVER';
     document.getElementById('goTitle').style.color=win?'#FFD23F':'#FF5B5B';
-    document.getElementById('goScore').textContent='Puntaje: '+this.score.toLocaleString('es-AR');
+    document.getElementById('goScore').textContent='Tu puntaje: '+this.score.toLocaleString('es-AR');
     document.getElementById('gameoverScreen').style.display='flex';
     this.init=['A','A','A',0,0,0];this.slotSel=0;UI.renderSlots();this.refreshRank();
   },
@@ -341,6 +360,35 @@ const Game={
       for(const r of lv.refs){if(r.alive&&Math.abs(ball.x-(r.x+r.w/2))<24&&Math.abs(ball.y-(r.y+r.h/2))<28){r.alive=false;ball.life=0;this.score+=300;}}}
     this.balls=this.balls.filter(b=>b.life>0);
     this.cam=Math.max(0,Math.min(p.x-W/3,lv.width-W));
+
+    // --- LLUVIA DE BOTELLAS NEGRAS (niveles 2 y 3) ---
+    if(this.state==='play'){
+      let rainOn=false, rainRate=0;
+      if(this.levelIdx===1 && p.x>lv.width*0.5){ rainOn=true; rainRate=55; }   // nivel 2: desde la mitad, moderado
+      if(this.levelIdx===2){ rainOn=true; rainRate=22; }                        // nivel 3: todo el tiempo, intenso
+      if(rainOn){
+        this.rainTimer=(this.rainTimer||0)-1;
+        if(this.rainTimer<=0){ this.rainTimer=rainRate;
+          const rx=this.cam+40+Math.random()*(W-80);
+          this.badBottles=this.badBottles||[];
+          this.badBottles.push({x:rx,y:-20,vy:2.6+Math.random()*1.8+this.levelIdx*0.4,rot:0});
+        }
+      }
+      if(this.badBottles){
+        for(const bb of this.badBottles){ bb.y+=bb.vy; bb.rot+=0.18;
+          if(p.x<bb.x+10&&p.x+p.w>bb.x-10&&p.y<bb.y+22&&p.y+p.h>bb.y-4){ bb.dead=true; this.hurt(); if(this.state!=='play')return; }
+          if(bb.y>groundY+10)bb.dead=true;
+        }
+        this.badBottles=this.badBottles.filter(b=>!b.dead);
+      }
+    }
+
+    // Advertencia previa al jefe
+    if(this.state==='play' && !this._warned && p.x+p.w>lv.bossX-460){
+      this._warned=true; this.warnTimer=140;
+      showHint('⚠️ ¡CUIDADO! Se acerca el VAR...');
+    }
+    if(this.warnTimer>0)this.warnTimer--;
     // Aparición del jefe al llegar a la zona
     if(this.state==='play' && p.x+p.w>lv.bossX){ this.state='boss'; this.spawnBoss(); }
     // lógica del jefe
@@ -383,12 +431,34 @@ const Game={
       ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fillRect(X+2,b.y+8,12,5);}
     // arbitros
     for(const r of lv.refs){if(!r.alive)continue;const X=r.x-cam;if(X<-50||X>W)continue;drawRef(X,r.y,r,this.levelIdx);}
+    // botellas negras cayendo (peligro)
+    if(this.badBottles){for(const bb of this.badBottles){const X=bb.x-cam;if(X<-20||X>W+20)continue;
+      ctx.save();ctx.translate(X,bb.y);ctx.rotate(bb.rot);
+      ctx.fillStyle='#111';ctx.fillRect(-7,-2,14,22);
+      ctx.fillStyle='#000';ctx.fillRect(-4,-10,8,8);
+      ctx.fillStyle='#E24B4A';ctx.fillRect(-7,4,14,5);
+      ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fillRect(-5,0,3,16);
+      ctx.restore();
+      // estela
+      ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(X,bb.y-14,5,9,0,0,7);ctx.fill();
+    }}
     // pelotitas
     for(const ball of this.balls)drawSoccerBall(ball.x-cam,ball.y,9,ball.spin);
     // JEFE VAR
     if(this.boss)drawBoss(this.boss,cam,this.levelIdx);
     // jugador (sprite)
     drawPlayerSprite(p.x-cam,p.y,p);
+    // cartel de advertencia del VAR
+    if(this.warnTimer>0){
+      const a=Math.min(1,this.warnTimer/30);
+      ctx.save();ctx.globalAlpha=a;
+      ctx.fillStyle='rgba(180,20,20,0.85)';ctx.fillRect(0,H/2-44,W,88);
+      ctx.fillStyle='#FFD23F';ctx.font='bold 30px "Barlow Condensed",Trebuchet MS';ctx.textAlign='center';
+      ctx.fillText('⚠️ ¡SE ACERCA EL VAR! ⚠️',W/2,H/2-6);
+      ctx.fillStyle='#fff';ctx.font='bold 16px Trebuchet MS';
+      ctx.fillText(this.big?'Tenés el poder: ¡disparale!':'¡Saltale encima esquivando tarjetas!',W/2,H/2+24);
+      ctx.textAlign='left';ctx.restore();
+    }
     // HUD
     drawHUD(this);
   },
