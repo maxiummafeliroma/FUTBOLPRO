@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Súper Penal Bros · FutbolPro</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:#0b0b14; font-family:'Courier New',monospace; overflow:hidden; }
+  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  #game { background:#74C0EE; display:block; image-rendering:pixelated; touch-action:none; max-width:100%; max-height:100%; }
+  .overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+             color:#fff; text-align:center; background:rgba(10,10,25,0.92); padding:20px; z-index:10; }
+  .overlay h1 { font-size:clamp(22px,6vw,40px); color:#F1C40F; text-shadow:3px 3px 0 #000; margin-bottom:6px; letter-spacing:1px; }
+  .overlay h2 { font-size:clamp(16px,4vw,24px); margin-bottom:14px; text-shadow:2px 2px 0 #000; }
+  .overlay p { font-size:clamp(12px,3vw,15px); color:#ccc; margin-bottom:8px; max-width:480px; line-height:1.5; }
+  .btn { background:#E74C3C; color:#fff; border:3px solid #fff; padding:12px 26px; font-family:inherit;
+         font-size:clamp(14px,4vw,18px); font-weight:bold; cursor:pointer; margin-top:14px; box-shadow:4px 4px 0 #000;
+         text-transform:uppercase; letter-spacing:1px; }
+  .btn:active { transform:translate(2px,2px); box-shadow:2px 2px 0 #000; }
+  .rank-row { display:flex; justify-content:space-between; width:min(340px,90vw); font-size:14px; padding:4px 8px; border-bottom:1px solid #333; }
+  .rank-row span:first-child { color:#74C0EE; }
+  .rank-row span:last-child { color:#F1C40F; }
+  #initBox { display:flex; gap:10px; align-items:center; margin:14px 0; }
+  .slot { width:46px; height:56px; background:#0f3460; border:2px solid #533483; border-radius:6px;
+          display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:bold; color:#fff; cursor:pointer; }
+  .slot.active { border-color:#F1C40F; box-shadow:0 0 0 2px #F1C40F; }
+  .slot.num { background:#533483; }
+  /* Controles táctiles */
+  #touch { position:absolute; inset:0; z-index:8; pointer-events:none; display:none; }
+  .pad { position:absolute; bottom:18px; pointer-events:auto; width:64px; height:64px; border-radius:50%;
+         background:rgba(255,255,255,0.22); border:2px solid rgba(255,255,255,0.5); display:flex;
+         align-items:center; justify-content:center; color:#fff; font-size:26px; font-weight:bold; user-select:none; }
+  #bLeft { left:14px; } #bRight { left:90px; }
+  #bJump { right:14px; bottom:84px; background:rgba(46,204,113,0.4); }
+  #bShoot { right:90px; background:rgba(241,196,15,0.4); }
+  .pad:active { background:rgba(255,255,255,0.45); }
+  #hint { position:absolute; top:8px; left:50%; transform:translateX(-50%); color:#fff; font-size:12px;
+          background:rgba(0,0,0,0.5); padding:4px 10px; border-radius:4px; z-index:9; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="800" height="450"></canvas>
+  <div id="hint"></div>
+  <div id="touch">
+    <div class="pad" id="bLeft">◀</div>
+    <div class="pad" id="bRight">▶</div>
+    <div class="pad" id="bShoot">⚽</div>
+    <div class="pad" id="bJump">▲</div>
+  </div>
+
+  <div class="overlay" id="startScreen">
+    <h1>SÚPER PENAL BROS</h1>
+    <h2>⚽ FutbolPro Edition ⚽</h2>
+    <p>Corré, saltá y esquivá a los árbitros. Agarrá la botella de agua para crecer y disparale la pelotita a los rivales. Al final de cada nivel: <b>penal</b>.</p>
+    <p style="color:#F1C40F">Niveles: Argentina 78 · 86 · 22</p>
+    <p style="font-size:11px">Teclado: ← → mover · ↑/Espacio saltar · Z/X disparar &nbsp;|&nbsp; Celu: botones en pantalla</p>
+    <button class="btn" onclick="Game.start()">JUGAR</button>
+  </div>
+
+  <div class="overlay" id="penalScreen" style="display:none;">
+    <h1>¡PENAL!</h1>
+    <h2 id="penalSub">Tocá / apretá ESPACIO en la zona verde</h2>
+    <canvas id="penalCanvas" width="360" height="280" style="background:#7CB342;border:4px solid #fff;"></canvas>
+    <p id="penalMsg" style="margin-top:10px;font-size:18px;color:#F1C40F;height:24px"></p>
+  </div>
+
+  <div class="overlay" id="gameoverScreen" style="display:none;">
+    <h1 id="goTitle">GAME OVER</h1>
+    <h2 id="goScore">Puntaje: 0</h2>
+    <p>Cargá tus iniciales y número para el ranking:</p>
+    <div id="initBox">
+      <div class="slot active" data-i="0">A</div>
+      <div class="slot" data-i="1">A</div>
+      <div class="slot" data-i="2">A</div>
+      <span style="color:#666;font-size:24px">-</span>
+      <div class="slot num" data-i="3">0</div>
+      <div class="slot num" data-i="4">0</div>
+      <div class="slot num" data-i="5">0</div>
+    </div>
+    <p style="font-size:11px">Tocá cada casilla y usá ← → (o tocá arriba/abajo) para cambiar. Teclado: escribí directo.</p>
+    <button class="btn" onclick="Game.submitScore()">GUARDAR EN RANKING</button>
+    <div id="rankList" style="margin-top:16px;width:100%;display:flex;flex-direction:column;align-items:center;"></div>
+    <button class="btn" style="background:#2ECC71" onclick="Game.start()">JUGAR DE NUEVO</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SÚPER PENAL BROS — FutbolPro
+   Platformer estilo Mario, temática fútbol argentino.
+   Ranking: preparado para Supabase (ver RankingAPI) con
+   fallback local en memoria. INTEGRAR: completar SUPABASE_*.
+   ============================================================ */
+
+/* ---------- CONFIG RANKING (INTEGRAR DESPUÉS) ---------- */
+const SUPABASE_URL = "";        // <-- pegar URL de tu proyecto
+const SUPABASE_KEY = "";        // <-- pegar anon key
+const RANK_TABLE   = "ranking_penalbros";
+/* Tabla sugerida en Supabase:
+   id (uuid, default), iniciales (text), numero (int4),
+   score (int4), creado (timestamptz default now())          */
+
+const RankingAPI = {
+  localCache: [
+    { iniciales:"MCX", numero:707, score:18200 },
+    { iniciales:"DIE", numero:10,  score:15900 },
+    { iniciales:"LEP", numero:986, score:12400 },
+  ],
+  async getTop(limit=10){
+    if(SUPABASE_URL && SUPABASE_KEY){
+      try{
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${RANK_TABLE}?select=iniciales,numero,score&order=score.desc&limit=${limit}`,
+          { headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}` }});
+        if(r.ok) return await r.json();
+      }catch(e){ console.warn("Supabase getTop falló, uso local",e); }
+    }
+    return [...this.localCache].sort((a,b)=>b.score-a.score).slice(0,limit);
+  },
+  async submit(iniciales,numero,score){
+    if(SUPABASE_URL && SUPABASE_KEY){
+      try{
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${RANK_TABLE}`,{
+          method:"POST",
+          headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`,
+                    "Content-Type":"application/json", Prefer:"return=minimal" },
+          body: JSON.stringify({ iniciales, numero, score })
+        });
+        if(r.ok) return true;
+      }catch(e){ console.warn("Supabase submit falló, guardo local",e); }
+    }
+    this.localCache.push({ iniciales, numero, score });
+    return false;
+  }
+};
+
+/* ---------- SETUP CANVAS ---------- */
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+ctx.imageSmoothingEnabled = false;
+
+const GRAV = 0.7, MOVE = 0.9, MAXSPD = 5.2, JUMP = -14, FRICTION = 0.82;
+const TILE = 40;
+
+/* Paleta y datos por nivel */
+const LEVELS = [
+  { name:"ARGENTINA 78", sky:"#74C0EE", ground:"#7CB342", groundDark:"#558B2F",
+    refColor:"#F1C40F", refShort:"#FFE082", sign:"ARG 78", signCol:"#3A7CA5" },
+  { name:"ARGENTINA 86", sky:"#F0A868", ground:"#C8893B", groundDark:"#8D5B26",
+    refColor:"#E74C3C", refShort:"#F1948A", sign:"ARG 86", signCol:"#B9770E" },
+  { name:"ARGENTINA 22", sky:"#5DADE2", ground:"#7CB342", groundDark:"#558B2F",
+    refColor:"#222222", refShort:"#555555", sign:"ARG 22", signCol:"#2471A3" },
+];
+
+/* ---------- DISEÑO DE NIVELES ----------
+   Cada nivel define: largo, plataformas, árbitros, botellas, pozos (huecos en el piso).
+   Coordenadas en px del mundo. El piso base está en groundY.            */
+const groundY = H - TILE; // 410
+
+function buildLevel(idx){
+  // dificultad creciente
+  const base = {
+    width: 3200 + idx*900,
+    platforms: [],
+    refs: [],
+    bottles: [],
+    pits: [],    // [xStart, xEnd] huecos en el piso (caés y morís)
+    coins: [],
+    flagX: 0,
+  };
+  // generamos contenido por nivel con patrones a mano + densidad por idx
+  const cfg = [
+    { // Nivel 1
+      plats:[[420,330,120],[760,260,120],[1100,330,100],[1480,250,140],[1850,320,120],[2300,260,160],[2750,330,120]],
+      refsX:[640,1180,1600,2050,2480,2900],
+      botts:[[800,220],[1900,290]],
+      pits:[[1320,1420],[2180,2260]],
+      coinsX:[460,800,1130,1520,1890,2340,2790],
+    },
+    { // Nivel 2
+      plats:[[400,320,100],[700,250,90],[980,330,90],[1250,250,100],[1550,330,90],[1820,240,90],[2150,320,110],[2500,250,120],[2950,320,120],[3400,260,140]],
+      refsX:[560,900,1180,1480,1780,2080,2420,2780,3200,3550],
+      botts:[[720,210],[2520,210]],
+      pits:[[860,940],[1380,1470],[2280,2380],[3050,3160]],
+      coinsX:[430,720,1010,1280,1580,1850,2180,2530,2980,3430],
+    },
+    { // Nivel 3
+      plats:[[380,320,90],[640,250,80],[880,330,80],[1120,250,80],[1380,320,80],[1640,240,80],[1900,320,90],[2180,240,90],[2480,320,100],[2800,250,110],[3150,320,110],[3550,250,120],[3950,320,130]],
+      refsX:[520,820,1080,1340,1600,1880,2150,2440,2760,3120,3500,3900],
+      botts:[[660,210],[2820,210]],
+      pits:[[800,880],[1300,1390],[1820,1920],[2360,2460],[3060,3160],[3720,3830]],
+      coinsX:[400,660,900,1140,1400,1660,1920,2200,2500,2820,3170,3570,3970],
+    },
+  ][idx];
+
+  cfg.plats.forEach(p=>base.platforms.push({x:p[0],y:p[1],w:p[2],h:18}));
+  cfg.refsX.forEach(x=>base.refs.push({x,y:groundY-44,w:26,h:44,dir:Math.random()<.5?-1:1,
+                                       baseX:x,range:60+idx*15,alive:true,vx:0.6+idx*0.3}));
+  cfg.botts.forEach(b=>base.bottles.push({x:b[0],y:b[1],taken:false}));
+  cfg.pits.forEach(p=>base.pits.push(p));
+  cfg.coinsX.forEach((x,i)=>base.coins.push({x,y:groundY-90-((i%3)*36),taken:false}));
+  base.width = cfg.plats[cfg.plats.length-1][0]+600;
+  base.flagX = base.width - 140;
+  return base;
+}
+
+/* ---------- ESTADO ---------- */
+const Game = {
+  state:'menu', levelIdx:0, level:null,
+  score:0, lives:3, coinsGot:0,
+  cam:0,
+  player:null,
+  balls:[], // pelotitas disparadas
+  big:false,
+  keys:{}, lastShot:0,
+  penal:{}, init:['A','A','A',0,0,0], slotSel:0,
+
+  start(){
+    document.getElementById('startScreen').style.display='none';
+    document.getElementById('gameoverScreen').style.display='none';
+    document.getElementById('penalScreen').style.display='none';
+    this.levelIdx=0; this.score=0; this.lives=3; this.coinsGot=0; this.big=false;
+    this.loadLevel(0);
+    this.state='play';
+    if(!this._loop){ this._loop=true; requestAnimationFrame(()=>this.frame()); }
+  },
+
+  loadLevel(idx){
+    this.levelIdx=idx;
+    this.level=buildLevel(idx);
+    this.player={ x:60, y:groundY-44, w:26, h:44, vx:0, vy:0, onGround:false, face:1, inv:0 };
+    this.balls=[]; this.cam=0; this.big=false;
+    setHint(`NIVEL ${idx+1} — ${LEVELS[idx].name}  ·  Vidas: ${this.lives}`);
+  },
+
+  hurt(){
+    if(this.player.inv>0) return;
+    if(this.big){ this.big=false; this.player.inv=90; this.player.h=44; return; }
+    this.lives--;
+    if(this.lives<=0){ this.gameOver(false); }
+    else { this.loadLevel(this.levelIdx); }
+  },
+
+  shoot(){
+    const now=performance.now();
+    if(now-this.lastShot<300) return;
+    this.lastShot=now;
+    const p=this.player;
+    this.balls.push({x:p.x+p.w/2, y:p.y+10, vx:p.face*9, life:90});
+  },
+
+  reachFlag(){
+    this.state='penal';
+    this.startPenal();
+  },
+
+  /* ----- PENAL ----- */
+  startPenal(){
+    document.getElementById('penalScreen').style.display='flex';
+    document.getElementById('penalMsg').textContent='';
+    const diff=this.levelIdx; // más difícil por nivel
+    this.penal={
+      pc: document.getElementById('penalCanvas'),
+      power:0, dir:1, speed:1.8+diff*0.7,
+      // zona buena cada vez más chica
+      zoneStart: 55-diff*6, zoneEnd: 78-diff*9,
+      keeper: 180, keeperDir:1, keeperSpeed:1.5+diff*0.8,
+      shot:false, done:false, t:0,
+    };
+    this.penalLoop();
+  },
+
+  penalLoop(){
+    const pn=this.penal; if(!pn.pc) return;
+    const c=pn.pc.getContext('2d'); const w=pn.pc.width, h=pn.pc.height;
+    if(this.state!=='penal'){ return; }
+
+    if(!pn.shot){
+      pn.power += pn.dir*pn.speed;
+      if(pn.power>=100){pn.power=100;pn.dir=-1;}
+      if(pn.power<=0){pn.power=0;pn.dir=1;}
+    }
+    // arquero se mueve
+    pn.keeper += pn.keeperDir*pn.keeperSpeed;
+    if(pn.keeper>250){pn.keeper=250;pn.keeperDir=-1;}
+    if(pn.keeper<110){pn.keeper=110;pn.keeperDir=1;}
+
+    // dibujo
+    c.clearRect(0,0,w,h);
+    c.fillStyle='#7CB342'; c.fillRect(0,0,w,h);
+    // arco
+    c.strokeStyle='#fff'; c.lineWidth=5;
+    c.strokeRect(70,40,220,90);
+    // red
+    c.strokeStyle='rgba(255,255,255,0.4)'; c.lineWidth=1;
+    for(let i=80;i<290;i+=18){ c.beginPath();c.moveTo(i,42);c.lineTo(i,128);c.stroke(); }
+    // arquero
+    c.fillStyle='#9B59B6';
+    c.fillRect(pn.keeper-16,60,32,55);
+    c.fillStyle='#F5CBA7'; c.beginPath(); c.arc(pn.keeper,52,11,0,7); c.fill();
+    // pelota (si no pateó, abajo centro)
+    if(!pn.shot){
+      c.fillStyle='#fff'; c.strokeStyle='#222'; c.lineWidth=2;
+      c.beginPath(); c.arc(w/2,h-40,12,0,7); c.fill(); c.stroke();
+    } else {
+      // animar pelota hacia el arco
+      pn.t+=0.04;
+      const sx=w/2, sy=h-40, tx=pn.targetX, ty=80;
+      const bx=sx+(tx-sx)*pn.t, by=sy+(ty-sy)*pn.t;
+      c.fillStyle='#fff'; c.strokeStyle='#222'; c.lineWidth=2;
+      c.beginPath(); c.arc(bx,by,12,0,7); c.fill(); c.stroke();
+      if(pn.t>=1 && !pn.done){
+        pn.done=true;
+        // ¿gol? buena potencia Y arquero lejos del punto
+        const goodPower = pn.power>=pn.zoneStart && pn.power<=pn.zoneEnd;
+        const keeperFar = Math.abs(pn.keeper-tx)>40;
+        if(goodPower && keeperFar){ this.penalResult(true); }
+        else { this.penalResult(false); }
+        return;
+      }
+    }
+    // barra de potencia
+    const barY=h-18;
+    c.fillStyle='#ddd'; c.fillRect(40,barY,280,14);
+    // zona buena
+    c.fillStyle='#2ECC71'; c.fillRect(40+pn.zoneStart*2.8, barY, (pn.zoneEnd-pn.zoneStart)*2.8, 14);
+    // indicador
+    c.fillStyle='#E74C3C'; c.fillRect(40+pn.power*2.8-2, barY-3, 5, 20);
+
+    requestAnimationFrame(()=>this.penalLoop());
+  },
+
+  kickPenal(){
+    const pn=this.penal;
+    if(pn.shot||pn.done) return;
+    pn.shot=true;
+    // dirección del tiro según potencia (izq/centro/der)
+    if(pn.power<40) pn.targetX=110;
+    else if(pn.power>72) pn.targetX=250;
+    else pn.targetX=180;
+    pn.t=0;
+    requestAnimationFrame(()=>this.penalLoop());
+  },
+
+  penalResult(gol){
+    const msg=document.getElementById('penalMsg');
+    if(gol){
+      this.score+=2000;
+      msg.textContent='⚽ ¡GOOOL! +2000';
+      msg.style.color='#2ECC71';
+      setTimeout(()=>{
+        document.getElementById('penalScreen').style.display='none';
+        if(this.levelIdx<LEVELS.length-1){ this.loadLevel(this.levelIdx+1); this.state='play'; requestAnimationFrame(()=>this.frame()); }
+        else { this.gameOver(true); }
+      },1400);
+    } else {
+      msg.textContent='✗ ¡LO ATAJÓ! Reintentá';
+      msg.style.color='#E74C3C';
+      setTimeout(()=>{ this.startPenal(); },1300);
+    }
+  },
+
+  gameOver(win){
+    this.state='over';
+    document.getElementById('penalScreen').style.display='none';
+    document.getElementById('goTitle').textContent = win ? '¡CAMPEÓN! 🏆' : 'GAME OVER';
+    document.getElementById('goScore').textContent = 'Puntaje: '+this.score.toLocaleString('es-AR');
+    document.getElementById('gameoverScreen').style.display='flex';
+    this.init=['A','A','A',0,0,0]; this.slotSel=0; renderSlots();
+    this.refreshRank();
+  },
+
+  async refreshRank(){
+    const list=document.getElementById('rankList');
+    list.innerHTML='<p style="color:#F1C40F">★ RANKING ★</p><p style="font-size:11px;color:#888">cargando...</p>';
+    const top=await RankingAPI.getTop(8);
+    let html='<p style="color:#F1C40F;font-size:18px;margin-bottom:6px">★ RANKING GLOBAL ★</p>';
+    top.forEach((r,i)=>{
+      const num=String(r.numero).padStart(3,'0');
+      html+=`<div class="rank-row"><span>${i+1}. ${r.iniciales}-${num}</span><span>${Number(r.score).toLocaleString('es-AR')}</span></div>`;
+    });
+    list.innerHTML=html;
+  },
+
+  async submitScore(){
+    const ini=this.init.slice(0,3).join('');
+    const num=parseInt(this.init.slice(3).join(''),10)||0;
+    const list=document.getElementById('rankList');
+    list.innerHTML='<p style="color:#888">guardando...</p>';
+    const online=await RankingAPI.submit(ini,num,this.score);
+    await this.refreshRank();
+    if(!online){
+      const note=document.createElement('p');
+      note.style.cssText='font-size:10px;color:#888;margin-top:6px';
+      note.textContent='(guardado local — Supabase no configurado todavía)';
+      list.appendChild(note);
+    }
+  },
+
+  /* ---------- LOOP PRINCIPAL ---------- */
+  frame(){
+    if(this.state!=='play'){ return; }
+    this.update();
+    this.draw();
+    requestAnimationFrame(()=>this.frame());
+  },
+
+  update(){
+    const p=this.player, lv=this.level, k=this.keys;
+    // input horizontal
+    if(k.left){ p.vx-=MOVE; p.face=-1; }
+    if(k.right){ p.vx+=MOVE; p.face=1; }
+    if(!k.left&&!k.right) p.vx*=FRICTION;
+    p.vx=Math.max(-MAXSPD,Math.min(MAXSPD,p.vx));
+    // salto
+    if((k.jump)&&p.onGround){ p.vy=JUMP; p.onGround=false; k.jump=false; }
+    // gravedad
+    p.vy+=GRAV; if(p.vy>16)p.vy=16;
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.inv>0)p.inv--;
+
+    // límites mundo
+    if(p.x<0)p.x=0;
+    if(p.x>lv.width-p.w)p.x=lv.width-p.w;
+
+    // colisión piso (con pozos)
+    p.onGround=false;
+    const inPit = lv.pits.some(pit=> (p.x+p.w/2)>pit[0] && (p.x+p.w/2)<pit[1]);
+    if(!inPit && p.y+p.h>=groundY){ p.y=groundY-p.h; p.vy=0; p.onGround=true; }
+    // caída a pozo
+    if(p.y>H+60){ this.hurt(); return; }
+
+    // plataformas
+    for(const pl of lv.platforms){
+      if(p.x+p.w>pl.x && p.x<pl.x+pl.w){
+        if(p.vy>=0 && p.y+p.h>=pl.y && p.y+p.h<=pl.y+pl.h+16){
+          p.y=pl.y-p.h; p.vy=0; p.onGround=true;
+        }
+      }
+    }
+
+    // botellas (power-up)
+    for(const b of lv.bottles){
+      if(!b.taken && Math.abs((p.x+p.w/2)-(b.x+8))<24 && Math.abs((p.y+p.h/2)-(b.y+14))<30){
+        b.taken=true; this.big=true; this.score+=500; setHint('💧 ¡Botella! Sos más grande');
+      }
+    }
+    // monedas
+    for(const c of lv.coins){
+      if(!c.taken && Math.abs((p.x+p.w/2)-c.x)<22 && Math.abs((p.y+p.h/2)-c.y)<24){
+        c.taken=true; this.coinsGot++; this.score+=100;
+      }
+    }
+
+    // árbitros
+    for(const r of lv.refs){
+      if(!r.alive) continue;
+      r.x+=r.dir*r.vx;
+      if(r.x>r.baseX+r.range){r.dir=-1;} if(r.x<r.baseX-r.range){r.dir=1;}
+      // colisión con player
+      if(rectHit(p,r)){
+        // pisotón estilo Mario (cae encima)
+        if(p.vy>0 && (p.y+p.h)-r.y<22){ r.alive=false; p.vy=JUMP*0.6; this.score+=300; }
+        else { this.hurt(); return; }
+      }
+    }
+
+    // pelotitas
+    for(const ball of this.balls){
+      ball.x+=ball.vx; ball.life--;
+      for(const r of lv.refs){
+        if(r.alive && Math.abs(ball.x-(r.x+r.w/2))<20 && Math.abs(ball.y-(r.y+r.h/2))<26){
+          r.alive=false; ball.life=0; this.score+=300;
+        }
+      }
+    }
+    this.balls=this.balls.filter(b=>b.life>0);
+
+    // cámara
+    this.cam = Math.max(0, Math.min(p.x-W/3, lv.width-W));
+
+    // llegar al arco (flag)
+    if(p.x+p.w > lv.flagX){ this.reachFlag(); return; }
+  },
+
+  draw(){
+    const lv=this.level, L=LEVELS[this.levelIdx], cam=this.cam, p=this.player;
+    // cielo
+    ctx.fillStyle=L.sky; ctx.fillRect(0,0,W,H);
+    // nubes / sol decorativo
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    for(let i=0;i<5;i++){ const cx=((i*400)-cam*0.3)%(W+200)-100; ctx.beginPath();ctx.arc(cx,80+i%2*40,26,0,7);ctx.arc(cx+30,80+i%2*40,32,0,7);ctx.fill(); }
+
+    // cartel del equipo
+    const sx=200-cam*0.5;
+    if(sx>-160 && sx<W){
+      ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillRect(sx,60,150,46);
+      ctx.fillStyle=L.signCol; ctx.font='bold 22px Courier New'; ctx.textAlign='center';
+      ctx.fillText(L.sign, sx+75, 90); ctx.textAlign='left';
+    }
+
+    // piso con pozos
+    ctx.fillStyle=L.ground;
+    let xPix=-cam%TILE-TILE;
+    // dibujamos piso segmentado evitando pozos
+    for(let wx=0; wx<lv.width; wx+=TILE){
+      const screenX=wx-cam;
+      if(screenX>W||screenX<-TILE) continue;
+      const inPit=lv.pits.some(pit=> (wx+TILE/2)>pit[0] && (wx+TILE/2)<pit[1]);
+      if(inPit) continue;
+      ctx.fillStyle=L.groundDark; ctx.fillRect(screenX,groundY,TILE,8);
+      ctx.fillStyle=L.ground; ctx.fillRect(screenX,groundY+8,TILE,TILE);
+    }
+
+    // plataformas
+    for(const pl of lv.platforms){
+      const X=pl.x-cam; if(X>W||X+pl.w<0)continue;
+      ctx.fillStyle='#8D6E63'; ctx.fillRect(X,pl.y,pl.w,pl.h);
+      ctx.fillStyle='#A1887F'; ctx.fillRect(X,pl.y,pl.w,4);
+    }
+
+    // monedas (pelotas chiquitas)
+    for(const c of lv.coins){ if(c.taken)continue; const X=c.x-cam; if(X<-20||X>W)continue;
+      ctx.fillStyle='#fff'; ctx.strokeStyle='#222'; ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(X,c.y,7,0,7);ctx.fill();ctx.stroke(); }
+
+    // botellas
+    for(const b of lv.bottles){ if(b.taken)continue; const X=b.x-cam; if(X<-30||X>W)continue;
+      ctx.fillStyle='#3498DB'; ctx.fillRect(X,b.y,14,20);
+      ctx.fillStyle='#5DADE2'; ctx.fillRect(X+3,b.y-8,8,8);
+      ctx.fillStyle='#fff'; ctx.fillRect(X+2,b.y+6,10,4); }
+
+    // árbitros
+    for(const r of lv.refs){ if(!r.alive)continue; const X=r.x-cam; if(X<-40||X>W)continue;
+      ctx.fillStyle=L.refColor; ctx.fillRect(X,r.y,r.w,r.h);
+      ctx.fillStyle='#5D4037'; ctx.beginPath();ctx.arc(X+r.w/2,r.y-6,8,0,7);ctx.fill();
+      ctx.fillStyle='#000'; ctx.fillRect(X+4,r.y+r.h,5,8); ctx.fillRect(X+r.w-9,r.y+r.h,5,8);
+      // tarjeta
+      ctx.fillStyle='#F1C40F'; ctx.fillRect(X+r.w-4,r.y+6,5,9); }
+
+    // pelotitas disparadas
+    for(const ball of this.balls){ const X=ball.x-cam;
+      ctx.fillStyle='#fff'; ctx.strokeStyle='#222'; ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(X,ball.y,8,0,7);ctx.fill();ctx.stroke(); }
+
+    // arco final
+    const fx=lv.flagX-cam;
+    if(fx<W+80){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=6;
+      ctx.strokeRect(fx-20,groundY-110,90,100);
+      ctx.beginPath();ctx.moveTo(fx-20,groundY-110);ctx.lineTo(fx+70,groundY-110);ctx.stroke();
+      // red
+      ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;
+      for(let i=fx-14;i<fx+70;i+=14){ctx.beginPath();ctx.moveTo(i,groundY-108);ctx.lineTo(i,groundY-12);ctx.stroke();}
+    }
+
+    // jugador
+    const px=p.x-cam;
+    if(!(p.inv>0 && Math.floor(p.inv/4)%2)){ // parpadeo invulnerable
+      const bodyH = this.big ? p.h+10 : p.h;
+      const yAdj = this.big ? p.y-10 : p.y;
+      ctx.fillStyle='#3498DB'; ctx.fillRect(px,yAdj+ (this.big?10:8),p.w, bodyH-(this.big?20:16));
+      ctx.fillStyle='#F5CBA7'; ctx.beginPath();ctx.arc(px+p.w/2,yAdj+(this.big?6:4),9,0,7);ctx.fill();
+      // gorra/pelo
+      ctx.fillStyle='#2C3E50'; ctx.fillRect(px+3,yAdj-3,p.w-6,6);
+      // piernas
+      ctx.fillStyle='#34495E'; ctx.fillRect(px+3,p.y+p.h-10,7,10); ctx.fillRect(px+p.w-10,p.y+p.h-10,7,10);
+    }
+
+    // HUD
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,28);
+    ctx.fillStyle='#fff'; ctx.font='bold 15px Courier New'; ctx.textAlign='left';
+    ctx.fillText(`VIDAS x${this.lives}`, 12, 19);
+    ctx.fillStyle='#F1C40F'; ctx.fillText(`⚽ x${String(this.coinsGot).padStart(2,'0')}`, 130, 19);
+    ctx.fillStyle='#fff'; ctx.fillText(`SCORE ${this.score.toLocaleString('es-AR')}`, 260, 19);
+    ctx.fillStyle = this.big?'#2ECC71':'#888';
+    ctx.fillText(this.big?'POWER: GRANDE':'POWER: -', 470, 19);
+    ctx.fillStyle='#F1C40F'; ctx.fillText(`NIVEL ${this.levelIdx+1}`, 700, 19);
+  },
+};
+
+/* ---------- HELPERS ---------- */
+function rectHit(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
+function setHint(t){ const h=document.getElementById('hint'); h.textContent=t; h.style.opacity=1;
+  clearTimeout(h._t); h._t=setTimeout(()=>h.style.opacity=0,2500); }
+
+/* ---------- INPUT TECLADO ---------- */
+addEventListener('keydown',e=>{
+  if(Game.state==='play'){
+    if(e.key==='ArrowLeft')Game.keys.left=true;
+    if(e.key==='ArrowRight')Game.keys.right=true;
+    if(e.key==='ArrowUp'||e.key===' ')Game.keys.jump=true;
+    if(e.key==='z'||e.key==='Z'||e.key==='x'||e.key==='X')Game.shoot();
+    if([' ','ArrowUp','ArrowDown'].includes(e.key))e.preventDefault();
+  } else if(Game.state==='penal'){
+    if(e.key===' '||e.key==='Enter'){ Game.kickPenal(); e.preventDefault(); }
+  } else if(Game.state==='over'){
+    handleSlotKey(e);
+  }
+});
+addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft')Game.keys.left=false;
+  if(e.key==='ArrowRight')Game.keys.right=false;
+  if(e.key==='ArrowUp'||e.key===' ')Game.keys.jump=false;
+});
+
+/* ---------- INPUT TÁCTIL ---------- */
+const touch=document.getElementById('touch');
+if('ontouchstart' in window){ touch.style.display='block'; }
+function bindPad(id,on,off){
+  const el=document.getElementById(id);
+  const start=e=>{e.preventDefault();on();};
+  const end=e=>{e.preventDefault();off&&off();};
+  el.addEventListener('touchstart',start,{passive:false});
+  el.addEventListener('touchend',end,{passive:false});
+  el.addEventListener('mousedown',start); el.addEventListener('mouseup',end);
+}
+bindPad('bLeft',()=>Game.keys.left=true,()=>Game.keys.left=false);
+bindPad('bRight',()=>Game.keys.right=true,()=>Game.keys.right=false);
+bindPad('bJump',()=>{ if(Game.state==='play')Game.keys.jump=true; else if(Game.state==='penal')Game.kickPenal(); },()=>Game.keys.jump=false);
+bindPad('bShoot',()=>{ if(Game.state==='play')Game.shoot(); },null);
+// tocar pantalla del penal = patear
+document.getElementById('penalCanvas').addEventListener('touchstart',e=>{e.preventDefault();Game.kickPenal();},{passive:false});
+document.getElementById('penalCanvas').addEventListener('mousedown',e=>{Game.kickPenal();});
+
+/* ---------- SLOTS RANKING ---------- */
+const slotEls=()=>[...document.querySelectorAll('.slot')];
+function renderSlots(){
+  slotEls().forEach((s,i)=>{ s.textContent=Game.init[i]; s.classList.toggle('active',i===Game.slotSel); });
+}
+slotEls().forEach(s=>{
+  s.addEventListener('click',()=>{ Game.slotSel=+s.dataset.i; renderSlots(); });
+});
+function handleSlotKey(e){
+  const i=Game.slotSel;
+  if(e.key==='ArrowRight'){ Game.slotSel=Math.min(5,i+1); renderSlots(); return; }
+  if(e.key==='ArrowLeft'){ Game.slotSel=Math.max(0,i-1); renderSlots(); return; }
+  if(i<3){ // letras
+    if(/^[a-zA-Z]$/.test(e.key)){ Game.init[i]=e.key.toUpperCase(); if(Game.slotSel<5)Game.slotSel++; renderSlots(); }
+    if(e.key==='ArrowUp'){ Game.init[i]=nextChar(Game.init[i],1); renderSlots(); }
+    if(e.key==='ArrowDown'){ Game.init[i]=nextChar(Game.init[i],-1); renderSlots(); }
+  } else { // números
+    if(/^[0-9]$/.test(e.key)){ Game.init[i]=+e.key; if(Game.slotSel<5)Game.slotSel++; renderSlots(); }
+    if(e.key==='ArrowUp'){ Game.init[i]=(Game.init[i]+1)%10; renderSlots(); }
+    if(e.key==='ArrowDown'){ Game.init[i]=(Game.init[i]+9)%10; renderSlots(); }
+  }
+}
+function nextChar(ch,d){ let c=ch.charCodeAt(0)-65; c=(c+d+26)%26; return String.fromCharCode(65+c); }
+// tocar arriba/abajo en slot (móvil): tap cicla
+slotEls().forEach(s=>{
+  let lastTap=0;
+  s.addEventListener('touchstart',e=>{
+    e.preventDefault(); Game.slotSel=+s.dataset.i;
+    const i=Game.slotSel;
+    if(i<3)Game.init[i]=nextChar(Game.init[i],1); else Game.init[i]=(Game.init[i]+1)%10;
+    renderSlots();
+  },{passive:false});
+});
+
+/* fit canvas a pantalla manteniendo proporción */
+function resize(){
+  const r=W/H; let w=window.innerWidth, h=window.innerHeight;
+  if(w/h>r){ w=h*r; } else { h=w/r; }
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+}
+addEventListener('resize',resize); resize();
+</script>
+</body>
+</html>
