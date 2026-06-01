@@ -44,6 +44,11 @@
         color:#fff;cursor:pointer;}
   .slot.num{background:linear-gradient(180deg,#4a2a7a,#341d56);border-color:#7a4fb5;}
   .slot.active{border-color:#FFD23F;box-shadow:0 0 0 3px rgba(255,210,63,0.5);}
+  .slotInput{width:48px;height:60px;background:linear-gradient(180deg,#16305c,#0d2148);border:2px solid #2E6FC4;
+        border-radius:8px;text-align:center;font-size:30px;font-weight:bold;color:#fff;font-family:inherit;
+        text-transform:uppercase;padding:0;-webkit-appearance:none;appearance:none;outline:none;}
+  .slotInput.num{background:linear-gradient(180deg,#4a2a7a,#341d56);border-color:#7a4fb5;}
+  .slotInput:focus{border-color:#FFD23F;box-shadow:0 0 0 3px rgba(255,210,63,0.5);}
   .pad{position:absolute;pointer-events:auto;width:68px;height:68px;border-radius:50%;
        background:rgba(255,255,255,0.20);border:2px solid rgba(255,255,255,0.45);display:flex;
        align-items:center;justify-content:center;color:#fff;font-size:26px;user-select:none;z-index:8;}
@@ -89,11 +94,15 @@
     <h2 id="goScore">Puntaje: 0</h2>
     <p>Cargá tus iniciales y número para el ranking global:</p>
     <div id="initBox">
-      <div class="slot active" data-i="0">A</div><div class="slot" data-i="1">A</div><div class="slot" data-i="2">A</div>
+      <input class="slotInput" id="ini0" maxlength="1" inputmode="text" autocapitalize="characters" autocomplete="off" value="A">
+      <input class="slotInput" id="ini1" maxlength="1" inputmode="text" autocapitalize="characters" autocomplete="off" value="A">
+      <input class="slotInput" id="ini2" maxlength="1" inputmode="text" autocapitalize="characters" autocomplete="off" value="A">
       <span style="color:#888;font-size:26px">-</span>
-      <div class="slot num" data-i="3">0</div><div class="slot num" data-i="4">0</div><div class="slot num" data-i="5">0</div>
+      <input class="slotInput num" id="ini3" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
+      <input class="slotInput num" id="ini4" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
+      <input class="slotInput num" id="ini5" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="0">
     </div>
-    <button class="btn" onclick="Game.submitScore()">GUARDAR PUNTAJE</button>
+    <button class="btn" id="saveBtn" onclick="Game.submitScore()">GUARDAR PUNTAJE</button>
     <div id="rankList" style="margin-top:14px;display:flex;flex-direction:column;align-items:center;"></div>
     <button class="btn blue" onclick="UI.toSelect()">JUGAR DE NUEVO</button>
   </div>
@@ -114,14 +123,16 @@ const RankingAPI={
     if(SUPABASE_URL&&SUPABASE_KEY){try{
       const r=await fetch(`${SUPABASE_URL}/rest/v1/${RANK_TABLE}?select=iniciales,numero,score&order=score.desc&limit=${n}`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
       if(r.ok)return await r.json();
-    }catch(e){}}
+      console.error('[Ranking] Error al LEER:',r.status,await r.text());
+    }catch(e){console.error('[Ranking] Excepción al LEER:',e);}}
     return [...this.local].sort((a,b)=>b.score-a.score).slice(0,n);
   },
   async submit(ini,num,score){
     if(SUPABASE_URL&&SUPABASE_KEY){try{
       const r=await fetch(`${SUPABASE_URL}/rest/v1/${RANK_TABLE}`,{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({iniciales:ini,numero:num,score})});
-      if(r.ok)return true;
-    }catch(e){}}
+      if(r.ok){console.log('[Ranking] ✓ Guardado en Supabase');return true;}
+      console.error('[Ranking] Error al GUARDAR:',r.status,await r.text());
+    }catch(e){console.error('[Ranking] Excepción al GUARDAR:',e);}}
     this.local.push({iniciales:ini,numero:num,score});return false;
   }
 };
@@ -207,6 +218,9 @@ function buildLevel(idx){
   lv.bossX = lastPlat + 500;
   lv.width = lv.bossX + 760;
   lv.bossHP = [4,5,7][idx];   // el nivel 3 es el duro
+  // escalones para poder saltar al VAR sin poder
+  lv.platforms.push({x:lv.bossX+120,y:groundY-90,w:90,h:18});
+  lv.platforms.push({x:lv.bossX+300,y:groundY-150,w:90,h:18});
   return lv;
 }
 
@@ -286,10 +300,10 @@ const Game={
     b.cardTimer--;
     if(b.cardTimer<=0 && b.alive){ b.cardTimer=b.cardRate;
       const cdir = p.x < b.x ? -1 : 1;
-      const sp=3.0+this.levelIdx*0.5;
-      b.cards.push({x:b.x+b.w/2,y:b.y+45,vx:cdir*sp,vy:-5.5-this.levelIdx*0.5,rot:0,kind:Math.random()<0.5?'red':'yellow'});
+      const sp=3.4+this.levelIdx*0.5;
+      b.cards.push({x:b.x+b.w/2,y:b.y+70,vx:cdir*sp,vy:-2.2-this.levelIdx*0.3,rot:0,kind:Math.random()<0.5?'red':'yellow'});
     }
-    for(const c of b.cards){ c.x+=c.vx; c.y+=c.vy; c.vy+=0.18; c.rot+=0.3;
+    for(const c of b.cards){ c.x+=c.vx; c.y+=c.vy; c.vy+=0.16; c.rot+=0.3;
       if(p.x<c.x+11&&p.x+p.w>c.x-11&&p.y<c.y+15&&p.y+p.h>c.y-15){ c.dead=true; this.hurt(); if(this.state!=='boss')return; } }
     b.cards=b.cards.filter(c=>!c.dead && c.x>this.cam-60 && c.x<this.cam+W+60 && c.y<H+50);
 
@@ -332,7 +346,11 @@ const Game={
     document.getElementById('goTitle').style.color=win?'#FFD23F':'#FF5B5B';
     document.getElementById('goScore').textContent='Tu puntaje: '+this.score.toLocaleString('es-AR');
     document.getElementById('gameoverScreen').style.display='flex';
-    this.init=['A','A','A',0,0,0];this.slotSel=0;this._saving=false;UI.renderSlots();this.refreshRank('rankList');
+    this._saving=false;this._savedThisGame=false;
+    const btn=document.getElementById('saveBtn');if(btn){btn.disabled=false;btn.style.opacity='1';}
+    ['ini0','ini1','ini2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='A';});
+    ['ini3','ini4','ini5'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='0';});
+    this.refreshRank('rankList');
   },
   async refreshRank(targetId){
     const el=document.getElementById(targetId||'rankList');
@@ -353,17 +371,23 @@ const Game={
     el.innerHTML=html;
   },
   async submitScore(){
-    if(this._saving)return; this._saving=true;
-    const ini=this.init.slice(0,3).join(''),num=parseInt(this.init.slice(3).join(''),10)||0;
+    if(this._saving||this._savedThisGame)return;
+    const getV=id=>(document.getElementById(id).value||'').toUpperCase();
+    let ini=(getV('ini0')+getV('ini1')+getV('ini2')).replace(/[^A-Z]/g,'');
+    while(ini.length<3)ini+='A'; ini=ini.slice(0,3);
+    const numStr=(document.getElementById('ini3').value||'0')+(document.getElementById('ini4').value||'0')+(document.getElementById('ini5').value||'0');
+    const num=parseInt(numStr.replace(/[^0-9]/g,'')||'0',10)||0;
+    this._saving=true;
+    const btn=document.getElementById('saveBtn'); if(btn){btn.disabled=true;btn.style.opacity='0.5';}
     const el=document.getElementById('rankList');el.innerHTML='<p style="opacity:0.6">guardando...</p>';
     const online=await RankingAPI.submit(ini,num,this.score);
+    this._saving=false; this._savedThisGame=true;
     await this.refreshRank('rankList');
     await this.refreshRank('rankListStart');
-    this._saving=false;
     if(!online){const n=document.createElement('p');n.style.cssText='font-size:10px;opacity:0.5;margin-top:6px';
       n.textContent='(guardado local — revisá la conexión a Supabase)';el.appendChild(n);}
     else {const n=document.createElement('p');n.style.cssText='font-size:12px;color:#2ECC71;margin-top:6px';
-      n.textContent='✓ ¡Puntaje guardado en el ranking!';el.appendChild(n);}
+      n.textContent='✓ ¡Puntaje guardado! (1 vez por partida)';el.appendChild(n);}
   },
 
   frame(){if(this.state!=='play'&&this.state!=='boss')return;this.update();this.draw();requestAnimationFrame(()=>this.frame());},
@@ -620,6 +644,14 @@ function drawBoss(b,cam,lvl){
   // cuerpo
   const bg=ctx.createLinearGradient(0,Y+50,0,Y+h);bg.addColorStop(0,pal.body1);bg.addColorStop(1,pal.body2);
   ctx.fillStyle=flash?'#fff':bg;ctx.fillRect(X+w*0.12,Y+48,w*0.76,h-48);
+  // símbolo VAR en el pecho (monitor tipo FIFA)
+  const vx=X+w*0.5-26, vy=Y+72;
+  ctx.fillStyle='#fff';ctx.fillRect(vx-2,vy-2,56,30);
+  ctx.fillStyle='#111';ctx.fillRect(vx,vy,52,26);
+  ctx.fillStyle='#fff';ctx.font='bold 15px "Barlow Condensed",Trebuchet MS';ctx.textAlign='center';
+  ctx.fillText('VAR',vx+26,vy+18);ctx.textAlign='left';
+  // marquito tipo pantalla
+  ctx.strokeStyle=final?'#FF3030':'#00b0ff';ctx.lineWidth=2;ctx.strokeRect(vx,vy,52,26);
   // brazos
   ctx.fillStyle=flash?'#fff':pal.arm;ctx.fillRect(X-2,Y+58,18,46);ctx.fillRect(X+w-16,Y+58,18,46);
   ctx.fillStyle=flash?'#fff':pal.hand;ctx.fillRect(X-4,Y+100,16,14);ctx.fillRect(X+w-12,Y+100,16,14);
@@ -673,7 +705,6 @@ const UI={
       d.appendChild(cc);const nm=document.createElement('div');nm.className='nm';nm.textContent=c.nm;d.appendChild(nm);
       d.onclick=()=>{Game.charId=c.id;this.renderCharGrid();};g.appendChild(d);});
   },
-  renderSlots(){document.querySelectorAll('.slot').forEach((s,i)=>{s.textContent=Game.init[i];s.classList.toggle('active',i===Game.slotSel);});},
 };
 
 /* ---- HINT ---- */
