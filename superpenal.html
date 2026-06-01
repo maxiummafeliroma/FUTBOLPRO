@@ -190,7 +190,15 @@ function buildLevel(idx){
   ][idx];
   const lv={platforms:[],refs:[],bottles:[],pits:[],coins:[],width:0};
   cfg.plats.forEach(p=>lv.platforms.push({x:p[0],y:p[1],w:p[2],h:18}));
-  cfg.refsX.forEach(x=>lv.refs.push({x,baseX:x,range:60+idx*18,dir:Math.random()<.5?-1:1,vx:0.7+idx*0.35,y:groundY-46,w:30,h:46,alive:true,leg:0}));
+  cfg.refsX.forEach((x,i)=>{
+    let type='normal';
+    if(idx===0){ type = (i%3===0) ? 'jumper' : 'normal'; } // nivel 1: normales + amarillos que saltan
+    else if(idx===1){ const m=i%3; type = m===0?'jumper' : (m===1?'thrower':'normal'); } // nivel 2: + negros lanza-tarjetas
+    else { const m=i%3; type = m===0?'thrower' : (m===1?'jumper':'normal'); } // nivel 3: todos, más throwers
+    lv.refs.push({x,baseX:x,range:60+idx*18,dir:Math.random()<.5?-1:1,vx:0.7+idx*0.35,
+      y:groundY-46,w:30,h:46,alive:true,leg:0,type,
+      vy:0,onGround:true,jumpTimer:60+Math.floor(Math.random()*60),cards:[],cardTimer:90+Math.floor(Math.random()*60)});
+  });
   cfg.botts.forEach(b=>lv.bottles.push({x:b[0],y:b[1],taken:false}));
   cfg.pits.forEach(p=>lv.pits.push(p));
   cfg.coinsX.forEach((x,i)=>lv.coins.push({x,y:groundY-95-(i%3)*34,taken:false}));
@@ -215,17 +223,18 @@ const Game={
     this.loadLevel(0);this.state='play';
     if(!this._loop){this._loop=true;requestAnimationFrame(()=>this.frame());}
   },
-  loadLevel(i){
+  loadLevel(i, keepPower){
     this.levelIdx=i;this.level=buildLevel(i);
     this.player={x:60,y:groundY-58,w:40,h:58,vx:0,vy:0,onGround:false,face:1,inv:0};
-    this.balls=[];this.cam=0;this.big=false;this.boss=null;this._warned=false;this.warnTimer=0;this.badBottles=[];this.rainTimer=0;
-    showHint(`NIVEL ${i+1} — ${LEVELS[i].name} · Vidas: ${this.lives}`);
+    this.balls=[];this.cam=0;this.big=keepPower?this.big:false;this.boss=null;this._warned=false;this.warnTimer=0;this.badBottles=[];this.rainTimer=0;
+    showHint(`NIVEL ${i+1} — ${LEVELS[i].name} · Vidas: ${this.lives}`+(this.big?' · ¡Mantenés el poder!':''));
   },
   hurt(){
     if(this.player.inv>0)return;
     if(this.big){this.big=false;this.player.inv=80;return;}
     this.lives--;
-    if(this.lives<=0)this.gameOver(false); else this.loadLevel(this.levelIdx);
+    if(this.lives<=0){this.gameOver(false);}
+    else { this.state='play'; this._bossDone=false; this.loadLevel(this.levelIdx); }
   },
   shoot(){
     if(!this.big)return; // solo dispara si tiene el poder (agua)
@@ -293,17 +302,19 @@ const Game={
     }
   },
   bossDefeated(){
+    if(this._bossDone)return; this._bossDone=true; // evita doble llamada (anti-bug)
     this.score+=3000; this.boss=null;
+    const keptPower=this.big;
     if(this.levelIdx<LEVELS.length-1){
-      this.state='phasedone'; this.phaseMsg='FASE '+(this.levelIdx+1)+' COMPLETA';
-      this.phaseTimer=130;
-      this.draw(); // congela el último frame de fondo
-      this.showPhaseScreen(this.phaseMsg, '¡Seguí al próximo nivel!', ()=>{
-        this.loadLevel(this.levelIdx+1); this.state='play'; requestAnimationFrame(()=>this.frame());
+      this.state='phasedone';
+      this.showPhaseScreen('FASE '+(this.levelIdx+1)+' COMPLETA', '¡Seguí al próximo nivel!', ()=>{
+        this._bossDone=false;
+        this.loadLevel(this.levelIdx+1, keptPower); this.state='play'; requestAnimationFrame(()=>this.frame());
       });
     } else {
       this.state='over';
       this.showPhaseScreen('🏆 ¡FELICIDADES!', 'Ya estás listo para el Mundial', ()=>{
+        this._bossDone=false;
         this.gameOver(true);
       });
     }
@@ -321,7 +332,7 @@ const Game={
     document.getElementById('goTitle').style.color=win?'#FFD23F':'#FF5B5B';
     document.getElementById('goScore').textContent='Tu puntaje: '+this.score.toLocaleString('es-AR');
     document.getElementById('gameoverScreen').style.display='flex';
-    this.init=['A','A','A',0,0,0];this.slotSel=0;this._saved=false;UI.renderSlots();this.refreshRank('rankList');
+    this.init=['A','A','A',0,0,0];this.slotSel=0;this._saving=false;UI.renderSlots();this.refreshRank('rankList');
   },
   async refreshRank(targetId){
     const el=document.getElementById(targetId||'rankList');
@@ -342,14 +353,17 @@ const Game={
     el.innerHTML=html;
   },
   async submitScore(){
-    if(this._saved)return; this._saved=true;
+    if(this._saving)return; this._saving=true;
     const ini=this.init.slice(0,3).join(''),num=parseInt(this.init.slice(3).join(''),10)||0;
     const el=document.getElementById('rankList');el.innerHTML='<p style="opacity:0.6">guardando...</p>';
     const online=await RankingAPI.submit(ini,num,this.score);
     await this.refreshRank('rankList');
     await this.refreshRank('rankListStart');
+    this._saving=false;
     if(!online){const n=document.createElement('p');n.style.cssText='font-size:10px;opacity:0.5;margin-top:6px';
-      n.textContent='(guardado local — Supabase no configurado aún)';el.appendChild(n);}
+      n.textContent='(guardado local — revisá la conexión a Supabase)';el.appendChild(n);}
+    else {const n=document.createElement('p');n.style.cssText='font-size:12px;color:#2ECC71;margin-top:6px';
+      n.textContent='✓ ¡Puntaje guardado en el ranking!';el.appendChild(n);}
   },
 
   frame(){if(this.state!=='play'&&this.state!=='boss')return;this.update();this.draw();requestAnimationFrame(()=>this.frame());},
@@ -371,6 +385,23 @@ const Game={
     for(const c of lv.coins){if(!c.taken&&Math.abs((p.x+p.w/2)-c.x)<24&&Math.abs((p.y+p.h/2)-c.y)<28){c.taken=true;this.coins++;this.score+=100;}}
     for(const r of lv.refs){if(!r.alive)continue;r.x+=r.dir*r.vx;r.leg+=0.2;
       if(r.x>r.baseX+r.range)r.dir=-1;if(r.x<r.baseX-r.range)r.dir=1;
+      // árbitros que saltan (jumper)
+      if(r.type==='jumper'||r.type==='thrower'){
+        r.jumpTimer--;
+        if(r.jumpTimer<=0&&r.onGround){r.vy=-9;r.onGround=false;r.jumpTimer=80+Math.floor(Math.random()*70);}
+        r.vy=(r.vy||0)+0.6; r.y+=r.vy;
+        if(r.y>=groundY-r.h){r.y=groundY-r.h;r.vy=0;r.onGround=true;}
+      }
+      // árbitros que lanzan tarjetas (thrower) — se desvanecen
+      if(r.type==='thrower'){
+        r.cardTimer--;
+        if(r.cardTimer<=0){r.cardTimer=110+Math.floor(Math.random()*80);
+          const cdir=p.x<r.x?-1:1;
+          r.cards.push({x:r.x+r.w/2,y:r.y+18,vx:cdir*(3.5+this.levelIdx*0.4),life:55,kind:Math.random()<0.5?'red':'yellow'});}
+        for(const c of r.cards){c.x+=c.vx;c.life--;
+          if(p.x<c.x+9&&p.x+p.w>c.x-9&&p.y<c.y+13&&p.y+p.h>c.y-13){c.life=0;this.hurt();if(this.state!=='play'&&this.state!=='boss')return;}}
+        r.cards=r.cards.filter(c=>c.life>0);
+      }
       if(p.x<r.x+r.w&&p.x+p.w>r.x&&p.y<r.y+r.h&&p.y+p.h>r.y){
         if(p.vy>0&&(p.y+p.h)-r.y<26){r.alive=false;p.vy=JUMP*0.6;this.score+=300;}
         else this.hurt();if(this.state!=='play'&&this.state!=='boss')return;}}
@@ -537,7 +568,18 @@ function drawSoccerBall(x,y,r,spin=0){
   ctx.restore();
 }
 function drawRef(px,py,r,lvl){
-  const cols=[['#F1C40F','#C9A227'],['#E74C3C','#A82820'],['#222','#000']][lvl];
+  // color por TIPO de árbitro
+  let cols;
+  if(r.type==='jumper') cols=['#F1C40F','#C9A227'];      // amarillo saltarín
+  else if(r.type==='thrower') cols=['#2b2b2b','#000'];   // negro lanza-tarjetas
+  else cols=[['#E74C3C','#A82820'],['#3498DB','#1f6391'],['#9B59B6','#6c3483']][lvl]; // normal varía por nivel
+  // tarjetas del thrower (se dibujan en coords de mundo, ya trasladado a px)
+  if(r.type==='thrower'&&r.cards){for(const c of r.cards){
+    const cx=c.x-(r.x-px); const fade=Math.min(1,c.life/30);
+    ctx.save();ctx.globalAlpha=fade;ctx.translate(cx,c.y-py);
+    ctx.fillStyle=c.kind==='red'?'#E24B4A':'#FAC775';ctx.fillRect(-6,-9,12,18);
+    ctx.restore();
+  }}
   ctx.save();ctx.translate(px,py);
   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(15,r.h,15,5,0,0,7);ctx.fill();
   const lo=Math.sin(r.leg)*4;
