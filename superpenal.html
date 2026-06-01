@@ -77,7 +77,7 @@
 
   <div class="ov" id="penalScreen" style="display:none;">
     <h1>¡PENAL!</h1>
-    <h2 id="penalSub">Tocá la pantalla / ESPACIO en la zona verde</h2>
+    <h2 id="penalSub">Frená la barra en la zona verde · apuntá lejos del arquero</h2>
     <canvas id="penalCanvas" width="380" height="300" style="background:#3a7d2c;border:5px solid #fff;border-radius:8px;max-width:92vw;"></canvas>
     <p id="penalMsg" style="margin-top:10px;font-size:22px;font-weight:bold;height:28px"></p>
   </div>
@@ -229,8 +229,8 @@ const Game={
     document.getElementById('penalScreen').style.display='flex';
     document.getElementById('penalMsg').textContent='';
     const d=this.levelIdx;
-    this.penal={pc:document.getElementById('penalCanvas'),power:0,dir:1,speed:1.7+d*0.7,
-      zStart:54-d*5,zEnd:80-d*8,keeper:190,kDir:1,kSpeed:1.4+d*0.9,shot:false,done:false,t:0,targetX:0};
+    this.penal={pc:document.getElementById('penalCanvas'),power:0,dir:1,speed:1.2+d*0.4,
+      zStart:42-d*3,zEnd:78-d*4,keeper:190,kDir:1,kSpeed:1.0+d*0.55,shot:false,done:false,t:0,targetX:0};
     this.penalLoop();
   },
   penalLoop(){
@@ -254,7 +254,7 @@ const Game={
       c.fillStyle='#fff';c.strokeStyle='#222';c.lineWidth=2;c.beginPath();c.arc(bx,by,13,0,7);c.fill();c.stroke();
       c.fillStyle='#222';c.beginPath();c.arc(bx,by,5,0,7);c.fill();
       if(pn.t>=1&&!pn.done){pn.done=true;
-        const gp=pn.power>=pn.zStart&&pn.power<=pn.zEnd, kf=Math.abs(pn.keeper-tx)>42;
+        const gp=pn.power>=pn.zStart&&pn.power<=pn.zEnd, kf=Math.abs(pn.keeper-tx)>60;
         this.penalResult(gp&&kf);return;}}
     const by2=h-22;c.fillStyle='rgba(0,0,0,0.4)';c.fillRect(46,by2,288,16);
     c.fillStyle='#2ECC71';c.fillRect(46+pn.zStart*2.88,by2,(pn.zEnd-pn.zStart)*2.88,16);
@@ -343,7 +343,7 @@ const Game={
       ctx.fillStyle='#5E9E2E';ctx.fillRect(X,pl.y,pl.w,5);
       ctx.fillStyle='rgba(0,0,0,0.18)';ctx.fillRect(X,pl.y+pl.h-3,pl.w,3);}
     // monedas
-    for(const c of lv.coins){if(c.taken)continue;const X=c.x-cam;if(X<-20||X>W)continue;drawSoccerBall(X,c.y,8);}
+    for(const c of lv.coins){if(c.taken)continue;const X=c.x-cam;if(X<-20||X>W)continue;drawCoin(X,c.y);}
     // botellas
     for(const b of lv.bottles){if(b.taken)continue;const X=b.x-cam;if(X<-30||X>W)continue;
       ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(X+7,b.y+24,10,3,0,0,7);ctx.fill();
@@ -380,6 +380,24 @@ function drawPlayerSprite(px,py,p){
   const bob=p.onGround&&Math.abs(p.vx)>0.5?Math.sin(Game.runFrame)*2:0;
   if(p.face<0){ctx.translate(dx+dw,dy+bob);ctx.scale(-1,1);ctx.drawImage(cvs,0,0,dw,dh);}
   else{ctx.drawImage(cvs,dx,dy+bob,dw,dh);}
+  ctx.restore();
+}
+function drawCoin(x,y){
+  const t=performance.now()/300;
+  const wob=Math.abs(Math.cos(t)); // 0..1 ancho para simular giro
+  const rw=Math.max(2.5,11*wob), rh=12;
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(0,rh+3,rw*0.9,3,0,0,7);ctx.fill();
+  // borde dorado oscuro
+  ctx.fillStyle='#B8860B';ctx.beginPath();ctx.ellipse(0,0,rw+1.5,rh+1.5,0,0,7);ctx.fill();
+  // cara dorada
+  const g=ctx.createLinearGradient(0,-rh,0,rh);g.addColorStop(0,'#FFE873');g.addColorStop(0.5,'#FFC81F');g.addColorStop(1,'#E0A100');
+  ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,rw,rh,0,0,7);ctx.fill();
+  // brillo
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.ellipse(-rw*0.3,-rh*0.35,rw*0.25,rh*0.3,0,0,7);ctx.fill();
+  // símbolo $ solo si la moneda está "de frente" (ancha)
+  if(wob>0.55){ctx.fillStyle='#9c6f00';ctx.font='bold '+Math.round(rh*1.1)+'px Trebuchet MS';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('$',0,1);ctx.textBaseline='alphabetic';ctx.textAlign='left';}
   ctx.restore();
 }
 function drawSoccerBall(x,y,r,spin=0){
