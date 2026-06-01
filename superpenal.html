@@ -214,13 +214,16 @@ function buildLevel(idx){
   cfg.pits.forEach(p=>lv.pits.push(p));
   cfg.coinsX.forEach((x,i)=>lv.coins.push({x,y:groundY-95-(i%3)*34,taken:false}));
   const lastPlat=cfg.plats[cfg.plats.length-1][0];
-  // ZONA DE JEFE: arena con suelo sólido (sin pozos) donde aparece el VAR
+  // ZONA DE JEFE: arena con suelo sólido donde aparece el VAR
   lv.bossX = lastPlat + 500;
-  lv.width = lv.bossX + 760;
+  lv.width = lv.bossX + 900;
   lv.bossHP = [4,5,7][idx];   // el nivel 3 es el duro
-  // escalones para poder saltar al VAR sin poder
+  // escalones para esquivar al VAR saltando
   lv.platforms.push({x:lv.bossX+120,y:groundY-90,w:90,h:18});
-  lv.platforms.push({x:lv.bossX+300,y:groundY-150,w:90,h:18});
+  lv.platforms.push({x:lv.bossX+320,y:groundY-150,w:90,h:18});
+  // BOTÓN del otro lado: al tocarlo, el VAR cae
+  lv.button = lv.bossX+720;
+  lv.buttonPressed = false;
   return lv;
 }
 
@@ -266,7 +269,7 @@ const Game={
       falling:false, fallVy:0, jumpTimer:90+d*-10,
       cardRate:[140,110,80][d], moveSpeed:0.6+d*0.35, jumpEvery:[130,100,75][d],
     };
-    showHint('⚠️ ¡JEFE VAR! '+(this.big?'¡3 pelotazos y cae!':'¡Saltale encima esquivando las tarjetas!'));
+    showHint('⚠️ ¡JEFE VAR! '+(this.big?'¡3 pelotazos y cae!':'¡Saltalo y tocá el BOTÓN del otro lado!'));
   },
   bossUpdate(){
     const b=this.boss,p=this.player,lv=this.level; if(!b)return;
@@ -288,32 +291,40 @@ const Game={
     b.vy+=0.7; b.y+=b.vy;
     if(b.y>=groundY-b.h){ b.y=groundY-b.h; b.vy=0; b.onGround=true; }
 
-    // --- saltarle encima (estilo Bowser) lo daña; tocarlo de costado te lastima ---
-    if(b.alive && p.x+p.w>b.x+12 && p.x<b.x+b.w-12 && p.y+p.h>b.y && p.y<b.y+b.h){
-      if(p.vy>0 && (p.y+p.h)-b.y<46){ // cae encima
-        p.vy=JUMP*0.7; b.hp--; b.hitFlash=12; this.score+=400;
-        if(b.hp<=0){ b.alive=false; b.falling=true; b.fallVy=-7; b.vy=-7; }
-      } else { this.hurt(); if(this.state!=='boss')return; }
+    // --- saltarle encima NO le hace daño: solo te impulsa para esquivarlo ---
+    if(b.alive && p.x+p.w>b.x+10 && p.x<b.x+b.w-10 && p.y+p.h>b.y && p.y<b.y+b.h){
+      if(p.vy>0 && (p.y+p.h)-b.y<46){ p.vy=JUMP*0.7; } // rebota, lo esquiva
+      else { this.hurt(); if(this.state!=='boss')return; } // te toca de costado: perdés
     }
 
-    // --- tarjetas en ARCO hacia el jugador (parábola) ---
+    // --- tarjetas RECTAS hacia adelante que se desvanecen (poco alcance) ---
     b.cardTimer--;
     if(b.cardTimer<=0 && b.alive){ b.cardTimer=b.cardRate;
       const cdir = p.x < b.x ? -1 : 1;
-      const sp=3.4+this.levelIdx*0.5;
-      b.cards.push({x:b.x+b.w/2,y:b.y+70,vx:cdir*sp,vy:-2.2-this.levelIdx*0.3,rot:0,kind:Math.random()<0.5?'red':'yellow'});
+      const sp=4.2+this.levelIdx*0.5;
+      b.cards.push({x:b.x+b.w/2,y:groundY-26,vx:cdir*sp,life:55,rot:0,kind:Math.random()<0.5?'red':'yellow'});
     }
-    for(const c of b.cards){ c.x+=c.vx; c.y+=c.vy; c.vy+=0.16; c.rot+=0.3;
-      if(p.x<c.x+11&&p.x+p.w>c.x-11&&p.y<c.y+15&&p.y+p.h>c.y-15){ c.dead=true; this.hurt(); if(this.state!=='boss')return; } }
-    b.cards=b.cards.filter(c=>!c.dead && c.x>this.cam-60 && c.x<this.cam+W+60 && c.y<H+50);
+    for(const c of b.cards){ c.x+=c.vx; c.life--; c.rot+=0.3;
+      if(p.x+p.w>c.x-13&&p.x<c.x+13&&p.y+p.h>c.y-16&&p.y<c.y+16){ c.life=0; this.hurt(); if(this.state!=='boss')return; } }
+    b.cards=b.cards.filter(c=>c.life>0);
 
-    // --- pelotazos del jugador (si tiene poder) ---
+    // --- pelotazos del jugador (si tiene poder) bajan vida ---
     for(const ball of this.balls){
       if(b.alive && ball.x>b.x-10 && ball.x<b.x+b.w+10 && ball.y>b.y && ball.y<b.y+b.h){
         ball.life=0; b.hp--; b.hitFlash=12; this.score+=500;
-        if(b.hp<=0){ b.alive=false; b.falling=true; b.fallVy=-7; b.vy=-7; }
+        if(b.hp<=0){ this.dropBoss(); }
       }
     }
+
+    // --- BOTÓN del otro lado: al tocarlo, el VAR cae ---
+    if(b.alive && !lv.buttonPressed && p.x+p.w>lv.button && p.x<lv.button+44){
+      lv.buttonPressed=true; this.dropBoss();
+      showHint('💥 ¡Botón! El VAR se viene abajo');
+    }
+  },
+  dropBoss(){
+    const b=this.boss; if(!b||!b.alive)return;
+    b.alive=false; b.falling=true; b.fallVy=-7; b.vy=-7;
   },
   bossDefeated(){
     if(this._bossDone)return; this._bossDone=true; // evita doble llamada (anti-bug)
@@ -416,14 +427,14 @@ const Game={
         r.vy=(r.vy||0)+0.6; r.y+=r.vy;
         if(r.y>=groundY-r.h){r.y=groundY-r.h;r.vy=0;r.onGround=true;}
       }
-      // árbitros que lanzan tarjetas (thrower) — se desvanecen
+      // árbitros que lanzan tarjetas (thrower) — rectas, a la altura del jugador, se saltan
       if(r.type==='thrower'){
         r.cardTimer--;
         if(r.cardTimer<=0){r.cardTimer=110+Math.floor(Math.random()*80);
           const cdir=p.x<r.x?-1:1;
-          r.cards.push({x:r.x+r.w/2,y:r.y+18,vx:cdir*(3.5+this.levelIdx*0.4),life:55,kind:Math.random()<0.5?'red':'yellow'});}
+          r.cards.push({x:r.x+r.w/2,y:groundY-26,vx:cdir*(3.8+this.levelIdx*0.4),life:48,kind:Math.random()<0.5?'red':'yellow'});}
         for(const c of r.cards){c.x+=c.vx;c.life--;
-          if(p.x<c.x+9&&p.x+p.w>c.x-9&&p.y<c.y+13&&p.y+p.h>c.y-13){c.life=0;this.hurt();if(this.state!=='play'&&this.state!=='boss')return;}}
+          if(p.x+p.w>c.x-13&&p.x<c.x+13&&p.y+p.h>c.y-16&&p.y<c.y+16){c.life=0;this.hurt();if(this.state!=='play'&&this.state!=='boss')return;}}
         r.cards=r.cards.filter(c=>c.life>0);
       }
       if(p.x<r.x+r.w&&p.x+p.w>r.x&&p.y<r.y+r.h&&p.y+p.h>r.y){
@@ -504,6 +515,16 @@ const Game={
       ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fillRect(X+2,b.y+8,12,5);}
     // arbitros
     for(const r of lv.refs){if(!r.alive)continue;const X=r.x-cam;if(X<-50||X>W)continue;drawRef(X,r.y,r,this.levelIdx);}
+    // tarjetas lanzadas por árbitros (coords de cámara)
+    for(const r of lv.refs){if(r.type!=='thrower'||!r.cards)continue;
+      for(const c of r.cards){const cx=c.x-cam;if(cx<-20||cx>W+20)continue;
+        const fade=Math.min(1,c.life/30);
+        ctx.save();ctx.globalAlpha=fade;ctx.translate(cx,c.y);
+        ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(-13,-17,26,34);
+        ctx.fillStyle=c.kind==='red'?'#E24B4A':'#F1C40F';ctx.fillRect(-11,-15,22,30);
+        ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fillRect(-8,-12,5,24);
+        ctx.restore();
+      }}
     // botellas negras cayendo (peligro)
     if(this.badBottles){for(const bb of this.badBottles){const X=bb.x-cam;if(X<-20||X>W+20)continue;
       ctx.save();ctx.translate(X,bb.y);ctx.rotate(bb.rot);
@@ -519,6 +540,22 @@ const Game={
     for(const ball of this.balls)drawSoccerBall(ball.x-cam,ball.y,9,ball.spin);
     // JEFE VAR
     if(this.boss)drawBoss(this.boss,cam,this.levelIdx);
+    // BOTÓN para hacer caer al VAR (visible durante la pelea)
+    if((this.state==='boss'||this.boss)&&lv.button!=null){
+      const btX=lv.button-cam;
+      if(btX>-50&&btX<W){
+        ctx.fillStyle='#555';ctx.fillRect(btX-6,groundY-18,52,18);
+        ctx.fillStyle='#3a3a3a';ctx.fillRect(btX-6,groundY-4,52,4);
+        ctx.fillStyle=lv.buttonPressed?'#2ECC71':'#E24B4A';
+        ctx.strokeStyle='#fff';ctx.lineWidth=3;
+        ctx.fillRect(btX,groundY-34,38,20);ctx.strokeRect(btX,groundY-34,38,20);
+        ctx.fillStyle='#fff';ctx.font='bold 16px Trebuchet MS';ctx.textAlign='center';
+        ctx.fillText(lv.buttonPressed?'✓':'!',btX+19,groundY-19);
+        if(!lv.buttonPressed){ctx.fillStyle='#FFD23F';ctx.font='bold 12px "Barlow Condensed",Trebuchet MS';
+          ctx.fillText('BOTÓN',btX+16,groundY-40);}
+        ctx.textAlign='left';
+      }
+    }
     // jugador (sprite)
     drawPlayerSprite(p.x-cam,p.y,p);
     // cartel de advertencia del VAR
@@ -597,13 +634,7 @@ function drawRef(px,py,r,lvl){
   if(r.type==='jumper') cols=['#F1C40F','#C9A227'];      // amarillo saltarín
   else if(r.type==='thrower') cols=['#2b2b2b','#000'];   // negro lanza-tarjetas
   else cols=[['#E74C3C','#A82820'],['#3498DB','#1f6391'],['#9B59B6','#6c3483']][lvl]; // normal varía por nivel
-  // tarjetas del thrower (se dibujan en coords de mundo, ya trasladado a px)
-  if(r.type==='thrower'&&r.cards){for(const c of r.cards){
-    const cx=c.x-(r.x-px); const fade=Math.min(1,c.life/30);
-    ctx.save();ctx.globalAlpha=fade;ctx.translate(cx,c.y-py);
-    ctx.fillStyle=c.kind==='red'?'#E24B4A':'#FAC775';ctx.fillRect(-6,-9,12,18);
-    ctx.restore();
-  }}
+  // (las tarjetas del thrower se dibujan aparte, en el loop principal)
   ctx.save();ctx.translate(px,py);
   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(15,r.h,15,5,0,0,7);ctx.fill();
   const lo=Math.sin(r.leg)*4;
@@ -630,8 +661,9 @@ function drawBoss(b,cam,lvl){
   // tarjetas
   for(const c of b.cards){const cx=c.x-cam;
     ctx.save();ctx.translate(cx,c.y);ctx.rotate(c.rot);
-    ctx.fillStyle=c.kind==='red'?'#E24B4A':'#FAC775';
-    ctx.fillRect(-9,-13,18,26);ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1;ctx.strokeRect(-9,-13,18,26);
+    ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(-13,-18,26,36);
+    ctx.fillStyle=c.kind==='red'?'#E24B4A':'#F1C40F';ctx.fillRect(-11,-16,22,32);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.fillRect(-8,-13,5,26);
     ctx.restore();}
   // sombra
   ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(X+w/2,Y+h,w*0.45,9,0,0,7);ctx.fill();
@@ -718,23 +750,24 @@ addEventListener('keydown',e=>{
   else if(Game.state==='boss'){if(e.key==='ArrowLeft')Game.keys.left=true;if(e.key==='ArrowRight')Game.keys.right=true;
     if(e.key==='ArrowUp'||e.key===' ')Game.keys.jump=true;if(/[zZxX]/.test(e.key))Game.shoot();
     if([' ','ArrowUp','ArrowDown'].includes(e.key))e.preventDefault();}
-  else if(Game.state==='over')slotKey(e);
 });
 addEventListener('keyup',e=>{if(e.key==='ArrowLeft')Game.keys.left=false;if(e.key==='ArrowRight')Game.keys.right=false;if(e.key==='ArrowUp'||e.key===' ')Game.keys.jump=false;});
-function slotKey(e){const i=Game.slotSel;
-  if(e.key==='ArrowRight'){Game.slotSel=Math.min(5,i+1);UI.renderSlots();return;}
-  if(e.key==='ArrowLeft'){Game.slotSel=Math.max(0,i-1);UI.renderSlots();return;}
-  if(i<3){if(/^[a-zA-Z]$/.test(e.key)){Game.init[i]=e.key.toUpperCase();if(Game.slotSel<5)Game.slotSel++;UI.renderSlots();}
-    if(e.key==='ArrowUp'){Game.init[i]=nextC(Game.init[i],1);UI.renderSlots();}if(e.key==='ArrowDown'){Game.init[i]=nextC(Game.init[i],-1);UI.renderSlots();}}
-  else{if(/^[0-9]$/.test(e.key)){Game.init[i]=+e.key;if(Game.slotSel<5)Game.slotSel++;UI.renderSlots();}
-    if(e.key==='ArrowUp'){Game.init[i]=(Game.init[i]+1)%10;UI.renderSlots();}if(e.key==='ArrowDown'){Game.init[i]=(Game.init[i]+9)%10;UI.renderSlots();}}
-}
-function nextC(ch,d){let c=ch.charCodeAt(0)-65;c=(c+d+26)%26;return String.fromCharCode(65+c);}
-document.querySelectorAll('.slot').forEach(s=>{
-  s.addEventListener('click',()=>{Game.slotSel=+s.dataset.i;UI.renderSlots();});
-  s.addEventListener('touchstart',e=>{e.preventDefault();Game.slotSel=+s.dataset.i;const i=Game.slotSel;
-    if(i<3)Game.init[i]=nextC(Game.init[i],1);else Game.init[i]=(Game.init[i]+1)%10;UI.renderSlots();},{passive:false});
-});
+/* ---- INPUTS DE INICIALES: auto-avance al siguiente ---- */
+(function(){
+  const ids=['ini0','ini1','ini2','ini3','ini4','ini5'];
+  ids.forEach((id,idx)=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.addEventListener('focus',()=>el.select());
+    el.addEventListener('input',()=>{
+      if(idx<3){ el.value=(el.value||'').replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,1); }
+      else { el.value=(el.value||'').replace(/[^0-9]/g,'').slice(0,1); }
+      if(el.value && idx<ids.length-1){ const nx=document.getElementById(ids[idx+1]); if(nx)nx.focus(); }
+    });
+    el.addEventListener('keydown',ev=>{
+      if(ev.key==='Backspace' && !el.value && idx>0){ const pv=document.getElementById(ids[idx-1]); if(pv){pv.focus();pv.value='';} }
+    });
+  });
+})();
 
 /* ---- TÁCTIL ---- */
 if('ontouchstart' in window)document.getElementById('touch').style.display='block';
