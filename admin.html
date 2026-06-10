@@ -7,15 +7,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#07090f;--bg2:#0c1018;--card:#0f1520;--card2:#141e2d;--green:#00e676;--red:#f44336;--border:rgba(255,255,255,0.06);--txt:#e8f0fe;--muted:#546e7a;--muted2:#78909c;--gold:#ffd600}
+:root{--bg:#07090f;--bg2:#0c1018;--card:#0f1520;--card2:#141e2d;--green:#00e676;--red:#f44336;--gold:#ffd600;--blue:#00b0ff;--border:rgba(255,255,255,0.06);--txt:#e8f0fe;--muted:#546e7a;--muted2:#78909c}
 body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-height:100vh}
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px}
 .logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green)}
 .logo span{color:var(--txt)}
 .admin-badge{background:rgba(255,214,0,0.15);color:var(--gold);border:1px solid rgba(255,214,0,0.3);border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
-.wrap{max-width:800px;margin:0 auto;padding:24px}
+.wrap{max-width:860px;margin:0 auto;padding:24px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
 .card-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;margin-bottom:14px;color:var(--txt)}
+.card-title.gold{color:var(--gold)}
+.section-divider{border:none;border-top:2px solid rgba(255,214,0,0.2);margin:24px 0 20px;position:relative}
+.section-divider::after{content:attr(data-label);position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 12px;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.5px}
 .form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .form-group{display:flex;flex-direction:column;gap:6px}
 label{font-size:12px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
@@ -26,23 +29,27 @@ input:focus{border-color:var(--green)}
 .btn-green{background:var(--green);color:#050a05}
 .btn-green:hover{opacity:.9}
 .btn-green:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#1a1400}
+.btn-gold:hover{opacity:.9}
+.btn-gold:disabled{opacity:.5;cursor:not-allowed}
 .btn-red{background:rgba(244,67,54,0.15);color:var(--red);border:1px solid rgba(244,67,54,0.3)}
 .status{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:10px}
 .status.ok{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);color:var(--green)}
 .status.err{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.2);color:var(--red)}
 .status.info{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted2)}
 .fixture-list{margin-top:14px;display:flex;flex-direction:column;gap:6px}
-.fixture-row{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
-.fixture-teams{display:flex;align-items:center;gap:8px}
+.fixture-row{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;font-size:13px;gap:8px}
+.fixture-teams{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 .fixture-teams img{width:24px;height:24px;object-fit:contain}
-.fixture-date{font-size:11px;color:var(--muted2)}
+.fixture-date{font-size:11px;color:var(--muted2);flex-shrink:0}
 .badge-fecha{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+.badge-mundial{background:rgba(255,214,0,0.1);color:var(--gold);border:1px solid rgba(255,214,0,0.2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
 .login-wrap{max-width:400px;margin:60px auto;text-align:center}
 .login-wrap h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;margin-bottom:20px;color:var(--green)}
 .login-form{display:flex;flex-direction:column;gap:10px;align-items:center}
 .login-form input{width:100%}
-.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
 .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+.spinner-gold{border-top-color:var(--gold)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -75,9 +82,14 @@ input:focus{border-color:var(--green)}
 <!-- ADMIN PANEL -->
 <div class="wrap" id="adminSection" style="display:none">
 
-  <!-- Cargar fixtures -->
+  <!-- ═══════════════════════════════════════════════
+       SECCIÓN: LIGA PROFESIONAL ARGENTINA
+  ════════════════════════════════════════════════ -->
+  <hr class="section-divider" data-label="⚽ LIGA PROFESIONAL ARGENTINA">
+
+  <!-- Cargar fixtures LPA -->
   <div class="card">
-    <div class="card-title">📥 Cargar partidos del Prode</div>
+    <div class="card-title">📥 Cargar partidos del Prode (Liga)</div>
     <div class="form-row">
       <button class="btn btn-green" id="loadBtn" onclick="buscarPartidosESPN()">Buscar partidos ESPN</button>
     </div>
@@ -85,20 +97,20 @@ input:focus{border-color:var(--green)}
     <div id="fixturePreview"></div>
   </div>
 
-  <!-- Fixtures cargados -->
+  <!-- Fixtures cargados LPA -->
   <div class="card">
-    <div class="card-title">📋 Fechas cargadas en Supabase</div>
+    <div class="card-title">📋 Fechas cargadas — Liga</div>
     <button class="btn btn-green" style="font-size:12px;padding:6px 14px;margin-bottom:12px" onclick="verFechasCargadas()">Actualizar lista</button>
     <div id="fechasCargadas"><div class="status info">Tocá "Actualizar lista" para ver los fixtures guardados.</div></div>
   </div>
 
-  <!-- Cargar resultados -->
+  <!-- Cargar resultados LPA -->
   <div class="card">
-    <div class="card-title">⚽ Cargar resultados</div>
+    <div class="card-title">⚽ Cargar resultados — Liga</div>
     <div class="form-row">
       <div class="form-group">
         <label>Número de fecha</label>
-        <input type="number" id="resultadoFechaNum" value="15" min="1" max="30">
+        <input type="number" id="resultadoFechaNum" value="1" min="1" max="30">
       </div>
       <button class="btn btn-green" onclick="cargarPartidosParaResultado()">Ver partidos</button>
     </div>
@@ -106,29 +118,79 @@ input:focus{border-color:var(--green)}
     <div id="resultadosStatus"></div>
   </div>
 
-  <!-- Borrar fecha -->
+  <!-- Borrar fecha LPA -->
   <div class="card">
-    <div class="card-title">🗑️ Borrar fecha</div>
+    <div class="card-title">🗑️ Borrar fecha — Liga</div>
     <div class="form-row">
       <div class="form-group">
         <label>Número de fecha</label>
-        <input type="number" id="borrarFechaNum" value="15" min="1" max="30">
+        <input type="number" id="borrarFechaNum" value="1" min="1" max="30">
       </div>
       <button class="btn btn-red" onclick="borrarFecha()">Borrar fecha</button>
     </div>
     <div id="borrarStatus"></div>
   </div>
 
-</div>
+  <!-- ═══════════════════════════════════════════════
+       SECCIÓN: MUNDIAL 2026
+  ════════════════════════════════════════════════ -->
+  <hr class="section-divider" data-label="🏆 MUNDIAL 2026">
+
+  <!-- Cargar fixtures Mundial -->
+  <div class="card">
+    <div class="card-title gold">📥 Cargar partidos del Prode Mundial</div>
+    <div class="form-row">
+      <button class="btn btn-gold" id="loadMundialBtn" onclick="buscarPartidosMundial()">
+        Buscar partidos Mundial ESPN
+      </button>
+    </div>
+    <div id="loadMundialStatus"></div>
+    <div id="fixtureMundialPreview"></div>
+  </div>
+
+  <!-- Fixtures cargados Mundial -->
+  <div class="card">
+    <div class="card-title gold">📋 Fechas cargadas — Mundial</div>
+    <button class="btn btn-gold" style="font-size:12px;padding:6px 14px;margin-bottom:12px" onclick="verFechasMundial()">Actualizar lista</button>
+    <div id="fechasMundial"><div class="status info">Tocá "Actualizar lista" para ver los fixtures del Mundial.</div></div>
+  </div>
+
+  <!-- Cargar resultados Mundial -->
+  <div class="card">
+    <div class="card-title gold">⚽ Cargar resultados — Mundial</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Número de fecha</label>
+        <input type="number" id="resultadoMundialNum" value="1" min="1" max="50">
+      </div>
+      <button class="btn btn-gold" onclick="cargarPartidosMundialResultado()">Ver partidos</button>
+    </div>
+    <div id="resultadosMundialLista"></div>
+    <div id="resultadosMundialStatus"></div>
+  </div>
+
+  <!-- Borrar fecha Mundial -->
+  <div class="card">
+    <div class="card-title gold">🗑️ Borrar fecha — Mundial</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Número de fecha</label>
+        <input type="number" id="borrarMundialNum" value="1" min="1" max="50">
+      </div>
+      <button class="btn btn-red" onclick="borrarFechaMundial()">Borrar fecha Mundial</button>
+    </div>
+    <div id="borrarMundialStatus"></div>
+  </div>
+
+</div><!-- /wrap -->
 
 <script>
 const SUPA_URL = 'https://pglmteswkjqiruliyfhx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbG10ZXN3a2pxaXJ1bGl5Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjcyNzEsImV4cCI6MjA5MDY0MzI3MX0.o1jD0tI9N9y1uOZKzHsfxckHRpYnn_LzS_MuW3vfgpw';
-const API_KEY  = '3ee7870931dc083abe0da60576870de5';
 
 let session = null;
 
-// ── AUTH ───────────────────────────────────────────────────────────
+// ── AUTH ─────────────────────────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
@@ -141,9 +203,8 @@ async function doLogin() {
     body: JSON.stringify({email, password: pass})
   });
   const data = await res.json();
-  if(data.access_token) {
-    // Verificar que sea el admin
-    if(email.toLowerCase() !== 'maxiumma@gmail.com') {
+  if (data.access_token) {
+    if (email.toLowerCase() !== 'maxiumma@gmail.com') {
       st.innerHTML = '<div class="status err">❌ Acceso no autorizado.</div>';
       return;
     }
@@ -153,7 +214,7 @@ async function doLogin() {
     document.getElementById('userInfo').textContent = email;
     document.getElementById('logoutBtn').style.display = 'block';
     verFechasCargadas();
-    cargarRounds();
+    verFechasMundial();
   } else {
     st.innerHTML = '<div class="status err">❌ Email o contraseña incorrectos.</div>';
   }
@@ -166,21 +227,20 @@ function logout() {
   document.getElementById('logoutBtn').style.display = 'none';
 }
 
-// ── BUSCAR PARTIDOS ESPN (próximos 10 días) ───────────────────────
-let partidosESPN = []; // guardamos para selección
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !session) doLogin(); });
 
-async function cargarRounds() {
-  // No usamos api-sports, buscamos vía ESPN
-  buscarPartidosESPN();
-}
+// ══════════════════════════════════════════════════════════════════════
+// LIGA PROFESIONAL ARGENTINA
+// ══════════════════════════════════════════════════════════════════════
+
+let partidosESPN = [];
 
 async function buscarPartidosESPN() {
   const st   = document.getElementById('loadStatus');
   const prev = document.getElementById('fixturePreview');
   const btn  = document.getElementById('loadBtn');
-
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Buscando partidos...';
+  btn.innerHTML = '<span class="spinner"></span>Buscando...';
   st.innerHTML  = '<div class="status info">Consultando ESPN — próximos 10 días...</div>';
   prev.innerHTML = '';
 
@@ -194,67 +254,67 @@ async function buscarPartidosESPN() {
     const data = await res.json();
     const events = data.events || [];
 
-    if(!events.length) {
-      st.innerHTML = '<div class="status err">❌ No se encontraron partidos próximos en ESPN.</div>';
-      btn.disabled = false; btn.textContent = 'Buscar partidos';
+    if (!events.length) {
+      st.innerHTML = '<div class="status err">❌ No se encontraron partidos próximos.</div>';
+      btn.disabled = false; btn.textContent = 'Buscar partidos ESPN';
       return;
     }
 
     partidosESPN = events;
-    st.innerHTML = `<div class="status ok">✅ ${events.length} partidos encontrados. Seleccioná los que querés incluir en la fecha del Prode.</div>`;
-
-    // Mostrar con checkboxes
-    prev.innerHTML = `
-      <div style="margin-top:12px">
-        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <button class="btn btn-green" style="font-size:12px;padding:5px 12px" onclick="selAll(true)">Seleccionar todos</button>
-          <button class="btn" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);color:var(--muted2)" onclick="selAll(false)">Deseleccionar todos</button>
-        </div>
-        <div class="fixture-list" id="checkList">
-          ${events.map((e,i) => {
-            const comp = e.competitions?.[0];
-            const home = comp?.competitors?.find(t => t.homeAway === 'home');
-            const away = comp?.competitors?.find(t => t.homeAway === 'away');
-            const dateStr = new Date(e.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
-            return `<div class="fixture-row" style="cursor:pointer" onclick="toggleCheck(${i})">
-              <input type="checkbox" id="chk-${i}" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
-              <div class="fixture-teams" style="flex:1">
-                <img src="${home?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
-                <span>${home?.team?.displayName||'?'}</span>
-                <span style="color:var(--muted2);padding:0 6px">vs</span>
-                <img src="${away?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
-                <span>${away?.team?.displayName||'?'}</span>
-              </div>
-              <div class="fixture-date">${dateStr}</div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div class="form-group">
-            <label>Número de fecha</label>
-            <input type="number" id="fechaNum" value="15" min="1" max="30">
-          </div>
-          <button class="btn btn-green" style="margin-top:18px" onclick="guardarSeleccion()">Guardar selección →</button>
-        </div>
-      </div>`;
-
+    st.innerHTML = `<div class="status ok">✅ ${events.length} partidos encontrados.</div>`;
+    prev.innerHTML = renderCheckList(events, 'chk', 'fechaNum', 15, 'guardarSeleccion()');
   } catch(e) {
     st.innerHTML = `<div class="status err">❌ Error: ${e.message}</div>`;
   }
-  btn.disabled = false;
-  btn.textContent = 'Buscar partidos';
+  btn.disabled = false; btn.textContent = 'Buscar partidos ESPN';
 }
 
-function toggleCheck(i) {
-  const chk = document.getElementById('chk-' + i);
-  if(chk) chk.checked = !chk.checked;
+function renderCheckList(events, prefix, numId, numDefault, guardarFn) {
+  return `
+    <div style="margin-top:12px">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-green" style="font-size:12px;padding:5px 12px" onclick="selAll('${prefix}',${events.length},true)">Seleccionar todos</button>
+        <button class="btn" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);color:var(--muted2)" onclick="selAll('${prefix}',${events.length},false)">Deseleccionar todos</button>
+      </div>
+      <div class="fixture-list" id="${prefix}List">
+        ${events.map((e,i) => {
+          const comp = e.competitions?.[0];
+          const home = comp?.competitors?.find(t => t.homeAway === 'home');
+          const away = comp?.competitors?.find(t => t.homeAway === 'away');
+          const dateStr = new Date(e.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+          return `<div class="fixture-row" style="cursor:pointer" onclick="toggleCheck('${prefix}',${i})">
+            <input type="checkbox" id="${prefix}-${i}" checked style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+            <div class="fixture-teams">
+              <img src="${home?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+              <span>${home?.team?.displayName||'?'}</span>
+              <span style="color:var(--muted2);padding:0 6px">vs</span>
+              <img src="${away?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+              <span>${away?.team?.displayName||'?'}</span>
+            </div>
+            <div class="fixture-date">${dateStr}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="form-group">
+          <label>Número de fecha</label>
+          <input type="number" id="${numId}" value="${numDefault}" min="1" max="50">
+        </div>
+        <button class="btn btn-green" style="margin-top:18px" onclick="${guardarFn}">Guardar selección →</button>
+      </div>
+    </div>`;
 }
 
-function selAll(val) {
-  partidosESPN.forEach((_,i) => {
-    const chk = document.getElementById('chk-' + i);
-    if(chk) chk.checked = val;
-  });
+function toggleCheck(prefix, i) {
+  const chk = document.getElementById(prefix + '-' + i);
+  if (chk) chk.checked = !chk.checked;
+}
+
+function selAll(prefix, count, val) {
+  for (let i = 0; i < count; i++) {
+    const chk = document.getElementById(prefix + '-' + i);
+    if (chk) chk.checked = val;
+  }
 }
 
 async function guardarSeleccion() {
@@ -266,9 +326,8 @@ async function guardarSeleccion() {
     return chk && chk.checked;
   });
 
-  if(!seleccionados.length) {
-    st.innerHTML = '<div class="status err">❌ Seleccioná al menos un partido.</div>';
-    return;
+  if (!seleccionados.length) {
+    st.innerHTML = '<div class="status err">❌ Seleccioná al menos un partido.</div>'; return;
   }
 
   st.innerHTML = `<div class="status info"><span class="spinner"></span>Guardando ${seleccionados.length} partidos...</div>`;
@@ -300,41 +359,27 @@ async function guardarSeleccion() {
     body: JSON.stringify(rows)
   });
 
-  if(saveRes.ok || saveRes.status === 201) {
+  if (saveRes.ok || saveRes.status === 201) {
     st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} guardada — ${seleccionados.length} partidos.</div>`;
     verFechasCargadas();
   } else {
     const err = await saveRes.text();
-    st.innerHTML = `<div class="status err">❌ Error guardando: ${err}</div>`;
+    st.innerHTML = `<div class="status err">❌ Error: ${err}</div>`;
   }
 }
 
-async function cargarFecha() {
-  buscarPartidosESPN();
-}
-
-// ── VER FECHAS CARGADAS ────────────────────────────────────────────
 async function verFechasCargadas() {
   const cont = document.getElementById('fechasCargadas');
   cont.innerHTML = '<div class="status info"><span class="spinner"></span>Cargando...</div>';
-
   const res  = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?select=fecha,fixture_id,home_name,away_name,match_date&order=fecha.asc,match_date.asc', {
     headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (session?.access_token || SUPA_KEY)}
   });
   const data = await res.json();
-
-  if(!data || !data.length) {
-    cont.innerHTML = '<div class="status info">No hay fixtures cargados todavía.</div>';
-    return;
+  if (!data || !data.length) {
+    cont.innerHTML = '<div class="status info">No hay fixtures cargados.</div>'; return;
   }
-
-  // Agrupar por fecha
   const byFecha = {};
-  data.forEach(f => {
-    if(!byFecha[f.fecha]) byFecha[f.fecha] = [];
-    byFecha[f.fecha].push(f);
-  });
-
+  data.forEach(f => { if (!byFecha[f.fecha]) byFecha[f.fecha] = []; byFecha[f.fecha].push(f); });
   cont.innerHTML = Object.entries(byFecha).map(([fecha, items]) => `
     <div style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -351,7 +396,6 @@ async function verFechasCargadas() {
     </div>`).join('');
 }
 
-// ── BORRAR FECHA ───────────────────────────────────────────────────
 async function cargarPartidosParaResultado() {
   const fecha = parseInt(document.getElementById('resultadoFechaNum').value);
   const lista = document.getElementById('resultadosLista');
@@ -361,10 +405,10 @@ async function cargarPartidosParaResultado() {
 
   const res = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?fecha=eq.' + fecha +
     '&order=match_date.asc&select=id,fixture_id,home_name,away_name,match_date,Home_score,away_score', {
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
   });
   const rows = await res.json();
-  if(!rows.length) { lista.innerHTML = '<div class="status err">No hay partidos para esa fecha.</div>'; return; }
+  if (!rows.length) { lista.innerHTML = '<div class="status err">No hay partidos para esa fecha.</div>'; return; }
 
   lista.innerHTML = '<div class="fixture-list" style="margin-top:10px">' +
     rows.map(r => `
@@ -379,47 +423,39 @@ async function cargarPartidosParaResultado() {
         </div>
       </div>`).join('') +
   '</div>' +
-  '<button class="btn btn-green" style="margin-top:14px;width:100%" onclick="guardarResultados(' + fecha + ', ' + JSON.stringify(rows.map(r=>r.id)) + ')">Guardar resultados</button>';
+  `<button class="btn btn-green" style="margin-top:14px;width:100%" onclick="guardarResultados(${fecha}, ${JSON.stringify(rows.map(r=>r.id))})">Guardar resultados</button>`;
 }
 
 async function guardarResultados(fecha, ids) {
   const st = document.getElementById('resultadosStatus');
   st.innerHTML = '<div class="status info">Guardando...</div>';
   let ok = 0, err = 0;
-  for(const id of ids) {
+  for (const id of ids) {
     const hs = document.getElementById('hs_' + id)?.value;
     const as = document.getElementById('as_' + id)?.value;
-    if(hs === '' || as === '') continue; // saltar si no cargó resultado
+    if (hs === '' || as === '') continue;
     const res = await fetch(SUPA_URL + '/rest/v1/prode_fixtures?id=eq.' + id, {
       method: 'PATCH',
-      headers: {
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ Home_score: parseInt(hs), away_score: parseInt(as) })
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+      body: JSON.stringify({Home_score: parseInt(hs), away_score: parseInt(as)})
     });
     res.ok ? ok++ : err++;
   }
   st.innerHTML = ok > 0
-    ? '<div class="status ok">✅ ' + ok + ' resultado(s) guardado(s).</div>'
-    : '<div class="status err">❌ Error al guardar.</div>';
+    ? `<div class="status ok">✅ ${ok} resultado(s) guardado(s).</div>`
+    : `<div class="status err">❌ Error al guardar.</div>`;
 }
 
 async function borrarFecha() {
   const fecha = parseInt(document.getElementById('borrarFechaNum').value);
-  if(!confirm(`¿Seguro que querés borrar todos los partidos de la Fecha ${fecha}?`)) return;
-
+  if (!confirm(`¿Seguro que querés borrar todos los partidos de la Fecha ${fecha}?`)) return;
   const st = document.getElementById('borrarStatus');
   st.innerHTML = '<div class="status info"><span class="spinner"></span>Borrando...</div>';
-
   const res = await fetch(SUPA_URL + `/rest/v1/prode_fixtures?fecha=eq.${fecha}`, {
     method: 'DELETE',
     headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + session.access_token}
   });
-
-  if(res.ok) {
+  if (res.ok) {
     st.innerHTML = `<div class="status ok">✅ Fecha ${fecha} borrada.</div>`;
     verFechasCargadas();
   } else {
@@ -427,10 +463,227 @@ async function borrarFecha() {
   }
 }
 
-// Enter en login
-document.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && !session) doLogin();
-});
+// ══════════════════════════════════════════════════════════════════════
+// MUNDIAL 2026
+// ══════════════════════════════════════════════════════════════════════
+
+let partidosMundial = [];
+
+async function buscarPartidosMundial() {
+  const st   = document.getElementById('loadMundialStatus');
+  const prev = document.getElementById('fixtureMundialPreview');
+  const btn  = document.getElementById('loadMundialBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner spinner-gold"></span>Buscando...';
+  st.innerHTML  = '<div class="status info">Consultando ESPN Mundial — próximos 10 días...</div>';
+  prev.innerHTML = '';
+
+  try {
+    const desde = new Date();
+    const hasta = new Date(Date.now() + 10*24*60*60*1000);
+    const f1 = desde.toISOString().slice(0,10).replace(/-/g,'');
+    const f2 = hasta.toISOString().slice(0,10).replace(/-/g,'');
+    const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${f1}-${f2}&limit=100`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const events = data.events || [];
+
+    if (!events.length) {
+      st.innerHTML = '<div class="status err">❌ No se encontraron partidos del Mundial.</div>';
+      btn.disabled = false; btn.textContent = 'Buscar partidos Mundial ESPN';
+      return;
+    }
+
+    partidosMundial = events;
+    st.innerHTML = `<div class="status ok" style="border-color:rgba(255,214,0,0.3);color:var(--gold)">✅ ${events.length} partidos del Mundial encontrados.</div>`;
+    prev.innerHTML = renderCheckListMundial(events);
+  } catch(e) {
+    st.innerHTML = `<div class="status err">❌ Error: ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Buscar partidos Mundial ESPN';
+}
+
+function renderCheckListMundial(events) {
+  return `
+    <div style="margin-top:12px">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-gold" style="font-size:12px;padding:5px 12px" onclick="selAll('mchk',${events.length},true)">Seleccionar todos</button>
+        <button class="btn" style="font-size:12px;padding:5px 12px;border:1px solid var(--border);color:var(--muted2)" onclick="selAll('mchk',${events.length},false)">Deseleccionar todos</button>
+      </div>
+      <div class="fixture-list" id="mchkList">
+        ${events.map((e,i) => {
+          const comp = e.competitions?.[0];
+          const home = comp?.competitors?.find(t => t.homeAway === 'home');
+          const away = comp?.competitors?.find(t => t.homeAway === 'away');
+          const dateStr = new Date(e.date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+          return `<div class="fixture-row" style="cursor:pointer" onclick="toggleCheck('mchk',${i})">
+            <input type="checkbox" id="mchk-${i}" checked style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">
+            <div class="fixture-teams">
+              <img src="${home?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+              <span>${home?.team?.displayName||'?'}</span>
+              <span style="color:var(--muted2);padding:0 6px">vs</span>
+              <img src="${away?.team?.logo||''}" onerror="this.style.display='none'" style="width:22px;height:22px;object-fit:contain">
+              <span>${away?.team?.displayName||'?'}</span>
+            </div>
+            <div class="fixture-date">${dateStr}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="form-group">
+          <label>Número de fecha</label>
+          <input type="number" id="fechaMundialNum" value="1" min="1" max="50">
+        </div>
+        <button class="btn btn-gold" style="margin-top:18px" onclick="guardarSeleccionMundial()">Guardar selección →</button>
+      </div>
+    </div>`;
+}
+
+async function guardarSeleccionMundial() {
+  const fecha = parseInt(document.getElementById('fechaMundialNum').value);
+  const st    = document.getElementById('loadMundialStatus');
+
+  const seleccionados = partidosMundial.filter((_,i) => {
+    const chk = document.getElementById('mchk-' + i);
+    return chk && chk.checked;
+  });
+
+  if (!seleccionados.length) {
+    st.innerHTML = '<div class="status err">❌ Seleccioná al menos un partido.</div>'; return;
+  }
+
+  st.innerHTML = `<div class="status info"><span class="spinner spinner-gold"></span>Guardando ${seleccionados.length} partidos del Mundial...</div>`;
+
+  const rows = seleccionados.map(e => {
+    const comp = e.competitions?.[0];
+    const home = comp?.competitors?.find(t => t.homeAway === 'home');
+    const away = comp?.competitors?.find(t => t.homeAway === 'away');
+    return {
+      fecha,
+      fixture_id: parseInt(e.id),
+      home_name:  home?.team?.displayName || '?',
+      away_name:  away?.team?.displayName || '?',
+      home_logo:  home?.team?.logo || '',
+      away_logo:  away?.team?.logo || '',
+      match_date: e.date,
+      season: 2026
+    };
+  });
+
+  const saveRes = await fetch(SUPA_URL + '/rest/v1/prode_mundial_fixtures', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + session.access_token,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify(rows)
+  });
+
+  if (saveRes.ok || saveRes.status === 201) {
+    st.innerHTML = `<div class="status ok" style="border-color:rgba(255,214,0,0.3);color:var(--gold)">✅ Fecha ${fecha} del Mundial guardada — ${seleccionados.length} partidos.</div>`;
+    verFechasMundial();
+  } else {
+    const err = await saveRes.text();
+    st.innerHTML = `<div class="status err">❌ Error: ${err}</div>`;
+  }
+}
+
+async function verFechasMundial() {
+  const cont = document.getElementById('fechasMundial');
+  cont.innerHTML = '<div class="status info"><span class="spinner spinner-gold"></span>Cargando...</div>';
+  const res = await fetch(SUPA_URL + '/rest/v1/prode_mundial_fixtures?select=fecha,fixture_id,home_name,away_name,match_date&order=fecha.asc,match_date.asc', {
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (session?.access_token || SUPA_KEY)}
+  });
+  const data = await res.json();
+  if (!data || !data.length) {
+    cont.innerHTML = '<div class="status info">No hay fixtures del Mundial cargados.</div>'; return;
+  }
+  const byFecha = {};
+  data.forEach(f => { if (!byFecha[f.fecha]) byFecha[f.fecha] = []; byFecha[f.fecha].push(f); });
+  cont.innerHTML = Object.entries(byFecha).map(([fecha, items]) => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span class="badge-mundial">🏆 Fecha ${fecha}</span>
+        <span style="font-size:11px;color:var(--muted2)">${items.length} partidos</span>
+      </div>
+      <div class="fixture-list">
+        ${items.map(f => `
+          <div class="fixture-row">
+            <span>${f.home_name} vs ${f.away_name}</span>
+            <span class="fixture-date">${new Date(f.match_date).toLocaleString('es-AR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function cargarPartidosMundialResultado() {
+  const fecha = parseInt(document.getElementById('resultadoMundialNum').value);
+  const lista = document.getElementById('resultadosMundialLista');
+  const st    = document.getElementById('resultadosMundialStatus');
+  lista.innerHTML = '<div class="status info">Cargando...</div>';
+  st.innerHTML = '';
+
+  const res = await fetch(SUPA_URL + '/rest/v1/prode_mundial_fixtures?fecha=eq.' + fecha +
+    '&order=match_date.asc&select=id,fixture_id,home_name,away_name,match_date,home_score,away_score', {
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+  });
+  const rows = await res.json();
+  if (!rows.length) { lista.innerHTML = '<div class="status err">No hay partidos del Mundial para esa fecha.</div>'; return; }
+
+  lista.innerHTML = '<div class="fixture-list" style="margin-top:10px">' +
+    rows.map(r => `
+      <div class="fixture-row" style="gap:10px;flex-wrap:wrap">
+        <span style="flex:1;font-weight:600">${r.home_name} vs ${r.away_name}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" min="0" max="20" value="${r.home_score ?? ''}" placeholder="L"
+            id="mhs_${r.id}" style="width:48px;padding:4px;border-radius:6px;border:1px solid rgba(255,214,0,0.3);background:var(--card);color:var(--txt);text-align:center;font-size:16px;font-weight:700">
+          <span style="font-weight:700">-</span>
+          <input type="number" min="0" max="20" value="${r.away_score ?? ''}" placeholder="V"
+            id="mas_${r.id}" style="width:48px;padding:4px;border-radius:6px;border:1px solid rgba(255,214,0,0.3);background:var(--card);color:var(--txt);text-align:center;font-size:16px;font-weight:700">
+        </div>
+      </div>`).join('') +
+  '</div>' +
+  `<button class="btn btn-gold" style="margin-top:14px;width:100%" onclick="guardarResultadosMundial(${JSON.stringify(rows.map(r=>r.id))})">Guardar resultados</button>`;
+}
+
+async function guardarResultadosMundial(ids) {
+  const st = document.getElementById('resultadosMundialStatus');
+  st.innerHTML = '<div class="status info"><span class="spinner spinner-gold"></span>Guardando...</div>';
+  let ok = 0;
+  for (const id of ids) {
+    const hs = document.getElementById('mhs_' + id)?.value;
+    const as = document.getElementById('mas_' + id)?.value;
+    if (hs === '' || as === '') continue;
+    const res = await fetch(SUPA_URL + '/rest/v1/prode_mundial_fixtures?id=eq.' + id, {
+      method: 'PATCH',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+      body: JSON.stringify({home_score: parseInt(hs), away_score: parseInt(as)})
+    });
+    if (res.ok) ok++;
+  }
+  st.innerHTML = ok > 0
+    ? `<div class="status ok" style="border-color:rgba(255,214,0,0.3);color:var(--gold)">✅ ${ok} resultado(s) del Mundial guardado(s).</div>`
+    : `<div class="status err">❌ Error al guardar.</div>`;
+}
+
+async function borrarFechaMundial() {
+  const fecha = parseInt(document.getElementById('borrarMundialNum').value);
+  if (!confirm(`¿Seguro que querés borrar todos los partidos de la Fecha ${fecha} del Mundial?`)) return;
+  const st = document.getElementById('borrarMundialStatus');
+  st.innerHTML = '<div class="status info"><span class="spinner spinner-gold"></span>Borrando...</div>';
+  const res = await fetch(SUPA_URL + `/rest/v1/prode_mundial_fixtures?fecha=eq.${fecha}`, {
+    method: 'DELETE',
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + session.access_token}
+  });
+  if (res.ok) {
+    st.innerHTML = `<div class="status ok" style="border-color:rgba(255,214,0,0.3);color:var(--gold)">✅ Fecha ${fecha} del Mundial borrada.</div>`;
+    verFechasMundial();
+  } else {
+    st.innerHTML = `<div class="status err">❌ Error al borrar.</div>`;
+  }
+}
 </script>
 </body>
 </html>
