@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prode Mundial 2026 - FutbolPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2982557410383848" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;--bg2:#0c1018;--bg3:#111827;
+  --card:#0f1520;--card2:#141e2d;--card3:#1a2540;
+  --green:#00e676;--gold:#ffd600;--blue:#00b0ff;
+  --red:#f44336;--orange:#ff6d00;
+  --border:rgba(255,255,255,0.06);
+  --txt:#e8f0fe;--muted:#546e7a;--muted2:#78909c;
+}
+body{background:var(--bg);color:var(--txt);font-family:'Barlow',sans-serif;min-height:100vh}
+
+/* HEADER */
+.header{background:rgba(7,9,15,0.97);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green);text-decoration:none}
+.logo span{color:var(--blue)}
+.badge-mundial{background:rgba(255,214,0,0.15);color:var(--gold);border:1px solid rgba(255,214,0,0.3);border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700}
+.back-btn{margin-left:auto;font-size:12px;color:var(--muted2);background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Barlow',sans-serif;text-decoration:none;display:flex;align-items:center;gap:6px}
+.back-btn:hover{color:var(--txt);border-color:rgba(255,255,255,0.15)}
+
+/* WRAP */
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px}
+
+/* HERO */
+.hero{
+  background:linear-gradient(135deg,#1a1400,#0d1000);
+  border:1px solid rgba(255,214,0,0.3);
+  border-radius:14px;padding:24px;margin-bottom:20px;text-align:center;
+}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;color:var(--gold);letter-spacing:-1px;margin-bottom:4px}
+.hero-sub{font-size:13px;color:var(--muted2);margin-bottom:14px}
+.host-badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.host-badge{background:var(--card2);border:1px solid rgba(255,214,0,0.2);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--gold)}
+
+/* AUTH */
+.auth-wrap{background:linear-gradient(135deg,var(--card2),var(--card3));border:1px solid rgba(0,230,118,0.2);border-radius:12px;padding:24px;margin-bottom:16px;text-align:center}
+.auth-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted2);margin-bottom:18px}
+.auth-tabs{display:flex;gap:0;background:var(--bg3);border-radius:8px;padding:3px;margin-bottom:18px}
+.auth-tab{flex:1;padding:8px;border-radius:6px;border:none;background:transparent;color:var(--muted2);font-size:13px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.auth-tab.active{background:var(--card);color:var(--green)}
+.auth-form{display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto}
+.auth-input{padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:14px;font-family:'Barlow',sans-serif;transition:border-color .2s;outline:none}
+.auth-input:focus{border-color:var(--green)}
+.auth-input::placeholder{color:var(--muted)}
+.auth-btn{padding:11px;background:var(--green);color:#030a05;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:opacity .2s}
+.auth-btn:hover{opacity:.9}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{font-size:12px;color:var(--red);text-align:center}
+.auth-ok{font-size:12px;color:var(--green);text-align:center}
+
+/* USER BAR */
+.user-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.user-info{display:flex;align-items:center;gap:10px}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:rgba(0,230,118,0.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--green);flex-shrink:0}
+.user-name{font-size:13px;font-weight:600}
+.user-pts{font-size:11px;color:var(--muted2)}
+.logout-btn{font-size:11px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:'Barlow',sans-serif;padding:4px 8px;border-radius:4px}
+.logout-btn:hover{color:var(--red)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:7px 16px;border-radius:50px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.tab.active{background:rgba(255,214,0,0.1);border-color:var(--gold);color:var(--gold)}
+
+/* FECHA LABEL */
+.fecha-label{background:rgba(255,214,0,0.08);border:1px solid rgba(255,214,0,0.2);border-radius:8px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.fecha-label-txt{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--gold)}
+.fecha-label-sub{font-size:11px;color:var(--muted2)}
+
+/* PRODE GRID */
+.prode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+@media(max-width:600px){.prode-grid{grid-template-columns:1fr}}
+
+.prode-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;transition:border-color .2s}
+.prode-card.selected{border-color:rgba(255,214,0,0.3)}
+.prode-card.locked{opacity:.65}
+
+.match-date{font-size:10px;color:var(--muted2);text-align:center;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.match-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:6px}
+.match-team{text-align:center;flex:1}
+.match-team-logo{width:36px;height:36px;border-radius:50%;object-fit:contain;background:rgba(255,255,255,0.04);margin:0 auto 4px;display:block}
+.match-team-logo-fb{width:36px;height:36px;border-radius:50%;background:var(--card3);margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted2)}
+.match-team-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.match-vs{font-size:11px;color:var(--muted);flex-shrink:0;font-weight:700}
+
+.score-wrap{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:6px}
+.score-input{width:42px;height:42px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--txt);font-size:22px;font-weight:700;text-align:center;font-family:'Barlow Condensed',sans-serif;-moz-appearance:textfield;outline:none;transition:border-color .2s}
+.score-input::-webkit-inner-spin-button,.score-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.score-input:focus{border-color:var(--gold)}
+.score-input.filled{border-color:rgba(255,214,0,0.4);background:rgba(255,214,0,0.06)}
+.score-input:disabled{opacity:.5;cursor:not-allowed}
+.score-sep{font-size:18px;font-weight:700;color:var(--muted2)}
+.lock-badge{font-size:10px;color:var(--red);text-align:center;margin-top:4px;font-weight:700}
+
+/* RESULTADO BADGE */
+.result-ok{font-size:10px;font-weight:700;text-align:center;margin-top:6px;padding:2px 0;border-radius:4px;color:var(--green);background:rgba(0,230,118,0.1)}
+.result-fail{font-size:10px;font-weight:700;text-align:center;margin-top:6px;padding:2px 0;border-radius:4px;color:var(--red);background:rgba(244,67,54,0.1)}
+.result-partial{font-size:10px;font-weight:700;text-align:center;margin-top:6px;padding:2px 0;border-radius:4px;color:var(--gold);background:rgba(255,214,0,0.1)}
+
+/* SUBMIT BAR */
+.submit-bar{
+  position:sticky;bottom:0;z-index:100;
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:16px -16px -20px;
+}
+@media(max-width:600px){
+  .submit-bar{position:fixed;bottom:0;left:0;right:0;margin:0;z-index:999;border-top:1px solid rgba(255,214,0,0.25)}
+}
+.submit-count{font-size:13px;color:var(--muted2)}
+.submit-count strong{color:var(--txt)}
+.submit-btn{padding:10px 28px;background:var(--gold);color:#1a1400;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed}
+.submit-btn:not(:disabled):hover{opacity:.9;transform:scale(1.02)}
+
+/* RANKING */
+.ranking-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--card);border-radius:8px;margin-bottom:4px;border:1px solid var(--border)}
+.ranking-row.me{border-color:var(--gold);background:rgba(255,214,0,0.04)}
+.rank-pos{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--muted);width:22px;text-align:center}
+.rank-pos.p1{color:var(--gold)}
+.rank-pos.p2{color:#90a4ae}
+.rank-pos.p3{color:#b87333}
+.rank-name{flex:1;font-size:13px;font-weight:600}
+.rank-pts{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--gold)}
+
+/* MIS PRONÓSTICOS */
+.mis-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.mis-teams{font-size:13px;font-weight:600;margin-bottom:6px}
+.mis-row{display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.mis-pred{color:var(--gold);font-weight:700}
+.mis-result{color:var(--muted2)}
+.pts-badge{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700}
+.pts-3{color:var(--green)}
+.pts-1{color:var(--gold)}
+.pts-0{color:var(--muted2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--gold);color:#1a1400;padding:10px 22px;border-radius:50px;font-size:13px;font-weight:700;z-index:9999;transition:transform .4s cubic-bezier(.17,.67,.35,1.2);pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* EMPTY / LOADING */
+.loading-state{text-align:center;padding:30px;color:var(--muted2);font-size:13px}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:24px;color:var(--muted2);font-size:13px;background:var(--card);border-radius:10px;border:1px solid var(--border)}
+
+/* NOTICE */
+.notice{padding:10px 14px;border-radius:10px;margin-bottom:12px;font-size:13px}
+.notice-ok{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);color:var(--green)}
+.notice-lock{background:rgba(244,67,54,0.08);border:1px solid rgba(244,67,54,0.25);color:var(--red)}
+.notice-warn{background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);color:var(--gold)}
+
+/* GROUP BADGE */
+.group-badge{display:inline-block;background:rgba(255,214,0,0.1);color:var(--gold);border:1px solid rgba(255,214,0,0.2);border-radius:6px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">FUTBOL<span>PRO</span></a>
+  <div class="badge-mundial">🏆 MUNDIAL 2026</div>
+  <a href="/" class="back-btn">← Volver</a>
+</header>
+
+<div class="wrap">
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-title">🏆 PRODE MUNDIAL 2026</div>
+    <div class="hero-sub">Pronosticá los partidos del Mundial · ¡Gratis!</div>
+    <div class="host-badges">
+      <span class="host-badge">🇺🇸 Estados Unidos</span>
+      <span class="host-badge">🇨🇦 Canadá</span>
+      <span class="host-badge">🇲🇽 México</span>
+    </div>
+  </div>
+
+  <!-- AUTH / USER BAR -->
+  <div id="authWrap"></div>
+  <div id="userBar" style="display:none"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="setTab('pronosticar',this)">📋 Pronosticar</button>
+    <button class="tab" onclick="setTab('mispronosticos',this)">📊 Mis pronósticos</button>
+    <button class="tab" onclick="setTab('ranking',this)">🏅 Ranking</button>
+  </div>
+
+  <!-- TAB: PRONOSTICAR -->
+  <div id="tab-pronosticar">
+    <div id="matchesContainer">
+      <div class="loading-state"><div class="spinner"></div><br>Cargando partidos...</div>
+    </div>
+    <div class="submit-bar" id="submitBar" style="display:none">
+      <div class="submit-count">Completaste <strong id="pronosticoCount">0</strong> pronósticos</div>
+      <button class="submit-btn" id="submitBtn" onclick="guardarPronosticos()" disabled>Guardar pronósticos</button>
+    </div>
+  </div>
+
+  <!-- TAB: MIS PRONÓSTICOS -->
+  <div id="tab-mispronosticos" style="display:none">
+    <div id="misPronosticosContainer">
+      <div class="empty-state">Iniciá sesión para ver tus pronósticos.</div>
+    </div>
+  </div>
+
+  <!-- TAB: RANKING -->
+  <div id="tab-ranking" style="display:none">
+    <div id="rankingContainer">
+      <div class="loading-state"><div class="spinner"></div><br>Cargando ranking...</div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- ADSENSE FOOTER -->
+<div style="text-align:center;padding:8px 16px;background:var(--bg2);border-top:1px solid var(--border);margin-top:20px">
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2982557410383848" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────
+const SUPA_URL = 'https://pglmteswkjqiruliyfhx.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnbG10ZXN3a2pxaXJ1bGl5Zmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjcyNzEsImV4cCI6MjA5MDY0MzI3MX0.o1jD0tI9N9y1uOZKzHsfxckHRpYnn_LzS_MuW3vfgpw';
+
+// ── STATE ───────────────────────────────────────────────────────────
+let session = JSON.parse(localStorage.getItem('fp_prode_session') || 'null');
+let user    = JSON.parse(localStorage.getItem('fp_prode_user')    || 'null');
+let pronosticos = {};   // { fixture_id: 'H-A' }
+let matches = [];       // partidos cargados
+let currentTab = 'pronosticar';
+
+// ── SUPABASE FETCH ──────────────────────────────────────────────────
+async function supaFetch(path, opts = {}, _retry = false) {
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + (session?.access_token || SUPA_KEY),
+    'Content-Type': 'application/json',
+    ...opts.headers
+  };
+  if (opts.prefer) headers['Prefer'] = opts.prefer;
+  try {
+    const res = await fetch(SUPA_URL + path, {
+      method: opts.method || 'GET',
+      headers,
+      body: opts.body
+    });
+    if (res.status === 204 || res.status === 201) return {};
+    if (res.status === 401 && !_retry && session?.refresh_token) {
+      const ref = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (ref.ok) {
+        const d = await ref.json();
+        if (d.access_token) {
+          session.access_token = d.access_token;
+          session.refresh_token = d.refresh_token;
+          localStorage.setItem('fp_prode_session', JSON.stringify(session));
+          return supaFetch(path, opts, true);
+        }
+      }
+    }
+    const text = await res.text();
+    if (!text || !text.trim()) return {};
+    return JSON.parse(text);
+  } catch (e) {
+    console.warn('[supabase]', path, e.message);
+    return null;
+  }
+}
+
+// ── AUTH ────────────────────────────────────────────────────────────
+function initAuth() {
+  const authWrap = document.getElementById('authWrap');
+  const userBar  = document.getElementById('userBar');
+  if (session && user) {
+    authWrap.style.display = 'none';
+    userBar.style.display  = 'block';
+    const initials = (user.username || user.email || 'U').substring(0, 2).toUpperCase();
+    userBar.innerHTML = `
+      <div class="user-bar">
+        <div class="user-info">
+          <div class="user-avatar">${initials}</div>
+          <div>
+            <div class="user-name">${user.username || user.email}</div>
+            <div class="user-pts" id="userPts">Cargando puntos...</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Cerrar sesión</button>
+      </div>`;
+    loadUserPoints();
+  } else {
+    authWrap.style.display = 'block';
+    userBar.style.display  = 'none';
+    renderAuthForm('login');
+  }
+}
+
+function renderAuthForm(mode) {
+  document.getElementById('authWrap').innerHTML = `
+    <div class="auth-wrap">
+      <div class="auth-title">${mode === 'login' ? '👋 Ingresá al Prode' : '🆕 Creá tu cuenta'}</div>
+      <div class="auth-sub">${mode === 'login' ? 'Usá la misma cuenta de FutbolPro' : 'Registro gratuito · La misma cuenta vale para todo FutbolPro'}</div>
+      <div class="auth-tabs">
+        <button class="auth-tab ${mode === 'login' ? 'active' : ''}" onclick="renderAuthForm('login')">Iniciar sesión</button>
+        <button class="auth-tab ${mode === 'signup' ? 'active' : ''}" onclick="renderAuthForm('signup')">Registrarme</button>
+      </div>
+      <div class="auth-form">
+        ${mode === 'signup' ? `<input class="auth-input" id="authUser" type="text" placeholder="Nombre de usuario" maxlength="20">` : ''}
+        <input class="auth-input" id="authEmail"    type="email"    placeholder="Tu email">
+        <input class="auth-input" id="authPass"     type="password" placeholder="Contraseña (mín. 6 caracteres)">
+        <div id="authMsg"></div>
+        <button class="auth-btn" id="authBtn" onclick="handleAuth('${mode}')">
+          ${mode === 'login' ? 'Ingresar →' : 'Crear cuenta →'}
+        </button>
+      </div>
+    </div>`;
+}
+
+async function handleAuth(mode) {
+  const btn      = document.getElementById('authBtn');
+  const msg      = document.getElementById('authMsg');
+  const email    = document.getElementById('authEmail')?.value?.trim();
+  const password = document.getElementById('authPass')?.value;
+  const username = document.getElementById('authUser')?.value?.trim();
+
+  if (!email || !password) { msg.innerHTML = '<div class="auth-err">Completá email y contraseña.</div>'; return; }
+  if (password.length < 6) { msg.innerHTML = '<div class="auth-err">La contraseña debe tener al menos 6 caracteres.</div>'; return; }
+  if (mode === 'signup' && !username) { msg.innerHTML = '<div class="auth-err">Ingresá un nombre de usuario.</div>'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Procesando...';
+
+  const path = mode === 'signup' ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+  const res  = await fetch(SUPA_URL + path, {
+    method: 'POST',
+    headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+
+  if (data?.access_token) {
+    session = { access_token: data.access_token, refresh_token: data.refresh_token };
+    user    = { id: data.user?.id, email: data.user?.email, username: username || data.user?.email?.split('@')[0] };
+    localStorage.setItem('fp_prode_session', JSON.stringify(session));
+    localStorage.setItem('fp_prode_user',    JSON.stringify(user));
+    if (mode === 'signup') {
+      await supaFetch('/rest/v1/profiles', {
+        method: 'POST', prefer: 'resolution=merge-duplicates',
+        body: JSON.stringify({ id: user.id, username: user.username, email: user.email, puntos_total: 0, aciertos_total: 0 })
+      });
+    }
+    toast(mode === 'login' ? '¡Bienvenido de nuevo! 👋' : '¡Cuenta creada! 🎉');
+    initAuth();
+    loadMatches();
+    loadRanking();
+  } else if (mode === 'signup' && data?.id) {
+    msg.innerHTML = `<div class="auth-ok">✅ Revisá tu email para confirmar, luego ingresá.</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Crear cuenta →';
+  } else {
+    const err = data?.error_description || data?.msg || data?.error || 'Credenciales incorrectas.';
+    msg.innerHTML = `<div class="auth-err">${err}</div>`;
+    btn.disabled = false;
+    btn.textContent = mode === 'login' ? 'Ingresar →' : 'Crear cuenta →';
+  }
+}
+
+function doLogout() {
+  session = null; user = null;
+  localStorage.removeItem('fp_prode_session');
+  localStorage.removeItem('fp_prode_user');
+  pronosticos = {};
+  initAuth();
+  renderGrid();
+  toast('Sesión cerrada');
+}
+
+async function loadUserPoints() {
+  if (!user?.id) return;
+  const data = await supaFetch(`/rest/v1/profiles?id=eq.${user.id}&select=puntos_total,aciertos_total`);
+  const el = document.getElementById('userPts');
+  if (el && data?.[0]) {
+    el.textContent = `${data[0].puntos_total || 0} pts · ${data[0].aciertos_total || 0} aciertos`;
+  } else if (el) {
+    el.textContent = '0 pts · 0 aciertos';
+  }
+}
+
+// ── TABS ────────────────────────────────────────────────────────────
+function setTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['pronosticar', 'mispronosticos', 'ranking'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'ranking') loadRanking();
+  if (tab === 'mispronosticos') loadMisPronosticos();
+}
+
+// ── CARGAR PARTIDOS ─────────────────────────────────────────────────
+async function loadMatches() {
+  const container = document.getElementById('matchesContainer');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><br>Cargando partidos...</div>';
+
+  // Leer de Supabase — toma la fecha activa más próxima
+  let fixtures = [];
+  try {
+    const rows = await supaFetch('/rest/v1/prode_mundial_fixtures?order=match_date.asc&limit=100');
+    if (Array.isArray(rows) && rows.length) {
+      const fechaActiva = rows[0].fecha;
+      const deEstaFecha = rows.filter(r => r.fecha === fechaActiva);
+      fixtures = deEstaFecha;
+      window._fechaActiva = fechaActiva;
+    }
+  } catch (e) { console.warn('[Supabase fixtures]', e.message); }
+
+  // Fallback ESPN si Supabase no tiene nada
+  if (!fixtures.length) {
+    try {
+      const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${today}`);
+      const data = await res.json();
+      if (data?.events?.length) {
+        fixtures = data.events.map(e => {
+          const comp = e.competitions?.[0];
+          const home = comp?.competitors?.find(t => t.homeAway === 'home');
+          const away = comp?.competitors?.find(t => t.homeAway === 'away');
+          return {
+            fixture_id: parseInt(e.id),
+            home_name: home?.team?.displayName || '?',
+            away_name: away?.team?.displayName || '?',
+            home_logo: home?.team?.logo || '',
+            away_logo: away?.team?.logo || '',
+            match_date: e.date,
+            home_score: null,
+            away_score: null,
+          };
+        });
+        window._fechaActiva = null;
+      }
+    } catch (e) { console.warn('[ESPN fallback]', e.message); }
+  }
+
+  if (!fixtures.length) {
+    container.innerHTML = '<div class="empty-state">No hay partidos cargados todavía. Volvé más tarde.</div>';
+    return;
+  }
+
+  matches = fixtures;
+
+  // Sincronizar scores reales desde ESPN para los partidos cargados
+  await syncScoresFromESPN();
+
+  // Cargar pronósticos previos del usuario
+  if (session && user) await loadPrevios();
+
+  renderGrid();
+}
+
+// Sincroniza scores desde ESPN para mostrar resultados en tiempo real
+async function syncScoresFromESPN() {
+  if (!matches.length) return;
+  try {
+    const ids = matches.map(m => m.fixture_id).join(',');
+    // Buscar en ESPN por fixture_id
+    const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard`);
+    const data = await res.json();
+    if (!data?.events) return;
+    data.events.forEach(e => {
+      const fid = parseInt(e.id);
+      const m = matches.find(x => x.fixture_id === fid);
+      if (!m) return;
+      const comp = e.competitions?.[0];
+      const home = comp?.competitors?.find(t => t.homeAway === 'home');
+      const away = comp?.competitors?.find(t => t.homeAway === 'away');
+      const state = e.status?.type?.state;
+      if (state === 'post' || state === 'in') {
+        m._liveHome = parseInt(home?.score ?? 0);
+        m._liveAway = parseInt(away?.score ?? 0);
+        m._state = state; // 'in' = en vivo, 'post' = finalizado
+        m._clock = e.status?.displayClock || '';
+      }
+    });
+  } catch (e) { /* silencioso */ }
+}
+
+async function loadPrevios() {
+  if (!user?.id || !matches.length) return;
+  const ids = matches.map(m => m.fixture_id).join(',');
+  const data = await supaFetch(`/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&fixture_id=in.(${ids})&select=fixture_id,pronostico,resultado,puntos`);
+  if (Array.isArray(data)) {
+    data.forEach(p => { pronosticos[String(p.fixture_id)] = p.pronostico; });
+  }
+}
+
+// ── RENDER GRID ─────────────────────────────────────────────────────
+function isLocked(m) {
+  const kickoff = new Date(m.match_date).getTime();
+  return Date.now() >= kickoff - 20 * 60 * 1000;
+}
+
+function renderGrid() {
+  const container = document.getElementById('matchesContainer');
+  const submitBar = document.getElementById('submitBar');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!matches.length) return;
+
+  const allLocked = matches.every(m => isLocked(m));
+  const hayAbiertos = matches.some(m => !isLocked(m));
+
+  // Notice
+  let notice = '';
+  if (allLocked) {
+    notice = `<div class="notice notice-lock">🔒 El prode está cerrado — los pronósticos cierran 20 minutos antes de cada partido.</div>`;
+  } else {
+    const next = [...matches].filter(m => !isLocked(m)).sort((a,b) => new Date(a.match_date)-new Date(b.match_date))[0];
+    if (next) {
+      const mins = Math.round((new Date(next.match_date).getTime() - 20*60*1000 - Date.now()) / 60000);
+      if (mins > 0 && mins <= 120) {
+        notice = `<div class="notice notice-warn">⏰ El prode cierra en ${mins} minutos</div>`;
+      }
+    }
+  }
+
+  // Fecha label
+  const fechaLabel = window._fechaActiva
+    ? `<div class="fecha-label"><span class="fecha-label-txt">⚽ Fecha ${window._fechaActiva} del Mundial</span><span class="fecha-label-sub">${matches.length} partido${matches.length !== 1 ? 's' : ''}</span></div>`
+    : '';
+
+  const cards = matches.map(m => {
+    const fid = String(m.fixture_id);
+    const sel = pronosticos[fid];
+    const locked = isLocked(m);
+
+    // Estado del partido
+    const hasResult = m.home_score !== null && m.away_score !== null;
+    const isLive = m._state === 'in';
+    const isFT   = m._state === 'post' || hasResult;
+    const scoreH = isLive || isFT ? (m._liveHome ?? m.home_score) : null;
+    const scoreA = isLive || isFT ? (m._liveAway ?? m.away_score) : null;
+
+    // Badge resultado
+    let resultBadge = '';
+    if (sel && (isFT || hasResult) && scoreH !== null) {
+      const predH = parseInt(sel.split('-')[0]);
+      const predA = parseInt(sel.split('-')[1]);
+      const realH = scoreH, realA = scoreA;
+      if (predH === realH && predA === realA) {
+        resultBadge = `<div class="result-ok">✅ +3 pts — Resultado exacto</div>`;
+      } else {
+        const predWin = predH > predA ? 'H' : predH < predA ? 'A' : 'X';
+        const realWin = realH > realA ? 'H' : realH < realA ? 'A' : 'X';
+        if (predWin === realWin) {
+          resultBadge = `<div class="result-partial">⚡ +1 pt — Ganador correcto</div>`;
+        } else {
+          resultBadge = `<div class="result-fail">❌ Sin puntos</div>`;
+        }
+      }
+    }
+
+    const dateStr = new Date(m.match_date).toLocaleString('es-AR', {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Argentina/Buenos_Aires'
+    });
+
+    const logoH = m.home_logo
+      ? `<img class="match-team-logo" src="${m.home_logo}" onerror="this.style.display='none'">`
+      : `<div class="match-team-logo-fb">${m.home_name.substring(0,2).toUpperCase()}</div>`;
+    const logoA = m.away_logo
+      ? `<img class="match-team-logo" src="${m.away_logo}" onerror="this.style.display='none'">`
+      : `<div class="match-team-logo-fb">${m.away_name.substring(0,2).toUpperCase()}</div>`;
+
+    // Mostrar score en vivo o resultado final
+    let centerInfo = '';
+    if (isLive) {
+      centerInfo = `<div style="text-align:center;margin-top:4px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--red)">${scoreH} - ${scoreA}</span><br><span style="font-size:9px;color:var(--red);font-weight:700;animation:none">🔴 EN VIVO</span></div>`;
+    } else if (isFT && scoreH !== null) {
+      centerInfo = `<div style="text-align:center;margin-top:4px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--muted2)">${scoreH} - ${scoreA}</span><br><span style="font-size:9px;color:var(--muted)">FINAL</span></div>`;
+    }
+
+    return `<div class="prode-card ${sel ? 'selected' : ''} ${locked ? 'locked' : ''}">
+      <div class="match-date">${dateStr}</div>
+      <div class="match-teams">
+        <div class="match-team">${logoH}<div class="match-team-name">${m.home_name}</div></div>
+        <div class="match-vs">VS</div>
+        <div class="match-team">${logoA}<div class="match-team-name">${m.away_name}</div></div>
+      </div>
+      ${centerInfo}
+      <div class="score-wrap">
+        <input type="number" min="0" max="9" class="score-input ${sel ? 'filled' : ''}"
+          id="sh-${fid}" value="${sel ? sel.split('-')[0] : ''}"
+          ${locked ? 'disabled' : ''}
+          oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateScore(${fid})"
+          onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateScore(${fid})"
+          placeholder="-">
+        <span class="score-sep">-</span>
+        <input type="number" min="0" max="9" class="score-input ${sel ? 'filled' : ''}"
+          id="sa-${fid}" value="${sel ? sel.split('-')[1] : ''}"
+          ${locked ? 'disabled' : ''}
+          oninput="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateScore(${fid})"
+          onchange="this.value=Math.min(9,Math.max(0,parseInt(this.value)||0));updateScore(${fid})"
+          placeholder="-">
+      </div>
+      ${locked && !sel ? '<div class="lock-badge">🔒 Cerrado</div>' : ''}
+      ${resultBadge}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = notice + fechaLabel + `<div class="prode-grid">${cards}</div>`;
+
+  // Submit bar
+  const count = Object.keys(pronosticos).length;
+  if (submitBar) {
+    submitBar.style.display = hayAbiertos ? 'flex' : 'none';
+    document.getElementById('pronosticoCount').textContent = count;
+    if (submitBtn) {
+      submitBtn.disabled = count === 0 || !session;
+      submitBtn.textContent = !session ? 'Ingresá para guardar' : 'Guardar pronósticos';
+    }
+  }
+}
+
+function updateScore(fixtureId) {
+  fixtureId = String(fixtureId);
+  const h = document.getElementById('sh-' + fixtureId);
+  const a = document.getElementById('sa-' + fixtureId);
+  if (!h || !a) return;
+  if (h.value !== '' && a.value !== '') {
+    pronosticos[fixtureId] = h.value + '-' + a.value;
+    [h, a].forEach(i => i.classList.add('filled'));
+    const card = h.closest('.prode-card');
+    if (card) card.classList.add('selected');
+  } else {
+    delete pronosticos[fixtureId];
+    [h, a].forEach(i => i.classList.remove('filled'));
+  }
+  const count = Object.keys(pronosticos).length;
+  document.getElementById('pronosticoCount').textContent = count;
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = count === 0 || !session;
+  }
+}
+
+// ── GUARDAR PRONÓSTICOS ─────────────────────────────────────────────
+async function guardarPronosticos() {
+  if (!session || !user?.id) { toast('Ingresá para guardar'); return; }
+
+  const validos = Object.entries(pronosticos).filter(([,v]) => v && v.includes('-'));
+  if (!validos.length) { toast('Completá al menos un marcador'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  let ok = 0, err = 0;
+  for (const [fixture_id, pronostico] of validos) {
+    // PATCH primero (si ya existe)
+    const patch = await supaFetch(
+      `/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&fixture_id=eq.${fixture_id}`,
+      { method: 'PATCH', prefer: 'return=minimal',
+        body: JSON.stringify({ pronostico, updated_at: new Date().toISOString() }) }
+    );
+    // Verificar si existía
+    const exists = await supaFetch(
+      `/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&fixture_id=eq.${fixture_id}&select=fixture_id`
+    );
+    if (!exists || !Array.isArray(exists) || !exists.length) {
+      const post = await supaFetch('/rest/v1/prode_mundial_pronosticos', {
+        method: 'POST', prefer: 'return=minimal',
+        body: JSON.stringify([{
+          user_id: user.id,
+          fixture_id: parseInt(fixture_id),
+          pronostico,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+      });
+      post === null ? err++ : ok++;
+    } else {
+      ok++;
+    }
+  }
+
+  if (ok > 0) {
+    toast('✅ Pronósticos guardados. ¡Buena suerte!');
+    renderGrid();
+    calcularPuntos();
+  } else {
+    toast('❌ Error al guardar. Intentá de nuevo.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Guardar pronósticos';
+}
+
+// ── CALCULAR PUNTOS ─────────────────────────────────────────────────
+async function calcularPuntos() {
+  if (!session || !user?.id || !matches.length) return;
+  try {
+    const ids = matches.map(m => m.fixture_id).join(',');
+    // Fixtures con resultado en Supabase
+    const fixtures = await supaFetch(
+      `/rest/v1/prode_mundial_fixtures?fixture_id=in.(${ids})&select=fixture_id,home_score,away_score`
+    );
+    if (!Array.isArray(fixtures) || !fixtures.length) return;
+    const conResultado = fixtures.filter(f => f.home_score !== null && f.away_score !== null);
+    if (!conResultado.length) return;
+
+    // Pronósticos no sumados
+    const prons = await supaFetch(
+      `/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&fixture_id=in.(${ids})&sumado=eq.false&select=fixture_id,pronostico`
+    );
+    if (!Array.isArray(prons) || !prons.length) return;
+
+    let totalNuevo = 0, aciertosNuevos = 0;
+    for (const f of conResultado) {
+      const row = prons.find(p => String(p.fixture_id) === String(f.fixture_id));
+      if (!row || !row.pronostico?.includes('-')) continue;
+      const [predH, predA] = row.pronostico.split('-').map(Number);
+      const realH = f.home_score, realA = f.away_score;
+      let puntos = 0;
+      if (predH === realH && predA === realA) { puntos = 3; }
+      else {
+        const pw = predH > predA ? 'H' : predH < predA ? 'A' : 'X';
+        const rw = realH > realA ? 'H' : realH < realA ? 'A' : 'X';
+        if (pw === rw) puntos = 1;
+      }
+      await supaFetch(
+        `/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&fixture_id=eq.${f.fixture_id}`,
+        { method: 'PATCH',
+          body: JSON.stringify({ resultado: realH+'-'+realA, puntos, sumado: true, updated_at: new Date().toISOString() }) }
+      );
+      totalNuevo += puntos;
+      if (puntos > 0) aciertosNuevos++;
+    }
+    if (totalNuevo > 0) {
+      const perfil = await supaFetch(`/rest/v1/profiles?id=eq.${user.id}&select=puntos_total,aciertos_total`);
+      const pts = perfil?.[0]?.puntos_total || 0;
+      const aci = perfil?.[0]?.aciertos_total || 0;
+      await supaFetch(`/rest/v1/profiles?id=eq.${user.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ puntos_total: pts + totalNuevo, aciertos_total: aci + aciertosNuevos })
+      });
+      loadUserPoints();
+    }
+  } catch (e) { console.warn('[calcularPuntos]', e.message); }
+}
+
+// ── MIS PRONÓSTICOS ─────────────────────────────────────────────────
+async function loadMisPronosticos() {
+  const container = document.getElementById('misPronosticosContainer');
+  if (!session || !user?.id) {
+    container.innerHTML = '<div class="empty-state">Iniciá sesión para ver tus pronósticos.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><br>Cargando...</div>';
+
+  // Traer todos los pronósticos del usuario con su fixture
+  const prons = await supaFetch(
+    `/rest/v1/prode_mundial_pronosticos?user_id=eq.${user.id}&order=created_at.desc&select=fixture_id,pronostico,resultado,puntos,sumado`
+  );
+  const fixtures = await supaFetch('/rest/v1/prode_mundial_fixtures?order=match_date.asc&select=fixture_id,home_name,away_name,match_date,fecha');
+
+  if (!Array.isArray(prons) || !prons.length) {
+    container.innerHTML = '<div class="empty-state">Todavía no tenés pronósticos guardados.</div>';
+    return;
+  }
+
+  const fixtureMap = {};
+  if (Array.isArray(fixtures)) fixtures.forEach(f => { fixtureMap[String(f.fixture_id)] = f; });
+
+  const total = prons.reduce((s, p) => s + (p.puntos || 0), 0);
+  const aciertos = prons.filter(p => p.sumado && p.puntos > 0).length;
+
+  container.innerHTML = `
+    <div style="background:rgba(255,214,0,0.06);border:1px solid rgba(255,214,0,0.2);border-radius:10px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+      <div style="text-align:center;flex:1"><div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--gold)">${total}</div><div style="font-size:11px;color:var(--muted2)">PUNTOS</div></div>
+      <div style="text-align:center;flex:1"><div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--green)">${aciertos}</div><div style="font-size:11px;color:var(--muted2)">ACIERTOS</div></div>
+      <div style="text-align:center;flex:1"><div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--txt)">${prons.length}</div><div style="font-size:11px;color:var(--muted2)">PRONÓSTICOS</div></div>
+    </div>
+    ${prons.map(p => {
+      const f = fixtureMap[String(p.fixture_id)];
+      const name = f ? `${f.home_name} vs ${f.away_name}` : `Partido #${p.fixture_id}`;
+      const fecha = f ? `Fecha ${f.fecha}` : '';
+      const ptsClass = p.sumado ? (p.puntos === 3 ? 'pts-3' : p.puntos === 1 ? 'pts-1' : 'pts-0') : '';
+      const ptsLabel = p.sumado ? `${p.puntos} pts` : '—';
+      return `<div class="mis-card">
+        <div class="mis-teams">${name} <span style="font-size:10px;color:var(--muted2)">${fecha}</span></div>
+        <div class="mis-row">
+          <span>Mi pronóstico: <span class="mis-pred">${p.pronostico}</span></span>
+          ${p.resultado ? `<span class="mis-result">Resultado: ${p.resultado}</span>` : '<span class="mis-result">Pendiente</span>'}
+          <span class="pts-badge ${ptsClass}">${ptsLabel}</span>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── RANKING ─────────────────────────────────────────────────────────
+async function loadRanking() {
+  const container = document.getElementById('rankingContainer');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><br>Cargando ranking...</div>';
+
+  // Usamos la tabla profiles (misma que el prode local) — puntos acumulados de ambos prodes
+  // Si en el futuro se quiere separar, se puede crear una tabla profiles_mundial
+  const data = await supaFetch(
+    '/rest/v1/profiles?order=puntos_total.desc&limit=30&select=username,puntos_total,aciertos_total'
+  );
+
+  if (!Array.isArray(data) || !data.length) {
+    container.innerHTML = '<div class="empty-state">🏆 El ranking se actualizará cuando haya participantes con pronósticos.</div>';
+    return;
+  }
+
+  container.innerHTML = data.map((u, i) => {
+    const isMe = user && u.username === user.username;
+    const posClass = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : '';
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+    const initials = (u.username || 'U').substring(0, 2).toUpperCase();
+    const bgColor = i === 0 ? 'rgba(255,214,0,0.15)' : i === 1 ? 'rgba(144,164,174,0.15)' : i === 2 ? 'rgba(184,115,51,0.15)' : 'var(--card3)';
+    const txtColor = i === 0 ? 'var(--gold)' : i === 1 ? '#90a4ae' : i === 2 ? '#b87333' : 'var(--muted2)';
+    return `<div class="ranking-row ${isMe ? 'me' : ''}">
+      <div class="rank-pos ${posClass}">${medal || (i + 1)}</div>
+      <div style="width:34px;height:34px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${txtColor};flex-shrink:0">${initials}</div>
+      <div class="rank-name">${u.username || 'Anónimo'} ${isMe ? '<span style="font-size:10px;color:var(--green)">(vos)</span>' : ''}</div>
+      <div style="font-size:11px;color:var(--muted2);margin-right:8px">${u.aciertos_total || 0} aciertos</div>
+      <div class="rank-pts">${u.puntos_total || 0}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+initAuth();
+loadMatches();
+loadRanking();
+
+// Auto-refresh ranking cada 2 minutos
+setInterval(() => { if (currentTab === 'ranking') loadRanking(); }, 2 * 60 * 1000);
+// Auto-refresh partidos cada 60s si hay partidos en vivo
+setInterval(async () => {
+  if (currentTab === 'pronosticar' && matches.some(m => m._state === 'in')) {
+    await syncScoresFromESPN();
+    renderGrid();
+  }
+}, 60 * 1000);
+</script>
+</body>
+</html>
