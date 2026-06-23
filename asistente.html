@@ -260,16 +260,21 @@ async function callAI(userText) {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
       system: SYSTEM,
-      messages: msgs
+      messages: msgs,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }]
     })
   });
   const data = await res.json();
-  if(!data.content?.[0]?.text) {
+  // Con web search, la respuesta trae varios bloques. Juntamos todos los de texto.
+  const textBlocks = Array.isArray(data.content)
+    ? data.content.filter(b => b.type === 'text').map(b => b.text).filter(Boolean)
+    : [];
+  if(textBlocks.length === 0) {
     const errInfo = JSON.stringify(data).substring(0, 250);
     console.warn('[ASISTENTE ERROR]', errInfo);
     if(statusEl) { statusEl.textContent = '⚠️ ' + errInfo; setTimeout(()=>{ statusEl.textContent=''; }, 10000); }
   }
-  let reply = data.content?.[0]?.text || 'Perdón, no pude procesar eso. ¿Lo intentás de nuevo?';
+  let reply = textBlocks.join('\n\n') || 'Perdón, no pude procesar eso. ¿Lo intentás de nuevo?';
   history.push({ role: 'assistant', content: reply });
   return reply;
 }
