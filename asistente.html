@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Asistente</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Asistente">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3CradialGradient id='hg' cx='50%25' cy='40%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%2360B8F5'/%3E%3Cstop offset='100%25' stop-color='%231A7FD4'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='%23EEF4FF'/%3E%3Ccircle cx='50' cy='50' r='30' fill='url(%23hg)'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-light: #EEF2FF;
+    --primary-mid: #A5B4FC;
+    --primary-dark: #3730A3;
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --text: #1E293B;
+    --text-muted: #94A3B8;
+    --border: rgba(79,70,229,0.16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* HEADER */
+  #header {
+    background: var(--primary);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(55,48,163,0.18);
+  }
+  .avatar {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  .header-info h1 { color: #fff; font-size: 19px; font-weight: 600; }
+  .header-info p { color: var(--primary-mid); font-size: 13px; font-weight: 400; }
+  .clear-btn {
+    margin-left: auto;
+    background: rgba(255,255,255,0.15);
+    border: none; border-radius: 50%;
+    width: 38px; height: 38px;
+    color: white; font-size: 17px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* CHAT */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+  .msg { display: flex; flex-direction: column; max-width: 88%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.ai { align-self: flex-start; align-items: flex-start; }
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .msg.user .bubble {
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 5px;
+  }
+  .msg.ai .bubble {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 2px 8px rgba(79,70,229,0.07);
+  }
+  .msg-footer {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 5px; padding: 0 4px;
+  }
+  .timestamp { font-size: 11px; color: var(--text-muted); }
+
+  /* TYPING */
+  .typing-bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+    padding: 14px 18px;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--primary-mid);
+    animation: blink 1.3s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+
+  /* FOOTER */
+  #footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 14px 16px;
+    flex-shrink: 0;
+  }
+  #input-row { display: flex; gap: 10px; align-items: flex-end; }
+  #input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 11px 16px;
+    font-size: 16px;
+    font-family: 'Inter', system-ui, sans-serif;
+    resize: none;
+    outline: none;
+    min-height: 46px;
+    max-height: 130px;
+    overflow-y: auto;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  #input:focus { border-color: var(--primary); }
+  #send-btn {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  #send-btn:hover { background: var(--primary-dark); }
+  #send-btn:disabled { background: #CBD5E1; cursor: default; }
+  #send-btn svg { width: 20px; height: 20px; fill: white; }
+  #status {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 14px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="avatar">🔵</div>
+  <div class="header-info">
+    <h1>Asistente</h1>
+    <p>Preguntá lo que quieras</p>
+  </div>
+  <button class="clear-btn" onclick="clearChat()" title="Nueva conversación">🗑</button>
+</div>
+
+<div id="chat"></div>
+
+<div id="footer">
+  <div id="input-row">
+    <textarea id="input" placeholder="Escribí tu consulta..." rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send-btn');
+const statusEl = document.getElementById('status');
+
+let history = [];
+let isThinking = false;
+
+const SYSTEM = `Sos un asistente virtual útil, claro y directo. Respondés consultas de todo tipo en español rioplatense (Argentina), tratando de vos al usuario.
+
+QUIÉN ES EL USUARIO:
+Es Maxi (Maximiliano Calderón), de Mendoza, Argentina.
+- Trabajo: Gerente de Personal en Millán S.A. (Átomo Supermercados), grupo de retail grande en Cuyo. Se ocupa de RRHH, liquidación de sueldos y cumplimiento de derecho laboral (LCT, RIFL, F931). Hace 14 años en la empresa.
+- Proyectos: desarrolla FutbolPro (sitio deportivo con backend en Supabase), tiene un side business de servicios de gestión administrativa para pymes, y trabaja en el proyecto Billetera Átomo (billetera virtual) para los dueños de Millán.
+- Perfil: analítico, le interesan economía, tecnología, fútbol (táctica), historia y filosofía. Hincha de Boca y de Independiente Rivadavia. Está haciendo un curso de DT.
+
+PAUTAS:
+- Respondé de forma clara y al grano, sin vueltas.
+- Usá el contexto de Maxi cuando sea relevante, sin forzarlo ni repetirlo de más.
+- Si la consulta es ambigua, pedí la aclaración mínima necesaria.
+- No inventes datos. Si no sabés algo con certeza, decilo.
+- Adaptá el largo de la respuesta a la pregunta: cortas para cosas simples, más detalle cuando haga falta.
+- Tono cordial y natural, nunca robótico.`;
+
+function getTime() {
+  return new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+}
+
+function addMessage(text, role) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  div.appendChild(bubble);
+  const footer = document.createElement('div');
+  footer.className = 'msg-footer';
+  const ts = document.createElement('span');
+  ts.className = 'timestamp';
+  ts.textContent = getTime();
+  footer.appendChild(ts);
+  div.appendChild(footer);
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+async function callAI(userText) {
+  history.push({ role: 'user', content: userText });
+  const msgs = history.slice(-20);
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      system: SYSTEM,
+      messages: msgs
+    })
+  });
+  const data = await res.json();
+  if(!data.content?.[0]?.text) {
+    const errInfo = JSON.stringify(data).substring(0, 250);
+    console.warn('[ASISTENTE ERROR]', errInfo);
+    if(statusEl) { statusEl.textContent = '⚠️ ' + errInfo; setTimeout(()=>{ statusEl.textContent=''; }, 10000); }
+  }
+  let reply = data.content?.[0]?.text || 'Perdón, no pude procesar eso. ¿Lo intentás de nuevo?';
+  history.push({ role: 'assistant', content: reply });
+  return reply;
+}
+
+async function sendMessage(text) {
+  const msg = (text || inputEl.value).trim();
+  if (!msg || isThinking) return;
+  inputEl.value = '';
+  autoResize(inputEl);
+  sendBtn.disabled = true;
+  isThinking = true;
+  addMessage(msg, 'user');
+  showTyping();
+  try {
+    const reply = await callAI(msg);
+    removeTyping();
+    addMessage(reply, 'ai');
+  } catch(e) {
+    removeTyping();
+    addMessage('Uy, tuve un problema de conexión. Intentá de nuevo en un momento.', 'ai');
+  }
+  sendBtn.disabled = false;
+  isThinking = false;
+  inputEl.focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 130) + 'px';
+}
+
+function clearChat() {
+  if (history.length && !confirm('¿Empezar una conversación nueva?')) return;
+  history = [];
+  chatEl.innerHTML = '';
+  greet();
+}
+
+function greet() {
+  addMessage('¡Hola! ¿En qué te puedo ayudar?', 'ai');
+}
+
+window.addEventListener('load', greet);
+</script>
+</body>
+</html>
